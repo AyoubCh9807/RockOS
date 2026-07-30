@@ -27,8 +27,9 @@ extern "C" void kernel_main() {
         buffer[current_buffer_index] = '\0';
         Terminal::putchar('\n');
 
-        // TODO: Command parsing logic goes here (e.g., check if buffer == "help")
-        Terminal::print("Unknown command\n> ");
+        // Command parsing logic goes here (e.g., check if buffer == "help")
+
+        Terminal::print(Terminal::parse(buffer));
 
         current_buffer_index = 0;
         buffer[0] = '\0';
