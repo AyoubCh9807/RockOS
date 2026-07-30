@@ -1,0 +1,12 @@
+# object and binary files
+*.o
+*.bin
+
+# ISO images and build directories
+*.iso
+isodir/
+
+# IDE or editor-specific files
+.vscode/
+.idea/
+*.swp
