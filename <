@@ -5,12 +5,12 @@ unsigned char inb(unsigned short port) {
 }
 
 char scancode_to_ascii(unsigned char scancode) {
-  static const char ascii_map[128] = {
-      0,   27,  '1',  '2',  '3',  '4', '5', '6',  '7', '8', '9', '0',
-      '-', '=', '\b', '\t', 'a',  'z', 'e', 'r',  't', 'y', 'u', 'i',
-      'o', 'p', '[',  ']',  '\n', 0,   'q', 's',  'd', 'f', 'g', 'h',
-      'j', 'k', 'l',  ';',  '\'', '`', 0,   '\\', 'w', 'x', 'c', 'v',
-      'b', 'n', 'm',  ',',  '.',  '/', 0,   '*',  0,   ' '};
+  char ascii_map[128] = {0,    27,  '1', '2',  '3',  '4',  '5', '6', '7',  '8',
+                         '9',  '0', '-', '=',  '\b', '\t', 'a', 'z', 'e',  'r',
+                         't',  'y', 'u', 'i',  'o',  'p',  '[', ']', '\n', 0,
+                         'q',  's', 'd', 'f',  'g',  'h',  'j', 'k', 'l',  ';',
+                         '\'', '`', 0,   '\\', 'w',  'x',  'c', 'v', 'b',  'n',
+                         'm',  ',', '.', '/',  0,    '*',  0,   ' '};
 
   if (scancode < 128) {
     return ascii_map[scancode];
@@ -26,9 +26,6 @@ void print_string(const char *str) {
     video_memory[i * 2 + 1] = 0x0F;
     i++;
   }
-
-  video_memory[i * 2] = ' ';
-  video_memory[i * 2 + 1] = 0x0F;
 }
 
 extern "C" void kernel_main() {
@@ -53,11 +50,10 @@ extern "C" void kernel_main() {
     if (inb(confirmation_port) & 1) {
       unsigned char scancode = inb(char_port);
 
-      if (scancode & release_hex)
-        continue;
+      if(scancode & release_hex) continue;
 
-      if (scancode == backspace_hex) {
-        if (current_buffer_index > 0) {
+      if(scancode == backspace_hex) {
+        if(current_buffer_index > 0) {
           buffer[current_buffer_index - 1] = '\0';
           current_buffer_index--;
         }
@@ -66,17 +62,19 @@ extern "C" void kernel_main() {
         continue;
       }
 
+
       if (scancode == special_key_hex) {
         int next_scancode = inb(char_port);
         if (next_scancode & release_hex)
           continue;
 
         if (next_scancode == delete_hex) {
+          // "ADBBD\0"
           buffer[current_buffer_index - 1] = '\0';
           current_buffer_index--;
-          print_string(buffer);
-          continue;
         }
+        print_string(buffer)  ;
+        continue;
       }
 
       char c = scancode_to_ascii(scancode);
@@ -85,9 +83,12 @@ extern "C" void kernel_main() {
           buffer[current_buffer_index] = c;
           current_buffer_index++;
           buffer[current_buffer_index] = '\0';
-          print_string(buffer);
+              print_string(buffer);
+
+
         }
       }
+
     }
 
     // * */

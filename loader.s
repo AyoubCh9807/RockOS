@@ -1,4 +1,3 @@
-ALIGN 4
 MODULE_ALIGN   equ  1<<0             
 MEM_INFO       equ  1<<1             
 FLAGS          equ  MODULE_ALIGN | MEM_INFO  
@@ -17,6 +16,10 @@ extern kernel_main
 
 loader:
     mov esp, stack_space + KERNEL_STACK_SIZE
+    
+    ; mov byte [0xB8000], 'X'
+    ; mov byte [0xB8001], 0x04
+
     call kernel_main
 
 .hang:
