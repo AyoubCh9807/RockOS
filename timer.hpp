@@ -85,6 +85,9 @@ inline char *get_formatted_time() {
   }
 
   char *str;
+  seconds %= 60;
+  minutes %= 60;
+  hours %= 24;
 
   if (minutes == 0) {
     str = String::format("Uptime: %d seconds\n\0", seconds);

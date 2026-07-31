@@ -140,7 +140,7 @@ inline char *format(const char *fmt, ...) {
   // Allocate a safe buffer on the heap for our formatted string
   char *buf = (char *)kmalloc(DEFAULT_BUFFER_ALLOCATION_SIZE);
   if (!buf)
-    return "";
+    return 0;
 
   int buf_idx = 0;
 

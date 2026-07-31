@@ -9,6 +9,8 @@ constexpr int backspace_hex = 0x0E;
 constexpr int enter_hex = 0x1C;
 constexpr int command_register_hex = 0x43;
 constexpr int channel_zero_data_port = 0x40;
+constexpr int keyboard_command_port = 0x64;
+constexpr int reboot_data = 0xFE;
 
 namespace Asm {
 
