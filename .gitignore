@@ -10,3 +10,6 @@ isodir/
 .vscode/
 .idea/
 *.swp
+
+# Combined code text file
+combined_code.txt

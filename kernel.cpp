@@ -1,8 +1,12 @@
 #include "kernel.hpp"
 #include "timer.hpp"
 // #include "idt.hpp"
+#include "memory.hpp"
 
 extern "C" void kernel_main() {
+  
+  init_heap();
+
   char buffer[KEYBOARD_BUFFER_SIZE];
   int current_buffer_index = 0;
   buffer[0] = '\0';
