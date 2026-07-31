@@ -1,4 +1,6 @@
 #include "kernel.hpp"
+#include "timer.hpp"
+// #include "idt.hpp"
 
 extern "C" void kernel_main() {
   char buffer[KEYBOARD_BUFFER_SIZE];
@@ -7,9 +9,12 @@ extern "C" void kernel_main() {
 
   Terminal::print("Rock OS Shell\n> ");
 
+
+  Timer::init();
+
   while (1) {
-    if (inb(confirmation_port) & 1) {
-      unsigned char scancode = inb(char_port);
+    if (Asm::inb(confirmation_port) & 1) {
+      unsigned char scancode = Asm::inb(char_port);
 
       if (scancode & release_hex)
         continue;
@@ -27,9 +32,9 @@ extern "C" void kernel_main() {
         buffer[current_buffer_index] = '\0';
         Terminal::putchar('\n');
 
-        // Command parsing logic goes here (e.g., check if buffer == "help")
-        const char* args[10];
-        int max_args = 10; 
+        // Command arguments which will be filled by Terminal::parse
+        const char *args[10];
+        int max_args = 10;
         Terminal::print(Terminal::parse(buffer, args, max_args));
 
         current_buffer_index = 0;
@@ -38,7 +43,7 @@ extern "C" void kernel_main() {
       }
 
       if (scancode == special_key_hex) {
-        int next_scancode = inb(char_port);
+        int next_scancode = Asm::inb(char_port);
         if (next_scancode & release_hex)
           continue;
 

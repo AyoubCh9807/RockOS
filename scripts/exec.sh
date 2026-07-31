@@ -32,5 +32,5 @@ ld -m elf_i386 -T link.ld -o my_kernel.bin loader.o kernel.o --no-warn-rwx-segme
 cp my_kernel.bin isodir/boot/
 grub-mkrescue -o my_os.iso isodir >/dev/null 2>&1
 
-# Launch OS via QEMU using the ISO file
-qemu-system-i386 -enable-kvm -cdrom my_os.iso -boot d -display gtk
+# Launch OS via QEMU with interrupt/CPU reset logging enabled
+qemu-system-i386 -enable-kvm -cdrom my_os.iso -boot d -display gtk -d int,cpu_reset -D qemu.log

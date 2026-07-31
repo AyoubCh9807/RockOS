@@ -1,43 +1,13 @@
 #pragma once
+#include "timer.hpp"
+#include "string.hpp"
+#include "memory.hpp"
+
+#include <stdarg.h>
+
+#pragma once
 
 constexpr int KEYBOARD_BUFFER_SIZE = 1024;
-constexpr int confirmation_port = 0x64;
-constexpr int char_port = 0x60;
-constexpr int release_hex = 0x80;
-constexpr int special_key_hex = 0xE0;
-constexpr int delete_hex = 0x53;
-constexpr int backspace_hex = 0x0E;
-constexpr int enter_hex = 0x1C;
-
-typedef unsigned char u8;
-typedef unsigned long long size_t;
-
-inline unsigned char inb(unsigned short port) {
-  unsigned char result;
-  __asm__ volatile("inb %1, %0" : "=a"(result) : "Nd"(port));
-  return result;
-}
-
-inline u8 *heap_start = (u8 *)0x00400000;
-inline u8 *heap_end = (u8 *)0x00800000;
-inline u8 *heap_current = (u8 *)0x00400000;
-
-// This function allocates memory
-inline void *kmalloc(size_t size) {
-  if (heap_current + size > heap_end) {
-    return 0; // Out of memory
-  }
-  u8 *ptr = heap_current;
-  heap_current += size;
-  return (void *)ptr;
-}
-
-// This function frees memory
-inline void *kfree(u8 *ptr) {
-  // Nothin for now
-  return 0;
-}
-
 // Simple mapping from scancode to ascii character
 inline char scancode_to_ascii(unsigned char scancode) {
   static const char ascii_map[128] = {
@@ -103,38 +73,6 @@ inline void print(const char *str) {
 // if the letter is NOT the same, then they are different, therefore we return a
 // non-zero result if ALL the letters ARE the same, s1[i] - s2[i] will return 0
 // since they are the same character
-inline int kstrcmp(const char *s1, const char *s2) {
-  int i = 0;
-  while (s1[i] != '\0' && s2[i] != '\0') {
-    if (s1[i] != s2[i]) {
-      return s1[i] - s2[i];
-    }
-    i++;
-  }
-  return s1[i] - s2[i]; // Returns 0 if they match completely
-}
-
-inline int split_by(char *str, const char separator, const char **args,
-                    int max_args) {
-  int arg_count = 0;
-  bool in_word = false;
-
-  for (int i = 0; str[i] != '\0'; i++) {
-    if (str[i] == separator) {
-      str[i] = '\0'; // Cut off the string right at the comma
-      in_word = false;
-    } else if (str[i] != ' ' && str[i] != '\n' && str[i] != '\r') {
-      if (!in_word) {
-        if (arg_count < max_args) {
-          args[arg_count] = &str[i]; // Point to the start of the next piece
-          arg_count++;
-        }
-        in_word = true;
-      }
-    }
-  }
-  return arg_count;
-}
 
 /*
  *clear
@@ -146,63 +84,106 @@ TODO: uptime
 version
  * */
 
-inline int kstrlen(const char *str) {
-  int i = 0;
-  while (str[i] != '\0')
-    i++;
-  return i;
-}
 
-inline const char* kstrcat(const char *str1, const char *str2) {
-
-  int len1 = kstrlen(str1);
-  int len2 = kstrlen(str2);
-  char *dest = (char *)kmalloc(len1 + len2 + 1);
-
-  if (!dest) {
-    return "Out of memory\n\0";
-  }
-
-  int current_index = 0;
-
-  for (int i = 0; i < len1; i++) {
-    dest[current_index++] = str1[i];
-  }
-
-  for (int i = 0; i < len2; i++) {
-    dest[current_index++] = str2[i];
-  }
-
-  dest[current_index] = '\0';
-
-  return dest;
-}
-
-inline const char *parse(char *str, const char **args, int max_args) {
-  int arg_count = split_by(str, ' ', args, max_args);
+inline const char* parse(char *str, const char **args, int max_args) {
+  int arg_count = String::split_by(str, ' ', args, max_args);
 
   if (arg_count <= 0)
     return "\n\0";
 
-  if (Terminal::kstrcmp(str, "help") == 0) {
+  if (String::strcmp(str, "help") == 0) {
     return "FULL GUIDE: \nHELP: help\nCODE: code\n\0";
   }
-  if (Terminal::kstrcmp(str, "version") == 0) {
+  if (String::strcmp(str, "version") == 0) {
     return "Rock OS version 1.0.0\n\0";
   }
-  if (Terminal::kstrcmp(str, "info") == 0) {
+  if (String::strcmp(str, "info") == 0) {
     return "OS: Rock OS V 1.0.0\n Creator: Ayoub Chemingui\n Shell: RockShell "
            "1.0.0\n WM: RockWM 1.0.0\n\0";
   }
-  if (Terminal::kstrcmp(str, "clear") == 0) {
+  if (String::strcmp(str, "clear") == 0) {
     Terminal::clear();
     return "\n\0";
   } else {
-    if (kstrcmp(args[0], "echo") == 0 && arg_count == 2) {
-      return kstrcat(args[1], "\n\0");
+    if (String::strcmp(args[0], "echo") == 0 && arg_count == 2) {
+      return String::strcat(args[1], "\n\0");
     }
   }
-  return "Unkown command\n\0";
+  if(String::strcmp(args[0], "uptime") == 0) {
+    return Timer::get_formatted_time();
+  }
+  return "Unknown command\n\0";
+}
+
+inline const char *kiota(int val) {
+
+  if (val == 0)
+    return "0\0";
+
+  char map[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+
+  int val_length = 0;
+  int temp_val = val;
+
+  while (temp_val != 0) {
+    temp_val /= 10;
+    val_length++;
+  }
+
+  char *str = (char *)kmalloc(val_length + 1);
+  if (!str)
+    return "\0";
+
+  temp_val = val;
+
+  for (int i = val_length - 1; i >= 0; i--) {
+    // 150 -> 0 then 5 then 1
+    str[i] = map[temp_val % 10];
+    temp_val /= 10;
+  }
+
+  str[val_length] = '\0';
+
+  return str;
+}
+
+inline char* kformat(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    // Allocate a safe buffer on the heap for our formatted string
+    char* buf = (char*)kmalloc(DEFAULT_BUFFER_ALLOCATION_SIZE);
+    if (!buf) return 0;
+
+    int buf_idx = 0;
+
+    for (int i = 0; fmt[i] != '\0'; i++) {
+        if (fmt[i] == '%' && fmt[i + 1] != '\0') {
+            i++; // Skip the '%' and get the next character
+            if (fmt[i] == 's') {
+                const char* s = va_arg(args, const char*);
+                while (*s) {
+                    buf[buf_idx++] = *s++;
+                }
+            } else if (fmt[i] == 'd') {
+                int val = va_arg(args, int);
+                const char* num_str = kiota(val); // Convert int using kiota
+                while (*num_str) {
+                    buf[buf_idx++] = *num_str++;
+                }
+            } else if (fmt[i] == 'c') {
+                char c = (char)va_arg(args, int); // Any type smaller than an int in ... gets promoted to int by the compiler
+                buf[buf_idx++] = c;
+            }
+        } else {
+            buf[buf_idx++] = fmt[i];
+        }
+    }
+
+    buf[buf_idx] = '\0'; // Null-terminate the final string
+    va_end(args);
+
+    return buf;
 }
 
 } // namespace Terminal
