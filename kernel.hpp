@@ -114,22 +114,95 @@ inline int kstrcmp(const char *s1, const char *s2) {
   return s1[i] - s2[i]; // Returns 0 if they match completely
 }
 
-inline const char* parse(const char* str) {
-  if(Terminal::kstrcmp(str, "help") == 0) {
+inline int split_by(char *str, const char separator, const char **args,
+                    int max_args) {
+  int arg_count = 0;
+  bool in_word = false;
+
+  for (int i = 0; str[i] != '\0'; i++) {
+    if (str[i] == separator) {
+      str[i] = '\0'; // Cut off the string right at the comma
+      in_word = false;
+    } else if (str[i] != ' ' && str[i] != '\n' && str[i] != '\r') {
+      if (!in_word) {
+        if (arg_count < max_args) {
+          args[arg_count] = &str[i]; // Point to the start of the next piece
+          arg_count++;
+        }
+        in_word = true;
+      }
+    }
+  }
+  return arg_count;
+}
+
+/*
+ *clear
+TODO: echo
+help
+info
+TODO: reboot
+TODO: uptime
+version
+ * */
+
+inline int kstrlen(const char *str) {
+  int i = 0;
+  while (str[i] != '\0')
+    i++;
+  return i;
+}
+
+inline const char* kstrcat(const char *str1, const char *str2) {
+
+  int len1 = kstrlen(str1);
+  int len2 = kstrlen(str2);
+  char *dest = (char *)kmalloc(len1 + len2 + 1);
+
+  if (!dest) {
+    return "Out of memory\n\0";
+  }
+
+  int current_index = 0;
+
+  for (int i = 0; i < len1; i++) {
+    dest[current_index++] = str1[i];
+  }
+
+  for (int i = 0; i < len2; i++) {
+    dest[current_index++] = str2[i];
+  }
+
+  dest[current_index] = '\0';
+
+  return dest;
+}
+
+inline const char *parse(char *str, const char **args, int max_args) {
+  int arg_count = split_by(str, ' ', args, max_args);
+
+  if (arg_count <= 0)
+    return "\n\0";
+
+  if (Terminal::kstrcmp(str, "help") == 0) {
     return "FULL GUIDE: \nHELP: help\nCODE: code\n\0";
   }
-  if(Terminal::kstrcmp(str, "version") == 0) {
+  if (Terminal::kstrcmp(str, "version") == 0) {
     return "Rock OS version 1.0.0\n\0";
-  }  
-  if(Terminal::kstrcmp(str, "info") == 0) {
-    return "OS: Rock OS V 1.0.0\n Creator: Ayoub Chemingui\n Shell: RockShell 1.0.0\n WM: RockWM 1.0.0\n\0";
   }
-  if(Terminal::kstrcmp(str, "clear") == 0) {
+  if (Terminal::kstrcmp(str, "info") == 0) {
+    return "OS: Rock OS V 1.0.0\n Creator: Ayoub Chemingui\n Shell: RockShell "
+           "1.0.0\n WM: RockWM 1.0.0\n\0";
+  }
+  if (Terminal::kstrcmp(str, "clear") == 0) {
     Terminal::clear();
     return "\n\0";
   } else {
-    return "Unkown command\n\0";
+    if (kstrcmp(args[0], "echo") == 0 && arg_count == 2) {
+      return kstrcat(args[1], "\n\0");
+    }
   }
+  return "Unkown command\n\0";
 }
 
 } // namespace Terminal

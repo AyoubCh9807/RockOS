@@ -28,8 +28,9 @@ extern "C" void kernel_main() {
         Terminal::putchar('\n');
 
         // Command parsing logic goes here (e.g., check if buffer == "help")
-
-        Terminal::print(Terminal::parse(buffer));
+        const char* args[10];
+        int max_args = 10; 
+        Terminal::print(Terminal::parse(buffer, args, max_args));
 
         current_buffer_index = 0;
         buffer[0] = '\0';
