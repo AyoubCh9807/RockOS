@@ -1,4 +1,5 @@
 #pragma once
+#include "shared/types.hpp"
 
 constexpr int confirmation_port = 0x64;
 constexpr int char_port = 0x60;
@@ -24,8 +25,17 @@ inline unsigned char inb(unsigned short port) {
   return result;
 }
 
-inline void halt() {
-  __asm__("hlt");
+static u16 inw(u16 port) {
+  u8 low = inb(port);
+  u8 high = inb(port);
+  return (static_cast<u16>(high) << 8) | low;
 }
+
+static void outw(u16 port, u16 value) {
+  // Send the low byte first, then the high byte
+  outb(port, (u8)(value & 0xFF));
+  outb(port, (u8)(value >> 8));
+}
+inline void halt() { __asm__("hlt"); }
 
 } // namespace Asm
