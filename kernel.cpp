@@ -4,6 +4,7 @@
 #include "shell.hpp"
 #include "terminal.hpp"
 #include "timer.hpp"
+#include "keyboard.hpp"
 
 extern "C" void kernel_main() {
 

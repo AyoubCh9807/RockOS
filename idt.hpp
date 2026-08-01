@@ -18,6 +18,7 @@ inline idt_ptr idt_p;
 
 extern "C" void timer_stub();
 extern "C" void default_stub();
+extern "C" void keyboard_stub();
 
 inline void idt_set_gate(int n, unsigned int handler) {
   idt[n].offset_lowerbits = handler & 0xFFFF;
@@ -40,6 +41,6 @@ inline void idt_init() {
 
   // Real handlers override the default above.
   idt_set_gate(32, (unsigned int)(unsigned long long)timer_stub);
-
+  idt_set_gate(33, (unsigned int)(unsigned long long)keyboard_stub);
   __asm__ volatile("lidt (%0)" : : "r"(&idt_p));
 }

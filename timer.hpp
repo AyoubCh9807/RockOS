@@ -40,7 +40,7 @@ inline void remap_pic() {
   // kernel_main rather than handled via IRQ1, and no other line has a
   // handler yet, so keep them masked to avoid faulting on an
   // unhandled vector when the hardware fires them.
-  Asm::outb(0x21, 0xFE); // Master: 1111 1110 -> only IRQ0 unmasked
+  Asm::outb(0x21, 0xFC); // Master: 1111 1110 -> only IRQ0 unmasked
   Asm::outb(0xA1, 0xFF); // Slave: all masked
 }
 
