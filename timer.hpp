@@ -1,7 +1,7 @@
 #pragma once
 #include "asm.hpp"
 #include "idt.hpp"
-#include "string.hpp"
+#include "containers/string.hpp"
 
 constexpr int DIVISOR = 11932;
 constexpr int TIMER_HZ = 100;
@@ -90,16 +90,16 @@ inline char *get_formatted_time() {
   hours %= 24;
 
   if (minutes == 0) {
-    str = String::format("Uptime: %d seconds\n\0", seconds);
+    str = StringUtils::format("Uptime: %d seconds\n\0", seconds);
 
   } else if (hours == 0) {
-    str = String::format("Uptime: %d minutes and %d seconds\n\0", minutes,
+    str = StringUtils::format("Uptime: %d minutes and %d seconds\n\0", minutes,
                          seconds);
   } else if (days == 0) {
-    str = String::format("Uptime: %d hours, %d minutes and %d seconds\n\0",
+    str = StringUtils::format("Uptime: %d hours, %d minutes and %d seconds\n\0",
                          hours, minutes, seconds);
   } else {
-    str = String::format(
+    str = StringUtils::format(
         "Uptime: %d days, %d hours, %d minutes and %d seconds\n\0", days, hours,
         minutes, seconds);
   }

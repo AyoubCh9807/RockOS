@@ -34,3 +34,4 @@ grub-mkrescue -o my_os.iso isodir >/dev/null 2>&1
 
 # Launch OS via QEMU with interrupt/CPU reset logging enabled
 qemu-system-i386 -enable-kvm -cdrom my_os.iso -boot d -display gtk -d int,cpu_reset -D qemu.log
+

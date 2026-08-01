@@ -1,7 +1,5 @@
 #pragma once
-
-typedef unsigned char u8;
-typedef unsigned long long size_t;
+#include "shared/types.hpp"
 
 struct Header {
   size_t size;
