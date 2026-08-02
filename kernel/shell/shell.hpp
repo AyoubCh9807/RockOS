@@ -1,10 +1,12 @@
 #pragma once
 
-#include "containers/string.hpp"
-#include "kernel.hpp"
-#include "keyboard.hpp"
-#include "shared/key_event.hpp"
+#include "../containers/string.hpp"
+#include "../core/kernel.hpp"
+#include "../drivers/keyboard.hpp"
+#include "../shared/key_event.hpp"
 #include "terminal.hpp"
+
+constexpr static int SHELL_MAX_AGRGS = 16;
 
 class Shell {
 private:
@@ -81,8 +83,8 @@ public:
 
         Terminal::putchar('\n');
 
-        const char *args[10];
-        int max_args = 10;
+        const char *args[SHELL_MAX_AGRGS];
+        int max_args = SHELL_MAX_AGRGS;
 
         // Make a mutable copy of the buffer so split_by can safely modify it
         char cmd_copy[256];
@@ -102,14 +104,13 @@ public:
       }
       // Handle Arrow Up: walk back to older history entries
       else if (ev.keytype == KeyType::ArrowUp) {
-        
-        if(currently_selected_history_item == total_history_items) {
+
+        if (currently_selected_history_item == total_history_items) {
           draft = buffer;
         }
 
         if (currently_selected_history_item > 0) {
           currently_selected_history_item--;
-
 
           // Erase what's currently on screen BEFORE swapping the buffer
           // content, so we erase the right number of characters.
@@ -124,7 +125,7 @@ public:
       // Handle Arrow Down: walk forward to newer history entries, or
       // back to a blank line once past the newest entry.
       else if (ev.keytype == KeyType::ArrowDown) {
-        
+
         if (currently_selected_history_item < total_history_items) {
           currently_selected_history_item++;
 

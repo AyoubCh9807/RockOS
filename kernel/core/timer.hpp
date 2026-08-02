@@ -1,7 +1,8 @@
 #pragma once
+
 #include "asm.hpp"
 #include "idt.hpp"
-#include "containers/string.hpp"
+#include "../containers/string.hpp"
 
 constexpr int DIVISOR = 11932;
 constexpr int TIMER_HZ = 100;

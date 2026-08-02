@@ -1,9 +1,9 @@
 #pragma once
 
-#include "asm.hpp"
-#include "shared/key_event.hpp"
-#include "shared/types.hpp"
-#include "utils/string_utils.hpp"
+#include "../core/asm.hpp"
+#include "../shared/key_event.hpp"
+#include "../shared/types.hpp"
+#include "../utils/string_utils.hpp"
 
 class Keyboard {
 private:

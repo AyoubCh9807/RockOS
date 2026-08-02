@@ -1,10 +1,10 @@
 #include "kernel.hpp"
 #include "crti.hpp"
-#include "memory.hpp"
-#include "shell.hpp"
-#include "terminal.hpp"
+#include "../memory/memory.hpp"
+#include "../shell/shell.hpp"
+#include "../shell/terminal.hpp"
 #include "timer.hpp"
-#include "keyboard.hpp"
+#include "../drivers/keyboard.hpp"
 
 extern "C" void kernel_main() {
 

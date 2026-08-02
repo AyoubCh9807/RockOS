@@ -1,5 +1,5 @@
 #pragma once
-#include "shared/types.hpp"
+#include "../shared/types.hpp"
 
 constexpr int confirmation_port = 0x64;
 constexpr int char_port = 0x60;

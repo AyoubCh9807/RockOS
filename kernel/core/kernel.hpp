@@ -3,8 +3,6 @@
 #include "timer.hpp"
 #include <stdarg.h>
 
-constexpr int KEYBOARD_BUFFER_SIZE = 1024;
-
 namespace Kernel {
 inline int vram_index = 0;
 inline volatile char *video_memory = (volatile char *)0xB8000;

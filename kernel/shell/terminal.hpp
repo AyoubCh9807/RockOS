@@ -1,6 +1,6 @@
 #pragma once
-#include "kernel.hpp"
-#include "timer.hpp"
+#include "../core/kernel.hpp"
+#include "../core/timer.hpp"
 #include <stdarg.h>
 #pragma once
 
@@ -69,8 +69,16 @@ inline const char *parse(char *str, const char **args, int max_args) {
     Terminal::clear();
     return "\n\0";
   } else {
-    if (StringUtils::strcmp(args[0], "echo") == 0 && arg_count == 2) {
-      return StringUtils::strcat(args[1], "\n\0");
+    if (StringUtils::strcmp(args[0], "echo") == 0 && arg_count - 1 < max_args) {
+      String res = "";
+      for (int i = 1; i < arg_count; i++) {
+        res = res + String(args[i]);
+        if (i < arg_count - 1) {
+          res = res + " ";
+        }
+      }
+      res = res + "\n\0";
+      return res.c_str(); 
     }
   }
   if (StringUtils::strcmp(args[0], "uptime") == 0) {
