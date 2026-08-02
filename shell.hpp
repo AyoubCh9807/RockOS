@@ -21,6 +21,9 @@ private:
   // Keep track of a wrapper index
   int history_wrapper_index = 0;
 
+  // Keep track of what the user is actually typing
+  String draft;
+
   // Index into `history` currently being shown while browsing with the
   // arrow keys. Ranges from 0 (oldest) to total_history_items (meaning
   // "not browsing / blank line", one past the newest entry).
@@ -99,8 +102,14 @@ public:
       }
       // Handle Arrow Up: walk back to older history entries
       else if (ev.keytype == KeyType::ArrowUp) {
+        
+        if(currently_selected_history_item == total_history_items) {
+          draft = buffer;
+        }
+
         if (currently_selected_history_item > 0) {
           currently_selected_history_item--;
+
 
           // Erase what's currently on screen BEFORE swapping the buffer
           // content, so we erase the right number of characters.
@@ -115,6 +124,7 @@ public:
       // Handle Arrow Down: walk forward to newer history entries, or
       // back to a blank line once past the newest entry.
       else if (ev.keytype == KeyType::ArrowDown) {
+        
         if (currently_selected_history_item < total_history_items) {
           currently_selected_history_item++;
 
@@ -123,7 +133,7 @@ public:
           }
 
           if (currently_selected_history_item == total_history_items) {
-            buffer = String("");
+            buffer = draft;
           } else {
             buffer = history[currently_selected_history_item];
           }
@@ -143,6 +153,7 @@ public:
         // starts fresh from the most recent command again.
         currently_selected_history_item = total_history_items;
         buffer = buffer + ev.scancode;
+        draft = buffer;
         Terminal::putchar(ev.scancode);
       }
     }
