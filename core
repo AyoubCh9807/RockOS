@@ -1,8 +1,10 @@
 #pragma once
 
+
 #include "timer.hpp"
 #include <stdarg.h>
-#include "asm.hpp"
+
+constexpr int KEYBOARD_BUFFER_SIZE = 1024;
 
 namespace Kernel {
 inline int vram_index = 0;

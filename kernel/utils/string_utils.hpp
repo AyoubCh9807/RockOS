@@ -224,4 +224,14 @@ public:
 
     return buf;
   }
+
+  static void strcpy(char* dest, char* src) {
+    if(!src || !dest) return;
+    int i = 0;
+    while(src[i] != '\0') {
+      dest[i] = src[i];
+      i++;
+    }
+    dest[i] = '\0';
+  }
 };

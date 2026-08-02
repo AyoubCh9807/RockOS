@@ -97,3 +97,12 @@ inline void *kfree(void *ptr) {
 
   return 0;
 }
+
+extern "C" void* memset(void* dest, int val, size_t num) {
+  unsigned char* p = (unsigned char*) dest;
+  while(num--) {
+    *p++ = (unsigned char)val;
+  }
+  return dest;
+}
+

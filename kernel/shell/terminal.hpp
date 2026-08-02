@@ -78,7 +78,7 @@ inline const char *parse(char *str, const char **args, int max_args) {
         }
       }
       res = res + "\n\0";
-      return res.c_str(); 
+      return res.c_str();
     }
   }
   if (StringUtils::strcmp(args[0], "uptime") == 0) {

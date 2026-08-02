@@ -25,17 +25,14 @@ inline unsigned char inb(unsigned short port) {
   return result;
 }
 
-static u16 inw(u16 port) {
-  u8 low = inb(port);
-  u8 high = inb(port);
-  return (static_cast<u16>(high) << 8) | low;
+static inline u16 inw(u16 port) {
+  u16 result;
+  __asm__ volatile("inw %1, %0" : "=a"(result) : "Nd"(port));
+  return result;
 }
 
-static void outw(u16 port, u16 value) {
-  // Send the low byte first, then the high byte
-  outb(port, (u8)(value & 0xFF));
-  outb(port, (u8)(value >> 8));
-}
-inline void halt() { __asm__("hlt"); }
+static inline void outw(u16 port, u16 value) {
+  __asm__ volatile("outw %0, %1" : : "a"(value), "Nd"(port));
+}inline void halt() { __asm__("hlt"); }
 
 } // namespace Asm
