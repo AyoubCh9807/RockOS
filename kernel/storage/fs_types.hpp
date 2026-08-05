@@ -1,10 +1,7 @@
 #pragma once
 
 #include "../shared/types.hpp"
-
-constexpr u32 FS_MAGIC = 0x524F434B; // ROCK
-constexpr u32 SECTOR_SIZE = 512;
-constexpr u32 MAX_FILENAME_LENGTH = 32;
+#include "layout.hpp"
 
 struct Superblock {
   u32 magic;
@@ -20,4 +17,9 @@ struct DirectoryEntry {
   char name[MAX_FILENAME_LENGTH];
   u32 inode_number;
   bool is_used;
+};
+
+struct ParentPath {
+    u32 parent_inode;
+    char name[MAX_FILENAME_LENGTH];
 };

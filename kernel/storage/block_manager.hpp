@@ -3,43 +3,26 @@
 #include "../shared/types.hpp"
 #include "../utils/bit_utils.hpp"
 #include "disk.hpp"
-
-constexpr u32 BLOCK_SIZE = 512;
-constexpr u32 TOTAL_BLOCKS = 20000;
-// Filesystem layout
-constexpr u32 BLOCK_BITMAP_START = 2;
-constexpr u32 DATA_BLOCK_START = 135;
-constexpr u32 BLOCK_BITMAP_SIZE = (TOTAL_BLOCKS + 7) / 8;
-constexpr u32 BLOCK_BITMAP_SECTORS =
-    (BLOCK_BITMAP_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE;
-constexpr u32 BITS_PER_SECTOR = BLOCK_SIZE * 8;
-
-// Invalid block return value
-constexpr u32 INVALID_BLOCK = 0xFFFFFFFF;
-
+#include "layout.hpp"
 class BlockManager {
 
 private:
   Disk &disk;
 
-  u32 block_bitmap_start;
-  u32 data_block_start;
+  static constexpr u32 block_bitmap_start = BLOCK_BITMAP_START;
+  static constexpr u32 data_block_start = DATA_BLOCK_START;
 
 public:
-  BlockManager(Disk &disk)
-      : disk(disk), block_bitmap_start(BLOCK_BITMAP_START),
-        data_block_start(DATA_BLOCK_START) {}
+  BlockManager(Disk &disk) : disk(disk) {};
   u32 allocate_block() {
     u8 buffer[BLOCK_SIZE];
 
-    u32 sectors_needed = (TOTAL_BLOCKS + BITS_PER_SECTOR - 1) / BITS_PER_SECTOR;
+    for (u32 sector = 0; sector < BLOCK_BITMAP_SECTORS; sector++) {
 
-    for (u32 sector = 0; sector < sectors_needed; sector++) {
-
-      u32 bits_to_search = BITS_PER_SECTOR;
-
-      if (sector == sectors_needed - 1)
-        bits_to_search = TOTAL_BLOCKS % BITS_PER_SECTOR;
+      u32 bits_to_search =
+          (sector == BLOCK_BITMAP_SECTORS - 1 && TOTAL_BLOCKS % BITS_PER_SECTOR)
+              ? TOTAL_BLOCKS % BITS_PER_SECTOR
+              : BITS_PER_SECTOR;
 
       disk.read_sector(block_bitmap_start + sector, buffer);
 
@@ -77,38 +60,23 @@ public:
   }
 
   bool read_block(u32 block_number, u8 *buffer) {
-    /*
 
-    Step 1:
-    Convert filesystem block number into actual disk LBA.
+    if (block_number >= TOTAL_BLOCKS)
+      return false;
 
-    LBA = data_block_start + block_number
-
-
-    Step 2:
-    Read the sector from disk into buffer.
-
-
-    Step 3:
-    Return success/failure.
-
-    */
+    u32 lba = data_block_start + block_number;
+    disk.read_sector(lba, buffer);
+    return true;
   }
 
   bool write_block(u32 block_number, const u8 *buffer) {
-    /*
 
-    Step 1:
-    Convert filesystem block number into actual disk LBA.
+    if (block_number >= TOTAL_BLOCKS)
+      return false;
 
+    u32 lba = data_block_start + block_number;
+    disk.write_sector(lba, buffer);
 
-    Step 2:
-    Write buffer contents to disk sector.
-
-
-    Step 3:
-    Return success/failure.
-
-    */
+    return true;
   }
 };

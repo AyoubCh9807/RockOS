@@ -3,29 +3,9 @@
 #include "../shared/types.hpp"
 #include "disk.hpp"
 #include "inode.hpp"
-constexpr u32 BLOCK_SIZE = 512;
+#include "fs_types.hpp"
+#include "layout.hpp"
 
-constexpr u32 TOTAL_INODES = 1024;
-constexpr u32 TOTAL_BLOCKS = 20000;
-
-constexpr u32 INODE_SIZE = sizeof(Inode);
-constexpr u32 INODES_PER_SECTOR = BLOCK_SIZE / INODE_SIZE;
-
-// Bitmap constants
-constexpr u32 BITS_PER_BYTE = 8;
-constexpr u32 INODE_BITMAP_SIZE =
-    (TOTAL_INODES + BITS_PER_BYTE - 1) / BITS_PER_BYTE;
-constexpr u32 INODE_BITMAP_SECTORS =
-    (INODE_BITMAP_SIZE + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-// Layout
-constexpr u32 SUPERBLOCK_START = 0;
-constexpr u32 INODE_BITMAP_START = 1;
-constexpr u32 BLOCK_BITMAP_START = INODE_BITMAP_START + INODE_BITMAP_SECTORS;
-constexpr u32 INODE_TABLE_START = 7;
-constexpr u32 DATA_BLOCK_START = 135;
-
-constexpr u32 INVALID_INODE = 0xFFFFFFFF;
 class InodeManager {
 private:
   Disk &disk;
@@ -42,7 +22,7 @@ public:
     u8 inode_bitmap[BLOCK_SIZE];
     disk.read_sector(inode_bitmap_start, inode_bitmap);
 
-    // find free inode number IDK HOW
+    // find free inode number 
 
     for (u32 inode_num = 0; inode_num < TOTAL_INODES; inode_num++) {
       u32 byte = inode_num / BITS_PER_BYTE;
@@ -71,7 +51,10 @@ public:
     }
     return INVALID_INODE;
   }
-  void free_inode(u32 inode_num) {
+  bool free_inode(u32 inode_num) {
+    if (inode_num >= TOTAL_INODES)
+      return false;
+
     u8 inode_bitmap[BLOCK_SIZE];
     disk.read_sector(inode_bitmap_start, inode_bitmap);
 
@@ -92,7 +75,9 @@ public:
       inode.used = false;
 
       write_inode(inode_num, inode);
+      return true;
     }
+    return false;
   }
   bool read_inode(u32 inode_number, Inode &inode) {
 
@@ -111,6 +96,8 @@ public:
     return true;
   }
   bool write_inode(u32 inode_number, const Inode &inode) {
+    if (inode_number >= TOTAL_INODES)
+      return false;
     u32 inode_sector = inode_table_start + (inode_number / INODES_PER_SECTOR);
     alignas(Inode) u8 buffer[BLOCK_SIZE];
     disk.read_sector(inode_sector, buffer);

@@ -83,7 +83,7 @@ public:
 
         Terminal::putchar('\n');
 
-        const char *args[SHELL_MAX_AGRGS];
+        char *args[SHELL_MAX_AGRGS];
         int max_args = SHELL_MAX_AGRGS;
 
         // Make a mutable copy of the buffer so split_by can safely modify it

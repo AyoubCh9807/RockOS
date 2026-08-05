@@ -49,21 +49,35 @@ inline void print(const char *str) {
   }
 }
 
-inline const char *parse(char *str, const char **args, int max_args) {
+inline const char *parse(char *str, char **args, int max_args) {
   int arg_count = StringUtils::split_by(str, ' ', args, max_args);
 
   if (arg_count <= 0)
     return "\n\0";
 
   if (StringUtils::strcmp(args[0], "help") == 0) {
-    return "FULL GUIDE: \nHELP: help\nCODE: code\n\0";
+    return "=== ROCK OS COMMAND CENTER ===\n"
+           "  help    - Displays this command guide\n"
+           "  info    - System specs & creator details\n"
+           "  version - Current kernel & environment build\n"
+           "  echo    - Echoes text back to the terminal\n"
+           "  uptime  - Shows active system runtime\n"
+           "  clear   - Wipes the display buffer\n"
+           "  reboot  - Triggers a hardware reset\n\0";
   }
   if (StringUtils::strcmp(args[0], "version") == 0) {
-    return "Rock OS version 1.0.0\n\0";
+    return "Rock OS [Version 1.0.0-alpha]\n"
+           "(c) 2026 Ayoub Chemingui. All rights reserved.\n"
+           "Target: Independent Custom Kernel\n\0";
   }
   if (StringUtils::strcmp(args[0], "info") == 0) {
-    return "OS: Rock OS V 1.0.0\n Creator: Ayoub Chemingui\n Shell: RockShell "
-           "1.0.0\n WM: RockWM 1.0.0\n\0";
+    return "========================================\n"
+           "  OS Architecture: Rock OS (x86 Bare-Metal)\n"
+           "  Kernel Version:  1.0.0-release\n"
+           "  Lead Developer:  Ayoub Chemingui\n"
+           "  Environment:     RockShell 1.0.0 / RockWM\n"
+           "  Video Buffer:    0xB8000 (Text Mode 80x25)\n"
+           "========================================\n\0";
   }
   if (StringUtils::strcmp(args[0], "clear") == 0) {
     Terminal::clear();
@@ -87,7 +101,8 @@ inline const char *parse(char *str, const char **args, int max_args) {
   if (StringUtils::strcmp(args[0], "reboot") == 0) {
     Kernel::reboot();
   }
-  return "Unknown command\n\0";
+  return "Command not recognized. Type 'help' for a list of valid "
+         "commands.\n\0";
 }
 
 } // namespace Terminal

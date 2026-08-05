@@ -1,8 +1,7 @@
 #pragma once
 
 #include "../shared/types.hpp"
-
-constexpr int DIRECT_BLOCKS = 12;
+#include "layout.hpp"
 
 struct Inode {
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../shared/types.hpp"
 #include "../core/asm.hpp"
 

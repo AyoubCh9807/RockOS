@@ -39,7 +39,7 @@ public:
     return s1[i] - s2[i]; // Returns 0 if they match completely
   }
 
-  inline static int split_by(char *str, const char separator, const char **args,
+  inline static int split_by(char *str, const char separator, char **args,
                              int max_args) {
     int arg_count = 0;
     bool in_word = false;
@@ -134,7 +134,7 @@ public:
   // string longer than ~15 characters (e.g. the uptime string), corrupting
   // the allocator's free list and breaking unrelated allocations afterward.
   inline static char *grow_buffer(char *buf, size_t &capacity, int used,
-                                   size_t needed) {
+                                  size_t needed) {
     if (needed <= capacity) {
       return buf;
     }
@@ -225,13 +225,25 @@ public:
     return buf;
   }
 
-  static void strcpy(char* dest, char* src) {
-    if(!src || !dest) return;
+  static void strcpy(char *dest, char *src) {
+    if (!src || !dest)
+      return;
     int i = 0;
-    while(src[i] != '\0') {
+    while (src[i] != '\0') {
       dest[i] = src[i];
       i++;
     }
     dest[i] = '\0';
+  }
+
+  static int count(char *str, char *c) {
+    auto counter{0uz};
+    auto i{0uz};
+    while (str[i] != '\0') {
+      if ((char)str[i] == c[0])
+        counter++;
+      i++;
+    }
+    return counter;
   }
 };
