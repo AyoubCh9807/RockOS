@@ -1,8 +1,8 @@
 #pragma once
 #include "../core/kernel.hpp"
 #include "../core/timer.hpp"
+#include "../tyrant_generator/generator.hpp"
 #include <stdarg.h>
-#pragma once
 
 namespace Terminal {
 
@@ -101,6 +101,11 @@ inline const char *parse(char *str, char **args, int max_args) {
   if (StringUtils::strcmp(args[0], "reboot") == 0) {
     Kernel::reboot();
   }
+  if(StringUtils::strcmp(args[0], "tyrant") == 0 || StringUtils::strcmp(args[0], "damian") == 0) {
+    
+     return Generator::generate_words();
+  }
+
   return "Command not recognized. Type 'help' for a list of valid "
          "commands.\n\0";
 }

@@ -4,6 +4,8 @@
 #include "../shared/key_event.hpp"
 #include "../shared/types.hpp"
 #include "../utils/string_utils.hpp"
+#include "../random/random.hpp"
+#include "../core/timer.hpp"
 
 class Keyboard {
 private:
@@ -49,6 +51,9 @@ public:
       KeyEvent ev;
       KeyType ktype;
       unsigned char scancode = Asm::inb(KEYBOARD_PORT);
+
+      // Use scancode for randomness
+      Random::add_entropy(Timer::ticks ^ scancode);
 
       if (scancode == SPECIAL_KEY_SCANCODE) {
         special_extended = true;

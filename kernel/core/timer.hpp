@@ -64,10 +64,12 @@ inline void init() {
   Asm::outb(channel_zero_data_port, (unsigned char)((DIVISOR >> 8) & 0xFF));
 
   // Calling sti
-  __asm__ volatile("sti");
+  Asm::sti();
 }
 
 inline void handler() { ticks++; }
+
+inline int get_ticks() { return ticks; }
 
 inline int get_seconds() { return ticks / TIMER_HZ; }
 

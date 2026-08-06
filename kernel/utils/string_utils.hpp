@@ -246,4 +246,17 @@ public:
     }
     return counter;
   }
+
+  inline static void append(char *dest, const char *src) {
+    int dest_len = strlen(dest);
+
+    int i = 0;
+
+    while (src[i] != '\0') {
+      dest[dest_len + i] = src[i];
+      i++;
+    }
+
+    dest[dest_len + i] = '\0';
+  }
 };
