@@ -10,8 +10,7 @@ constexpr static int SHELL_MAX_AGRGS = 16;
 
 class Shell {
 private:
-
-  Terminal& terminal;
+  Terminal &terminal;
 
   // What the user is currently typing
   String buffer;
@@ -35,7 +34,7 @@ private:
   int currently_selected_history_item = 0;
 
 public:
-  Shell(Terminal& t) : terminal(t), buffer("") {
+  Shell(Terminal &t) : terminal(t), buffer("") {
     for (int i = 0; i < MAX_HISTORY; i++) {
       history[i] = "";
     }
@@ -59,7 +58,7 @@ public:
   }
 
   void run() {
-    Terminal::print("Rock OS Shell\n> ");
+    TerminalUtils::print("Rock OS Shell\n> ");
 
     while (1) {
       KeyEvent ev = Keyboard::read();
@@ -76,7 +75,7 @@ public:
           // operator[], which left length() stale).
           buffer.pop_back();
           // Tell terminal to erase it visually
-          Terminal::putchar('\b');
+          TerminalUtils::putchar('\b');
         }
       }
       // Handle Enter / Newline
@@ -84,7 +83,7 @@ public:
 
         add_to_history(buffer);
 
-        Terminal::putchar('\n');
+        TerminalUtils::putchar('\n');
 
         char *args[SHELL_MAX_AGRGS];
         int max_args = SHELL_MAX_AGRGS;
@@ -99,11 +98,11 @@ public:
         cmd_copy[i] = '\0';
 
         // Parse and print output
-        terminal.print(terminal.parse(cmd_copy, args, max_args));
+        TerminalUtils::print(terminal.parse(cmd_copy, args, max_args));
 
         // Reset buffer and print the next prompt
         buffer = String("");
-        Terminal::print("> ");
+        TerminalUtils::print("\n> ");
       }
       // Handle Arrow Up: walk back to older history entries
       else if (ev.keytype == KeyType::ArrowUp) {
@@ -118,11 +117,11 @@ public:
           // Erase what's currently on screen BEFORE swapping the buffer
           // content, so we erase the right number of characters.
           for (int j = 0; j < buffer.length(); j++) {
-            Terminal::putchar('\b');
+            TerminalUtils::putchar('\b');
           }
 
           buffer = history[currently_selected_history_item];
-          Terminal::print(buffer.c_str());
+          TerminalUtils::print(buffer.c_str());
         }
       }
       // Handle Arrow Down: walk forward to newer history entries, or
@@ -133,7 +132,7 @@ public:
           currently_selected_history_item++;
 
           for (int j = 0; j < buffer.length(); j++) {
-            Terminal::putchar('\b');
+            TerminalUtils::putchar('\b');
           }
 
           if (currently_selected_history_item == total_history_items) {
@@ -141,7 +140,7 @@ public:
           } else {
             buffer = history[currently_selected_history_item];
           }
-          Terminal::print(buffer.c_str());
+          TerminalUtils::print(buffer.c_str());
         }
       }
       // Cursor movement isn't implemented yet - swallow these instead of
@@ -158,7 +157,7 @@ public:
         currently_selected_history_item = total_history_items;
         buffer = buffer + ev.scancode;
         draft = buffer;
-        Terminal::putchar(ev.scancode);
+        TerminalUtils::putchar(ev.scancode);
       }
     }
   }

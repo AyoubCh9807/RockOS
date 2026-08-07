@@ -73,7 +73,8 @@ constexpr u32 SUPERBLOCK_START = 0;
 constexpr u32 INODE_BITMAP_START = 1;
 constexpr u32 BLOCK_BITMAP_START = INODE_BITMAP_START + INODE_BITMAP_SECTORS;
 constexpr u32 INODE_TABLE_START = 7;
-constexpr u32 DATA_BLOCK_START = 135;
+constexpr u32 INODE_TABLE_SECTORS =
+    (TOTAL_INODES * sizeof(Inode) + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
 constexpr u32 INVALID_INODE = 0xFFFFFFFF;
 // Filesystem layout
@@ -89,6 +90,8 @@ constexpr u32 INVALID_BLOCK = 0xFFFFFFFF;
 constexpr u32 ROOT_INODE = 0;
 
 constexpr u32 DIRECTORY_ENTRIES_PER_BLOCK = BLOCK_SIZE / sizeof(DirectoryEntry);
+
+constexpr u32 DATA_BLOCK_START = INODE_TABLE_START + INODE_TABLE_SECTORS;
 
 // List buffer size
 constexpr int LIST_BUFFER_SIZE =

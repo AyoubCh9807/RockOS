@@ -2,7 +2,7 @@
 
 #include "../shared/types.hpp"
 #include "../utils/bit_utils.hpp"
-
+#include "../utils/terminal_utils.hpp"
 #include "disk.hpp"
 #include "layout.hpp"
 
@@ -17,21 +17,43 @@ public:
       : disk(disk), inode_bitmap_start(INODE_BITMAP_START),
         inode_table_start(INODE_TABLE_START) {};
 
-  void format() {
-    u8 buffer[BLOCK_SIZE];
+  bool format() {
+    u8 buffer[BLOCK_SIZE] = {};
 
-    for (int i = 0; i < BLOCK_SIZE; i++)
-      buffer[i] = 0;
-
-    // clear inode bitmap
+    // Clear inode bitmap
     for (u32 i = 0; i < INODE_BITMAP_SECTORS; i++) {
-      disk.write_sector(INODE_BITMAP_START + i, buffer);
+      if (!disk.write_sector(inode_bitmap_start + i, buffer))
+        return false;
     }
 
-    // clear inode table
-    for (u32 i = 0; i < INODES_PER_SECTOR; i++) {
-      disk.write_sector(INODE_TABLE_START + i, buffer);
+    // Clear inode table
+    for (u32 i = 0; i < INODE_TABLE_SECTORS; i++) {
+      if (!disk.write_sector(inode_table_start + i, buffer))
+        return false;
     }
+
+    return true;
+  }
+
+  bool reserve_inode(u32 inode_number) {
+    if (inode_number >= TOTAL_INODES)
+      return false;
+
+    u32 bitmap_sector = inode_number / BITS_PER_SECTOR;
+    u32 bit_index = inode_number % BITS_PER_SECTOR;
+
+    u8 buffer[BLOCK_SIZE];
+    disk.read_sector(inode_bitmap_start + bitmap_sector, buffer);
+
+    if (BitUtils::is_bit_set(buffer, bit_index))
+      return false; // already reserved
+
+    BitUtils::set_bit(buffer, bit_index);
+
+    if (!disk.write_sector(inode_bitmap_start + bitmap_sector, buffer))
+      return false;
+
+    return true;
   }
 
   u32 allocate_inode() {
@@ -39,7 +61,7 @@ public:
     u8 inode_bitmap[BLOCK_SIZE];
     disk.read_sector(inode_bitmap_start, inode_bitmap);
 
-    // find free inode number
+    // find free inode number IDK HOW
 
     for (u32 inode_num = 0; inode_num < TOTAL_INODES; inode_num++) {
       u32 byte = inode_num / BITS_PER_BYTE;
@@ -110,44 +132,42 @@ public:
 
     Inode *inodes = reinterpret_cast<Inode *>(temp_buffer);
     inode = inodes[inode_offset];
+    TerminalUtils::print(inodes[inode_offset].is_directory ? "BUFFER DIR\n"
+                                                           : "BUFFER FILE\n");
+
     return true;
   }
   bool write_inode(u32 inode_number, const Inode &inode) {
+
+    TerminalUtils::print("WRITE INODE CALLED\n");
+
+    TerminalUtils::print(inode.is_directory ? "DIR\n" : "FILE\n");
+
     if (inode_number >= TOTAL_INODES)
       return false;
+
+    TerminalUtils::print(inode.is_directory ? "PARAM INODE DIR\n"
+                                            : "PARAM INODE FILE\n");
+
     u32 inode_sector = inode_table_start + (inode_number / INODES_PER_SECTOR);
+
+    u32 inode_offset = inode_number % INODES_PER_SECTOR;
+
     alignas(Inode) u8 buffer[BLOCK_SIZE];
-    disk.read_sector(inode_sector, buffer);
+
+    if (!disk.read_sector(inode_sector, buffer))
+      return false;
 
     Inode *inodes = reinterpret_cast<Inode *>(buffer);
-    u32 inode_offset = inode_number % INODES_PER_SECTOR;
 
     inodes[inode_offset] = inode;
 
-    disk.write_sector(inode_sector, buffer);
-    return true;
-  }
+    TerminalUtils::print(inodes[inode_offset].is_directory ? "BUFFER DIR\n"
+                                                           : "BUFFER FILE\n");
 
-  bool mark_used(u32 inode_number) {
-    Inode inode;
-    bool is_read = read_inode(inode_number, inode);
-    if (!is_read)
-      return false;
-    inode.used = true;
-    write_inode(inode_number, inode);
-    return true;
-  }
-
-  bool reserve_inode(u32 inode_number) {
-    // set_bitmap_bit(inode_number);
-
-    u8 inode_bitmap[BLOCK_SIZE];
-    bool is_read = disk.read_sector(inode_bitmap_start, inode_bitmap);
-    if (!is_read)
+    if (!disk.write_sector(inode_sector, buffer))
       return false;
 
-    BitUtils::set_bit(inode_bitmap, inode_number);
-    return disk.write_sector(inode_bitmap_start, inode_bitmap);
+    return true;
   }
-
 };

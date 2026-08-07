@@ -68,7 +68,7 @@ public:
     int index = -1;
 
     int path_length = StringUtils::strlen(path);
-    for (int i = path_length - 1; i >= 0; i++) {
+    for (int i = path_length - 1; i >= 0; i--) {
       if (path[i] == '/') {
         index = i;
         break;
@@ -80,7 +80,7 @@ public:
     // For relative paths later on, i can use this
     // if(!found) return resolve_path(path);
     if (index == -1)
-      return INVALID_INODE;
+      return ROOT_INODE;
     path[index] = '\0';
 
     return resolve_path(path);

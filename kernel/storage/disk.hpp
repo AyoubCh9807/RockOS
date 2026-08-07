@@ -21,6 +21,14 @@ class Disk {
 private:
   bool is_ready = false;
 
+  // ATA spec: after selecting the drive (writing ATA_REG_DEVICE) the status
+  // register isn't valid for ~400ns. Four throwaway status reads (~100ns
+  // each) reliably provide that settle time.
+  void io_delay() {
+    for (int i = 0; i < 4; i++)
+      Asm::inb(ATA_IO_BASE + ATA_REG_STATUS);
+  }
+
   void poll() {
     while (1) {
       u8 status = Asm::inb(ATA_IO_BASE + ATA_REG_STATUS); // fixed
@@ -42,6 +50,8 @@ public:
       ;
 
     Asm::outb(ATA_IO_BASE + ATA_REG_DEVICE, 0xE0 | ((lba >> 24) & 0x0F));
+
+    io_delay(); // Settle before touching SECCOUNT/LBA/COMMAND
     Asm::outb(ATA_IO_BASE + ATA_REG_SECCOUNT, 1);
     Asm::outb(ATA_IO_BASE + ATA_REG_LBA_LOW, (u8)lba);
     Asm::outb(ATA_IO_BASE + ATA_REG_LBA_MID, (u8)(lba >> 8));
@@ -60,12 +70,14 @@ public:
     return true;
   }
 
-  bool write_sector(u32 lba,
-                    const u8 *buffer) { // also see note below re: return type
+  bool write_sector(u32 lba, const u8 *buffer) {
     while (Asm::inb(ATA_IO_BASE + ATA_REG_STATUS) & ATA_SR_BSY) // fixed
       ;
 
     Asm::outb(ATA_IO_BASE + ATA_REG_DEVICE, 0xE0 | ((lba >> 24) & 0x0F));
+
+    io_delay();
+
     Asm::outb(ATA_IO_BASE + ATA_REG_SECCOUNT, 1);
     Asm::outb(ATA_IO_BASE + ATA_REG_LBA_LOW, (u8)lba);
     Asm::outb(ATA_IO_BASE + ATA_REG_LBA_MID, (u8)(lba >> 8));
