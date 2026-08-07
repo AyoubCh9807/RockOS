@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../shared/types.hpp"
+#include "../utils/bit_utils.hpp"
+
 #include "disk.hpp"
-#include "inode.hpp"
-#include "fs_types.hpp"
 #include "layout.hpp"
 
 class InodeManager {
@@ -17,12 +17,29 @@ public:
       : disk(disk), inode_bitmap_start(INODE_BITMAP_START),
         inode_table_start(INODE_TABLE_START) {};
 
+  void format() {
+    u8 buffer[BLOCK_SIZE];
+
+    for (int i = 0; i < BLOCK_SIZE; i++)
+      buffer[i] = 0;
+
+    // clear inode bitmap
+    for (u32 i = 0; i < INODE_BITMAP_SECTORS; i++) {
+      disk.write_sector(INODE_BITMAP_START + i, buffer);
+    }
+
+    // clear inode table
+    for (u32 i = 0; i < INODES_PER_SECTOR; i++) {
+      disk.write_sector(INODE_TABLE_START + i, buffer);
+    }
+  }
+
   u32 allocate_inode() {
 
     u8 inode_bitmap[BLOCK_SIZE];
     disk.read_sector(inode_bitmap_start, inode_bitmap);
 
-    // find free inode number 
+    // find free inode number
 
     for (u32 inode_num = 0; inode_num < TOTAL_INODES; inode_num++) {
       u32 byte = inode_num / BITS_PER_BYTE;
@@ -110,4 +127,27 @@ public:
     disk.write_sector(inode_sector, buffer);
     return true;
   }
+
+  bool mark_used(u32 inode_number) {
+    Inode inode;
+    bool is_read = read_inode(inode_number, inode);
+    if (!is_read)
+      return false;
+    inode.used = true;
+    write_inode(inode_number, inode);
+    return true;
+  }
+
+  bool reserve_inode(u32 inode_number) {
+    // set_bitmap_bit(inode_number);
+
+    u8 inode_bitmap[BLOCK_SIZE];
+    bool is_read = disk.read_sector(inode_bitmap_start, inode_bitmap);
+    if (!is_read)
+      return false;
+
+    BitUtils::set_bit(inode_bitmap, inode_number);
+    return disk.write_sector(inode_bitmap_start, inode_bitmap);
+  }
+
 };

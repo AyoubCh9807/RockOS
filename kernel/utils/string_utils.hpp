@@ -259,4 +259,52 @@ public:
 
     dest[dest_len + i] = '\0';
   }
+
+  inline static int find(char *str, char c) {
+    int index = -1;
+    int i = 0;
+    while (str[i] != '\0') {
+      if (str[i] == c) {
+        index = i;
+        break;
+      }
+      i++;
+    }
+
+    return index;
+  }
+
+  inline static char *slice(char *str, int start, int end) {
+    int length = strlen(str);
+
+    if (start >= end)
+      return nullptr;
+
+    if (end > length)
+      return nullptr;
+
+    int size = end - start;
+
+    char *res = (char *)kmalloc(size + 1);
+
+    if (!res)
+      return nullptr;
+
+    for (int i = 0; i < size; i++) {
+      res[i] = str[start + i];
+    }
+
+    res[size] = '\0';
+
+    return res;
+  }
+
+  inline static bool contains(const char* str, char c) {
+    int i = 0;
+    while(str[i] != '\0') {
+      if(str[i] == c) return true;
+      i++;
+    }
+    return false;
+  }
 };

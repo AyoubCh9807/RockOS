@@ -3,7 +3,6 @@
 #include "../shared/types.hpp"
 #include "../shell/shell.hpp"
 #include "../shell/terminal.hpp"
-#include "../storage/file_system.hpp"
 #include "crti.hpp"
 #include "timer.hpp"
 #include "../random/random.hpp"
@@ -29,7 +28,9 @@ extern "C" void kernel_main() {
 //  Terminal::print((const char *)read_buffer);
 //  Terminal::print("\n");
 
-  Shell shell;
+  Terminal terminal(fs);
+
+  Shell shell(terminal);
   shell.run();
 
   while (1) {

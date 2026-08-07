@@ -1,90 +1,255 @@
-#include "../utils/string_utils.hpp"
-#include "disk.hpp"
-#include "file_entry.hpp"
-
-constexpr size_t SECTOR_SIZE = 512;
-constexpr size_t MAX_LBA = 11;
-constexpr size_t FILES_PER_BLOCK = 11;
-constexpr int FILE_LBA_START = 1;
-constexpr int DIR_LBA_START = 6;
+#include "../utils/fs_utils.hpp"
+#include "block_manager.hpp"
+#include "directory_manager.hpp"
+#include "inode_manager.hpp"
+#include "layout.hpp"
+#include "path_resolver.hpp"
 
 class FileSystem {
 private:
   Disk &disk;
 
+  BlockManager block_manager;
+  InodeManager inode_manager;
+  DirectoryManager directory_manager;
+  PathResolver path_resolver;
+
 public:
-  FileSystem(Disk &d) : disk(d) {}
+  FileSystem(Disk &disk)
+      : disk(disk), block_manager(disk), inode_manager(disk),
+        directory_manager(inode_manager, block_manager),
+        path_resolver(inode_manager, block_manager, directory_manager) {}
 
-  // Initialize the disk (write initial superblock)
-  void format() {
-    u8 sector_buffer[512];
-    for (int i = 0; i < 512; i++)
-      sector_buffer[i] = 0;
+  void write_superblock() {
+    u8 buffer[BLOCK_SIZE];
 
-    // Superblock
-    u32 *magic_ptr = (u32 *)sector_buffer;
-    *magic_ptr = 0x524F434B; // "ROCK"
-    disk.write_sector(0, sector_buffer);
+    for (int i = 0; i < BLOCK_SIZE; i++)
+      buffer[i] = 0;
 
-    // Zero the magic number back out so we don't accidentally write
-    // it into every directory sector too
-    *magic_ptr = 0;
+    SuperBlock *sb = (SuperBlock *)buffer;
 
-    // Zero every directory sector so is_used starts false everywhere
-    for (u32 dir_sector = DIR_LBA_START; dir_sector < MAX_LBA; dir_sector++) {
-      disk.write_sector(dir_sector, sector_buffer);
-    }
+    sb->magic = 0x524F434B;
+    sb->size = BLOCK_SIZE;
+    sb->total_blocks = TOTAL_BLOCKS;
+    sb->total_inodes = TOTAL_INODES;
+
+    disk.write_sector(SUPERBLOCK_START, buffer);
   }
-  // Create a file or directory
-  void create(const char *name, bool is_dir) {
 
-  };
+  void create_root_directory() {
+    u32 root = ROOT_INODE;
 
-  // Read file content into a buffer using your disk.read_sector()
-  void read_file(const char *name, u8 *output_buffer) {
+    inode_manager.mark_used(root);
 
-    u8 sector_buffer[SECTOR_SIZE];
+    Inode inode{};
 
-    for (int current_sector = DIR_LBA_START; current_sector < MAX_LBA;
-         current_sector++) {
-      disk.read_sector(current_sector, sector_buffer);
-      FileEntry *file_entries = (FileEntry *)sector_buffer;
-      for (int i = 0; i < FILES_PER_BLOCK; i++) {
-        if (file_entries[i].is_used &&
-            StringUtils::strcmp(file_entries[i].name, name) == 0) {
-          disk.read_sector(file_entries[i].start_block, output_buffer);
-          return;
-        }
+    inode.id = root;
+    inode.size = 0;
+    inode.is_directory = true;
+    inode.parent_inode = root;
+    inode.used = true;
+
+    for (int i = 0; i < DIRECT_BLOCKS; i++) {
+      inode.direct_blocks[i] = INVALID_BLOCK;
+    }
+
+    inode_manager.write_inode(root, inode);
+  }
+
+  void format() {
+    block_manager.format();
+    inode_manager.format();
+
+    write_superblock();
+
+    create_root_directory();
+  }
+
+  bool create(char *path, bool directory) {
+
+    if (path == nullptr)
+      return false;
+
+    char *name = FSUtils::basename(path);
+
+    size_t name_length = StringUtils::strlen(name);
+
+    if (name_length == 0 || name_length > MAX_FILENAME_LENGTH ||
+        StringUtils::contains(name, '/')) {
+      return false;
+    }
+
+    // Find parent first
+    u32 parent = path_resolver.resolve_parent(path);
+
+    if (parent == INVALID_INODE)
+      return false;
+
+    // Prevent duplicate names
+    DirectoryEntry existing;
+
+    if (directory_manager.find_entry(parent, name, existing)) {
+      return false;
+    }
+
+    // Allocate inode
+    u32 inode_number = inode_manager.allocate_inode();
+
+    if (inode_number == INVALID_INODE)
+      return false;
+
+    Inode node{};
+
+    node.id = inode_number;
+    node.size = 0;
+    node.is_directory = directory;
+    node.parent_inode = parent;
+    node.used = true;
+
+    // Mark all blocks unused
+    for (int i = 0; i < DIRECT_BLOCKS; i++) {
+      node.direct_blocks[i] = INVALID_BLOCK;
+    }
+
+    // Directories need a block to store DirectoryEntries
+    u32 directory_block = INVALID_BLOCK;
+
+    if (directory) {
+
+      directory_block = block_manager.allocate_block();
+
+      if (directory_block == INVALID_BLOCK) {
+        inode_manager.free_inode(inode_number);
+        return false;
+      }
+
+      node.direct_blocks[0] = directory_block;
+
+      // Empty directory block
+      u8 empty_block[BLOCK_SIZE] = {};
+
+      if (!block_manager.write_block(directory_block, empty_block)) {
+
+        block_manager.free_block(directory_block);
+        inode_manager.free_inode(inode_number);
+
+        return false;
       }
     }
+
+    // Store inode on disk
+    if (!inode_manager.write_inode(inode_number, node)) {
+
+      if (directory_block != INVALID_BLOCK)
+        block_manager.free_block(directory_block);
+
+      inode_manager.free_inode(inode_number);
+
+      return false;
+    }
+
+    // Add directory entry to parent
+    if (!directory_manager.add_entry(parent, name, inode_number)) {
+
+      inode_manager.free_inode(inode_number);
+
+      if (directory_block != INVALID_BLOCK)
+        block_manager.free_block(directory_block);
+
+      return false;
+    }
+
+    return true;
+  }
+
+  bool mkdir(char *path) { return create(path, true); }
+
+  bool delete_file(const char *path) {
+
   };
+  bool write_file(const char *path, u8 *buffer, size_t size) {};
+  bool read_file(const char *path, u8 &out);
 
-  // Write data to a file, allocating sectors via disk.write_sector()
-  // A directory is a collection of metadata, so we write
-  // the file metadata in a directory block, and we write the actual
-  // file content in a seperate file block
-  void write_file(char *name, const u8 *data, u32 size) {
-    u8 temp_buffer[SECTOR_SIZE];
+  const char *list_directory(char *path) {
+    u32 inode_number = path_resolver.resolve_path(path);
 
-    for (int current_sector = DIR_LBA_START; current_sector < MAX_LBA;
-         current_sector++) {
-      disk.read_sector(current_sector, temp_buffer);
-      FileEntry *file_entries = (FileEntry *)temp_buffer;
-      for (int i = 0; i < FILES_PER_BLOCK; i++) {
-        if (!file_entries[i].is_used) {
+    if (inode_number == INVALID_INODE)
+      return "path does not exist";
 
-          u32 data_block = FILE_LBA_START +
-                           (current_sector - DIR_LBA_START) * FILES_PER_BLOCK +
-                           i;
-          StringUtils::strcpy(file_entries[i].name, name);
-          file_entries[i].start_block = data_block;
-          file_entries[i].is_used = true;
-          file_entries[i].size = size;
-          disk.write_sector(current_sector, temp_buffer);
-          disk.write_sector(data_block, data);
-          return;
-        }
+    Inode inode;
+    if (!inode_manager.read_inode(inode_number, inode))
+      return StringUtils::format("file {} does not exist.", path);
+    if (!inode.is_directory)
+      return "";
+    char *big_str = (char *)kmalloc(LIST_BUFFER_SIZE);
+
+    if (!big_str)
+      return "out of memory";
+
+    big_str[0] = '\0';
+
+    for (int i = 0; i < DIRECT_BLOCKS; i++) {
+      if (inode.direct_blocks[i] == INVALID_BLOCK)
+        continue;
+      // read block
+      u8 buffer[BLOCK_SIZE];
+      if (!block_manager.read_block(inode.direct_blocks[i], buffer))
+        continue;
+      DirectoryEntry *entries = reinterpret_cast<DirectoryEntry *>(buffer);
+      for (int j = 0; j < DIRECTORY_ENTRIES_PER_BLOCK; j++) {
+        if (!entries[j].is_used)
+          continue;
+        StringUtils::append(big_str, entries[j].name);
       }
     }
-  };
+
+    return big_str;
+  }
+
+  u32 resolve_path(char *path) { return path_resolver.resolve_path(path); }
+
+  const char *list_directory(u32 inode_number) {
+    Inode inode;
+
+    if (!inode_manager.read_inode(inode_number, inode))
+      return "invalid inode";
+
+    if (!inode.is_directory)
+      return "not a directory";
+
+    char *output = (char *)kmalloc(LIST_BUFFER_SIZE);
+
+    if (!output)
+      return "out of memory";
+
+    output[0] = '\0';
+
+    for (int i = 0; i < DIRECT_BLOCKS; i++) {
+
+      if (inode.direct_blocks[i] == INVALID_BLOCK)
+        continue;
+
+      u8 buffer[BLOCK_SIZE];
+
+      if (!block_manager.read_block(inode.direct_blocks[i], buffer))
+        continue;
+
+      DirectoryEntry *entries = reinterpret_cast<DirectoryEntry *>(buffer);
+
+      for (int j = 0; j < DIRECTORY_ENTRIES_PER_BLOCK; j++) {
+
+        if (!entries[j].is_used)
+          continue;
+
+        StringUtils::append(output, entries[j].name);
+        StringUtils::append(output, "\n");
+      }
+    }
+
+    return output;
+  }
+
+  const char* get_path(u32 inode_number) {
+    return path_resolver.get_path(inode_number);
+  }
 };

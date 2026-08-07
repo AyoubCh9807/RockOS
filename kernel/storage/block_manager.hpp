@@ -4,6 +4,7 @@
 #include "../utils/bit_utils.hpp"
 #include "disk.hpp"
 #include "layout.hpp"
+
 class BlockManager {
 
 private:
@@ -14,6 +15,18 @@ private:
 
 public:
   BlockManager(Disk &disk) : disk(disk) {};
+
+  void format() {
+    u8 buffer[BLOCK_SIZE];
+
+    for (int i = 0; i < BLOCK_SIZE; i++)
+      buffer[i] = 0;
+
+    for (u32 i = 0; i < BLOCK_BITMAP_SECTORS; i++) {
+      disk.write_sector(BLOCK_BITMAP_START + i, buffer);
+    }
+  }
+
   u32 allocate_block() {
     u8 buffer[BLOCK_SIZE];
 

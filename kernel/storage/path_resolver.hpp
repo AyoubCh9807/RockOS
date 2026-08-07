@@ -4,7 +4,6 @@
 #include "../utils/string_utils.hpp"
 #include "block_manager.hpp"
 #include "directory_manager.hpp"
-#include "fs_types.hpp"
 #include "inode_manager.hpp"
 #include "layout.hpp"
 
@@ -22,7 +21,10 @@ public:
 
   u32 resolve_path(char *path) {
     char *args[16];
-    u32 count = StringUtils::split_by(path, '/', args, 16);
+    auto count = StringUtils::split_by(path, '/', args, 16);
+
+    if (count == 0)
+      return ROOT_INODE;
 
     DirectoryEntry out;
 
@@ -49,5 +51,100 @@ public:
     // home, ayoubch, notes, damian.txt
   }
 
-  int resolve_parent(const char *path);
+  int resolve_parent(char *path) {
+    // /home/ayoubch/damian.txt becomes /home/ayoubch/
+    // find last "/" char and replace it with \0
+
+    if (path == nullptr)
+      return INVALID_INODE;
+    if (path[0] == '/') {
+      if (path[1] == '\0')
+        return ROOT_INODE;
+    }
+
+    if (StringUtils::strlen(path) == 0)
+      return INVALID_INODE;
+
+    int index = -1;
+
+    int path_length = StringUtils::strlen(path);
+    for (int i = path_length - 1; i >= 0; i++) {
+      if (path[i] == '/') {
+        index = i;
+        break;
+      }
+    }
+    if (index == 0)
+      return ROOT_INODE;
+
+    // For relative paths later on, i can use this
+    // if(!found) return resolve_path(path);
+    if (index == -1)
+      return INVALID_INODE;
+    path[index] = '\0';
+
+    return resolve_path(path);
+
+    // becomes /home/ayoubch\0damian.txt\0
+    // path gets from beginning to null terminator
+    // call resolve_path on path
+    // return result
+  };
+
+  const char *get_path(u32 inode_number) {
+
+    if (inode_number == INVALID_INODE)
+      return "invalid inode";
+
+    char *path = (char *)kmalloc(256);
+
+    if (!path)
+      return "out of memory";
+
+    path[0] = '\0';
+
+    char names[16][MAX_FILENAME_LENGTH];
+
+    int depth = 0;
+
+    u32 current = inode_number;
+
+    while (current != ROOT_INODE && depth < 16) {
+
+      Inode inode;
+
+      if (!inode_manager.read_inode(current, inode)) {
+        kfree(path);
+        return "invalid inode";
+      }
+
+      char name[MAX_FILENAME_LENGTH];
+
+      if (!directory_manager.find_name_by_inode(inode.parent_inode, current,
+                                                name)) {
+        kfree(path);
+        return "path lookup failed";
+      }
+
+      StringUtils::strcpy(names[depth], name);
+
+      depth++;
+
+      current = inode.parent_inode;
+    }
+
+    // Build path backwards
+
+    StringUtils::strcat(path, "/");
+
+    for (int i = depth - 1; i >= 0; i--) {
+
+      StringUtils::strcat(path, names[i]);
+
+      if (i != 0)
+        StringUtils::strcat(path, "/");
+    }
+
+    return path;
+  }
 };

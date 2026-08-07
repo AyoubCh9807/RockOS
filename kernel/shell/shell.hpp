@@ -10,6 +10,9 @@ constexpr static int SHELL_MAX_AGRGS = 16;
 
 class Shell {
 private:
+
+  Terminal& terminal;
+
   // What the user is currently typing
   String buffer;
   static constexpr int MAX_HISTORY = 32;
@@ -32,7 +35,7 @@ private:
   int currently_selected_history_item = 0;
 
 public:
-  Shell() : buffer("") {
+  Shell(Terminal& t) : terminal(t), buffer("") {
     for (int i = 0; i < MAX_HISTORY; i++) {
       history[i] = "";
     }
@@ -96,7 +99,7 @@ public:
         cmd_copy[i] = '\0';
 
         // Parse and print output
-        Terminal::print(Terminal::parse(cmd_copy, args, max_args));
+        terminal.print(terminal.parse(cmd_copy, args, max_args));
 
         // Reset buffer and print the next prompt
         buffer = String("");
