@@ -42,6 +42,7 @@ extern "C" void kernel_main() {
 
   TerminalRegistry reg(fs, current_dir);
   Terminal terminal(fs, reg);
+  terminal.fill_registry();
 
   Shell shell(terminal);
   shell.run();

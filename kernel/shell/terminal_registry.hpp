@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../utils/string_utils.hpp"
+#include "commands/cat.hpp"
 #include "commands/cd.hpp"
 #include "commands/clear.hpp"
 #include "commands/damian.hpp"
@@ -10,21 +12,17 @@
 #include "commands/mkdir.hpp"
 #include "commands/pwd.hpp"
 #include "commands/reboot.hpp"
-#include "commands/tyrant.hpp"
-#include "commands/uptime.hpp"
-#include "commands/touch.hpp"
 #include "commands/rm.hpp"
 #include "commands/rmdir.hpp"
-#include "commands/cat.hpp"
-#include "../utils/string_utils.hpp"
+#include "commands/touch.hpp"
+#include "commands/tyrant.hpp"
+#include "commands/uptime.hpp"
 
 constexpr int MAX_TERMINAL_COMMANDS = 256;
 
 class TerminalRegistry {
 private:
   ICommand *commands[MAX_TERMINAL_COMMANDS]{};
-
-  u32 &current_dir;
 
   RebootCommand reboot;
   ClearCommand clear;
@@ -45,10 +43,12 @@ private:
   int count = 0;
 
 public:
+  u32& current_dir;
+
   TerminalRegistry(FileSystem &fs, u32 &current_dir)
       : current_dir(current_dir), reboot(), clear(), echo(), uptime(), help(),
-        ls(fs), mkdir(fs), pwd(fs, current_dir), tyrant(), damian(),
-        cd(fs, current_dir), touch(fs), rm(fs), rmdir(fs), cat(fs) {}
+        ls(fs, current_dir), mkdir(fs), pwd(fs, current_dir), tyrant(),
+        damian(), cd(fs, current_dir), touch(fs), rm(fs), rmdir(fs), cat(fs) {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 
@@ -68,15 +68,28 @@ public:
     register_command(&rm);
     register_command(&rmdir);
     register_command(&cat);
+
+    TerminalUtils::print("COMMAND COUNT: ");
+    TerminalUtils::print_number(count);
+    TerminalUtils::print("\n");
   }
 
   ICommand *find(char *name) {
 
+    TerminalUtils::print("LOOKING FOR: ");
+    TerminalUtils::print(name);
+    TerminalUtils::print("\n");
+
     for (int i = 0; i < count; i++) {
+
+      TerminalUtils::print("CHECK: ");
+      TerminalUtils::print(commands[i]->name());
+      TerminalUtils::print("\n");
+
       if (StringUtils::strcmp(name, commands[i]->name()) == 0)
         return commands[i];
     }
 
     return nullptr;
-  }
+}
 };
