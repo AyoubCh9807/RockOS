@@ -15,13 +15,19 @@ extern "C" void kernel_main() {
   Random::init();
 
   Disk disk;
+
   FileSystem fs(disk);
 
-  fs.format();
-  Inode check{};
+  if (!fs.mount()) {
+    TerminalUtils::print("No filesystem, formatting...\n");
 
-  InodeManager im_check(disk);
-
+    if (!fs.format()) {
+      TerminalUtils::print("FORMAT FAILED\n");
+      return;
+    }
+  } else {
+    TerminalUtils::print("MOUNT SUCCESS\n");
+  } 
   //  String sample_text = "Hello ROCK OS LOVERS";
   //  fs.write_file((char *)"hello.txt", (u8 *)sample_text.c_str(),
   //                (u32)sample_text.length() + 1);

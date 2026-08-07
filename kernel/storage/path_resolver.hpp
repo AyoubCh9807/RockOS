@@ -2,149 +2,120 @@
 
 #include "../shared/types.hpp"
 #include "../utils/string_utils.hpp"
-#include "block_manager.hpp"
+#include "../memory/memory.hpp"
 #include "directory_manager.hpp"
 #include "inode_manager.hpp"
 #include "layout.hpp"
 
 class PathResolver {
 private:
-  InodeManager &inode_manager;
-  BlockManager &block_manager;
-  DirectoryManager &directory_manager;
+	InodeManager &inode_manager;
+	DirectoryManager &directory_manager;
+
+	// small local bounded append (so we don't rely on your old unbounded append)
+	static void append_bounded(char *dst, u32 cap, const char *src) {
+		if (!dst || cap == 0) return;
+		if (!src) src = "";
+		u32 len = (u32)StringUtils::strlen(dst);
+		if (len >= cap) { dst[cap - 1] = '\0'; return; }
+		u32 i = 0;
+		while (src[i] != '\0' && (len + i + 1) < cap) {
+			dst[len + i] = src[i];
+			i++;
+		}
+		dst[len + i] = '\0';
+	}
 
 public:
-  PathResolver(InodeManager &inode_manager, BlockManager &block_manager,
-               DirectoryManager &directory_manager)
-      : inode_manager(inode_manager), block_manager(block_manager),
-        directory_manager(directory_manager) {};
+	PathResolver(InodeManager &inode_manager, DirectoryManager &directory_manager)
+		: inode_manager(inode_manager), directory_manager(directory_manager) {}
 
-  u32 resolve_path(char *path) {
-    char *args[16];
-    auto count = StringUtils::split_by(path, '/', args, 16);
+	u32 resolve_path(char *path) {
+		if (!path) return INVALID_INODE;
+		if (path[0] == '\0') return ROOT_INODE;
 
-    if (count == 0)
-      return ROOT_INODE;
+		char *args[16];
+		int count = StringUtils::split_by(path, '/', args, 16);
 
-    DirectoryEntry out;
+		u32 current_inode_number = ROOT_INODE;
 
-    u32 current_inode_number = ROOT_INODE;
-    for (auto i{0uz}; i < count; i++) {
-      if (args[i][0] == '\0')
-        continue;
-      bool found =
-          directory_manager.find_entry(current_inode_number, args[i], out);
-      if (!found)
-        return INVALID_INODE;
-      Inode inode;
-      bool is_read = inode_manager.read_inode(out.inode_number, inode);
-      if (!is_read)
-        return INVALID_INODE;
-      bool is_last_component = i == count - 1;
-      if (!is_last_component && !inode.is_directory)
-        return INVALID_INODE;
-      current_inode_number = out.inode_number;
-    }
-    return current_inode_number;
+		DirectoryEntry out{};
+		for (int i = 0; i < count; i++) {
+			if (!args[i] || args[i][0] == '\0') continue;
 
-    // /home/ayoubch/notes/damian.txt
-    // home, ayoubch, notes, damian.txt
-  }
+			bool found = directory_manager.find_entry(current_inode_number, args[i], out);
+			if (!found) return INVALID_INODE;
 
-  int resolve_parent(char *path) {
-    // /home/ayoubch/damian.txt becomes /home/ayoubch/
-    // find last "/" char and replace it with \0
+			Inode inode{};
+			if (!inode_manager.read_inode(out.inode_number, inode)) return INVALID_INODE;
 
-    if (path == nullptr)
-      return INVALID_INODE;
-    if (path[0] == '/') {
-      if (path[1] == '\0')
-        return ROOT_INODE;
-    }
+			bool is_last = (i == count - 1);
+			if (!is_last && !inode.is_directory) return INVALID_INODE;
 
-    if (StringUtils::strlen(path) == 0)
-      return INVALID_INODE;
+			current_inode_number = out.inode_number;
+		}
 
-    int index = -1;
+		return current_inode_number;
+	}
 
-    int path_length = StringUtils::strlen(path);
-    for (int i = path_length - 1; i >= 0; i--) {
-      if (path[i] == '/') {
-        index = i;
-        break;
-      }
-    }
-    if (index == 0)
-      return ROOT_INODE;
+	u32 resolve_parent(char *path) {
+		if (!path) return INVALID_INODE;
 
-    // For relative paths later on, i can use this
-    // if(!found) return resolve_path(path);
-    if (index == -1)
-      return ROOT_INODE;
-    path[index] = '\0';
+		// "/" -> parent is root
+		if (path[0] == '/' && path[1] == '\0') return ROOT_INODE;
 
-    return resolve_path(path);
+		int path_len = StringUtils::strlen(path);
+		if (path_len == 0) return INVALID_INODE;
 
-    // becomes /home/ayoubch\0damian.txt\0
-    // path gets from beginning to null terminator
-    // call resolve_path on path
-    // return result
-  };
+		int index = -1;
+		for (int i = path_len - 1; i >= 0; i--) {
+			if (path[i] == '/') { index = i; break; }
+		}
 
-  const char *get_path(u32 inode_number) {
+		if (index == 0) return ROOT_INODE;     // "/x" parent is root
+		if (index == -1) return ROOT_INODE;    // "x" parent treated as root for now
 
-    if (inode_number == INVALID_INODE)
-      return "invalid inode";
+		path[index] = '\0';
+		return resolve_path(path);
+	}
 
-    char *path = (char *)kmalloc(256);
+	const char *get_path(u32 inode_number) {
+		if (inode_number == INVALID_INODE) return "invalid inode";
 
-    if (!path)
-      return "out of memory";
+		// 256 is fine for now given your depth cap (16) and name cap (32)
+		char *path = (char *)kmalloc(256);
+		if (!path) return "out of memory";
+		path[0] = '\0';
 
-    path[0] = '\0';
+		char names[16][MAX_FILENAME_LENGTH];
+		int depth = 0;
 
-    char names[16][MAX_FILENAME_LENGTH];
+		u32 current = inode_number;
 
-    int depth = 0;
+		while (current != ROOT_INODE && depth < 16) {
+			Inode inode{};
+			if (!inode_manager.read_inode(current, inode)) {
+				kfree(path);
+				return "invalid inode";
+			}
 
-    u32 current = inode_number;
+			char name[MAX_FILENAME_LENGTH];
+			if (!directory_manager.find_name_by_inode(inode.parent_inode, current, name)) {
+				kfree(path);
+				return "path lookup failed";
+			}
 
-    while (current != ROOT_INODE && depth < 16) {
+			StringUtils::strcpy(names[depth], name);
+			depth++;
+			current = inode.parent_inode;
+		}
 
-      Inode inode;
+		append_bounded(path, 256, "/");
+		for (int i = depth - 1; i >= 0; i--) {
+			append_bounded(path, 256, names[i]);
+			if (i != 0) append_bounded(path, 256, "/");
+		}
 
-      if (!inode_manager.read_inode(current, inode)) {
-        kfree(path);
-        return "invalid inode";
-      }
-
-      char name[MAX_FILENAME_LENGTH];
-
-      if (!directory_manager.find_name_by_inode(inode.parent_inode, current,
-                                                name)) {
-        kfree(path);
-        return "path lookup failed";
-      }
-
-      StringUtils::strcpy(names[depth], name);
-
-      depth++;
-
-      current = inode.parent_inode;
-    }
-
-    // Build path backwards
-
-    StringUtils::strcat(path, "/");
-
-    for (int i = depth - 1; i >= 0; i--) {
-
-      StringUtils::strcat(path, names[i]);
-
-      if (i != 0)
-        StringUtils::strcat(path, "/");
-    }
-
-    return path;
-  }
+		return path;
+	}
 };

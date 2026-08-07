@@ -6,29 +6,31 @@ echo "Compiling OS..."
 # Compile assembly loader from boot/
 nasm -f elf32 boot/loader.s -o loader.o
 
-# Compile C++ kernel with strict freestanding flags and include path set to kernel/
-g++ -m32 -c kernel/core/kernel.cpp -o kernel.o \
-    -Ikernel \
-    -ffreestanding \
-    -O2 \
-    -Wall \
-    -Wextra \
-    -fno-exceptions \
-    -fno-rtti \
-    -fno-use-cxa-atexit \
-    -fno-stack-protector \
-    -nostdlib \
-    -fno-builtin \
-    -mno-red-zone \
-    -mno-mmx \
-    -mno-sse \
-    -mno-sse2 \
-    -mno-80387 \
-    -mgeneral-regs-only
+CPPFLAGS="-Ikernel \
+-ffreestanding \
+-O2 \
+-Wall \
+-Wextra \
+-fno-exceptions \
+-fno-rtti \
+-fno-use-cxa-atexit \
+-fno-stack-protector \
+-nostdlib \
+-fno-builtin \
+-mno-red-zone \
+-mno-mmx \
+-mno-sse \
+-mno-sse2 \
+-mno-80387 \
+-mgeneral-regs-only"
 
+g++ -m32 -c kernel/core/kernel.cpp -o kernel.o $CPPFLAGS
+g++ -m32 -c kernel/memory/new_delete.cpp -o new_delete.o $CPPFLAGS
 # Link binaries using the custom linker script from boot/
-ld -m elf_i386 -T boot/link.ld -o my_kernel.bin loader.o kernel.o --no-warn-rwx-segments
-
+ld -m elf_i386 -T boot/link.ld \
+    -o my_kernel.bin \
+    loader.o kernel.o new_delete.o \
+    --no-warn-rwx-segments
 # Copy to ISO directory and recreate ISO
 cp my_kernel.bin isodir/boot/
 grub-mkrescue -o my_os.iso isodir >/dev/null 2>&1

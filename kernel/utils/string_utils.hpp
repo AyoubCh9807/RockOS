@@ -7,304 +7,251 @@ constexpr int DEFAULT_BUFFER_ALLOCATION_SIZE = 16;
 constexpr int DEFAULT_BUFFER_INCREMENT = 16;
 
 class StringUtils {
-
 public:
-  // this functions compares each char of 2 strings
-  // if the letter is NOT the same, then they are different, therefore we return
-  // a non-zero result if ALL the letters ARE the same, s1[i] - s2[i] will
-  // return 0 since they are the same character
+	inline static char scancode_to_ascii(unsigned char scancode) {
+		// Simple map (AZERTY-ish as in your original code).
+		// Unspecified entries default to 0.
+		static const char ascii_map[128] = {
+			0,   27,  '1',  '2',  '3',  '4',  '5',  '6',  '7',  '8',  '9',  '0',
+			'-', '=', '\b', '\t', 'a',  'z',  'e',  'r',  't',  'y',  'u',  'i',
+			'o', 'p', '[',  ']',  '\n', 0,    'q',  's',  'd',  'f',  'g',  'h',
+			'j', 'k', 'l',  'm',  '\'', '`',  0,    '\\', 'w',  'x',  'c',  'v',
+			'b', 'n', ';',  ',',  '.',  '/',  0,    '*',  0,    ' ',
+		};
 
-  inline static char scancode_to_ascii(unsigned char scancode) {
-    static const char ascii_map[128] = {
-        0,   27,  '1',  '2',  '3',  '4', '5', '6',  '7', '8', '9', '0',
-        '-', '=', '\b', '\t', 'a',  'z', 'e', 'r',  't', 'y', 'u', 'i',
-        'o', 'p', '[',  ']',  '\n', 0,   'q', 's',  'd', 'f', 'g', 'h',
-        'j', 'k', 'l',  'm',  '\'', '`', 0,   '\\', 'w', 'x', 'c', 'v',
-        'b', 'n', ';',  ',',  '.',  '/', 0,   '*',  0,   ' '};
+		if (scancode < 128) return ascii_map[scancode];
+		return 0;
+	}
 
-    if (scancode < 128) {
-      return ascii_map[scancode];
-    }
-    return 0;
-  }
+	inline static int strcmp(const char *s1, const char *s2) {
+		if (!s1 && !s2) return 0;
+		if (!s1) return -1;
+		if (!s2) return 1;
 
-  inline static int strcmp(const char *s1, const char *s2) {
-    int i = 0;
-    while (s1[i] != '\0' && s2[i] != '\0') {
-      if (s1[i] != s2[i]) {
-        return s1[i] - s2[i];
-      }
-      i++;
-    }
-    return s1[i] - s2[i]; // Returns 0 if they match completely
-  }
+		int i = 0;
+		while (s1[i] != '\0' && s2[i] != '\0') {
+			if (s1[i] != s2[i])
+				return (unsigned char)s1[i] - (unsigned char)s2[i];
+			i++;
+		}
+		return (unsigned char)s1[i] - (unsigned char)s2[i];
+	}
 
-  inline static int split_by(char *str, const char separator, char **args,
-                             int max_args) {
-    int arg_count = 0;
-    bool in_word = false;
+	// Splits in-place by `separator`. Returns argc, writes pointers into args[].
+	inline static int split_by(char *str, const char separator, char **args, int max_args) {
+		if (!str || !args || max_args <= 0) return 0;
 
-    for (int i = 0; str[i] != '\0'; i++) {
-      if (str[i] == separator) {
-        str[i] = '\0'; // Cut off the string right at the comma
-        in_word = false;
-      } else if (str[i] != ' ' && str[i] != '\n' && str[i] != '\r') {
-        if (!in_word) {
-          if (arg_count < max_args) {
-            args[arg_count] = &str[i]; // Point to the start of the next piece
-            arg_count++;
-          }
-          in_word = true;
-        }
-      }
-    }
-    return arg_count;
-  }
+		int arg_count = 0;
+		bool in_word = false;
 
-  inline static int strlen(const char *str) {
-    int i = 0;
-    while (str[i] != '\0')
-      i++;
-    return i;
-  }
+		for (int i = 0; str[i] != '\0'; i++) {
+			if (str[i] == separator) {
+				str[i] = '\0';
+				in_word = false;
+			} else if (str[i] != ' ' && str[i] != '\n' && str[i] != '\r' && str[i] != '\t') {
+				if (!in_word) {
+					if (arg_count < max_args) args[arg_count++] = &str[i];
+					in_word = true;
+				}
+			}
+		}
+		return arg_count;
+	}
 
-  inline static const char *strcat(const char *str1, const char *str2) {
+	inline static int strlen(const char *str) {
+		if (!str) return 0;
+		int i = 0;
+		while (str[i] != '\0') i++;
+		return i;
+	}
 
-    int len1 = strlen(str1);
-    int len2 = strlen(str2);
-    char *dest = (char *)kmalloc(len1 + len2 + 1);
+	// IMPORTANT: This allocates a new buffer. Caller owns it (and must kfree it).
+	// Name it explicitly so it isn't mistaken for normal strcat().
+	inline static const char *strcat_alloc(const char *str1, const char *str2) {
+		if (!str1) str1 = "";
+		if (!str2) str2 = "";
 
-    if (!dest) {
-      return "Out of memory\n\0";
-    }
+		int len1 = strlen(str1);
+		int len2 = strlen(str2);
 
-    int current_index = 0;
+		char *dest = (char *)kmalloc((size_t)len1 + (size_t)len2 + 1);
+		if (!dest) return "Out of memory\n";
 
-    for (int i = 0; i < len1; i++) {
-      dest[current_index++] = str1[i];
-    }
+		int idx = 0;
+		for (int i = 0; i < len1; i++) dest[idx++] = str1[i];
+		for (int i = 0; i < len2; i++) dest[idx++] = str2[i];
+		dest[idx] = '\0';
+		return dest;
+	}
 
-    for (int i = 0; i < len2; i++) {
-      dest[current_index++] = str2[i];
-    }
+	inline static const char *iota(int val) {
+		// Allocate numeric string. Caller owns result if it isn't a static literal.
+		// Implemented via long long so INT_MIN works.
+		long long v = (long long)val;
+		if (v == 0) return "0";
 
-    dest[current_index] = '\0';
+		bool neg = false;
+		if (v < 0) { neg = true; v = -v; }
 
-    return dest;
-  }
+		char map[10] = {'0','1','2','3','4','5','6','7','8','9'};
 
-  inline static const char *iota(int val) {
+		int len = 0;
+		long long tmp = v;
+		while (tmp != 0) { tmp /= 10; len++; }
+		if (neg) len++;
 
-    if (val == 0)
-      return "0\0";
+		char *str = (char *)kmalloc((size_t)len + 1);
+		if (!str) return "";
 
-    char map[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+		str[len] = '\0';
 
-    int val_length = 0;
-    int temp_val = val;
+		int i = len - 1;
+		while (v != 0 && i >= 0) {
+			str[i--] = map[v % 10];
+			v /= 10;
+		}
+		if (neg) str[0] = '-';
 
-    while (temp_val != 0) {
-      temp_val /= 10;
-      val_length++;
-    }
+		return str;
+	}
 
-    char *str = (char *)kmalloc(val_length + 1);
-    if (!str)
-      return "\0";
+	// ---- Safe bounded append (prevents heap corruption) ----
+	inline static void append(char *dest, size_t dest_capacity, const char *src) {
+		if (!dest || dest_capacity == 0) return;
+		if (!src) src = "";
 
-    temp_val = val;
+		size_t dest_len = (size_t)strlen(dest);
+		if (dest_len >= dest_capacity) {
+			dest[dest_capacity - 1] = '\0';
+			return;
+		}
 
-    for (int i = val_length - 1; i >= 0; i--) {
-      // 150 -> 0 then 5 then 1
-      str[i] = map[temp_val % 10];
-      temp_val /= 10;
-    }
+		size_t i = 0;
+		while (src[i] != '\0' && (dest_len + i + 1) < dest_capacity) {
+			dest[dest_len + i] = src[i];
+			i++;
+		}
+		dest[dest_len + i] = '\0';
+	}
 
-    str[val_length] = '\0';
+	// Legacy unbounded append: keep ONLY if you are 100% sure dest has room.
+	inline static void append(char *dest, const char *src) {
+		if (!dest || !src) return;
+		int dest_len = strlen(dest);
+		int i = 0;
+		while (src[i] != '\0') {
+			dest[dest_len + i] = src[i];
+			i++;
+		}
+		dest[dest_len + i] = '\0';
+	}
 
-    return str;
-  }
+	inline static char *grow_buffer(char *buf, size_t &capacity, int used, size_t needed) {
+		if (needed <= capacity) return buf;
 
-  // Grows `buf` (currently `capacity` bytes, holding `used` valid bytes) so
-  // it can hold at least `needed` bytes total (including the null
-  // terminator). Returns the (possibly reallocated) buffer, or nullptr on
-  // allocation failure. This is what was missing before: format() used to
-  // kmalloc a fixed 16-byte buffer and write into it with no bounds check
-  // at all, silently overflowing into the next heap block for any format
-  // string longer than ~15 characters (e.g. the uptime string), corrupting
-  // the allocator's free list and breaking unrelated allocations afterward.
-  inline static char *grow_buffer(char *buf, size_t &capacity, int used,
-                                  size_t needed) {
-    if (needed <= capacity) {
-      return buf;
-    }
+		size_t new_capacity = capacity;
+		while (new_capacity < needed) new_capacity += DEFAULT_BUFFER_INCREMENT;
 
-    size_t new_capacity = capacity;
-    while (new_capacity < needed) {
-      new_capacity += DEFAULT_BUFFER_INCREMENT;
-    }
+		char *new_buf = (char *)kmalloc(new_capacity);
+		if (!new_buf) return nullptr;
 
-    char *new_buf = (char *)kmalloc(new_capacity);
-    if (!new_buf) {
-      return nullptr;
-    }
+		for (int i = 0; i < used; i++) new_buf[i] = buf[i];
 
-    for (int i = 0; i < used; i++) {
-      new_buf[i] = buf[i];
-    }
+		if (buf) kfree(buf);
+		capacity = new_capacity;
+		return new_buf;
+	}
 
-    if (buf) {
-      kfree(buf);
-    }
+	inline static char *format(const char *fmt, ...) {
+		if (!fmt) return nullptr;
 
-    capacity = new_capacity;
-    return new_buf;
-  }
+		va_list args;
+		va_start(args, fmt);
 
-  inline static char *format(const char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
+		size_t capacity = DEFAULT_BUFFER_ALLOCATION_SIZE;
+		char *buf = (char *)kmalloc(capacity);
+		if (!buf) { va_end(args); return nullptr; }
 
-    size_t capacity = DEFAULT_BUFFER_ALLOCATION_SIZE;
-    char *buf = (char *)kmalloc(capacity);
-    if (!buf) {
-      va_end(args);
-      return 0;
-    }
+		int out = 0;
 
-    int buf_idx = 0;
+		for (int i = 0; fmt[i] != '\0'; i++) {
+			if (fmt[i] == '%' && fmt[i + 1] != '\0') {
+				i++;
 
-    for (int i = 0; fmt[i] != '\0'; i++) {
-      if (fmt[i] == '%' && fmt[i + 1] != '\0') {
-        i++; // Skip the '%' and get the next character
-        if (fmt[i] == 's') {
-          const char *s = va_arg(args, const char *);
-          while (*s) {
-            buf = grow_buffer(buf, capacity, buf_idx, buf_idx + 2);
-            if (!buf) {
-              va_end(args);
-              return 0;
-            }
-            buf[buf_idx++] = *s++;
-          }
-        } else if (fmt[i] == 'd') {
-          int val = va_arg(args, int);
-          const char *num_str = iota(val); // Convert int using iota
-          while (*num_str) {
-            buf = grow_buffer(buf, capacity, buf_idx, buf_idx + 2);
-            if (!buf) {
-              va_end(args);
-              return 0;
-            }
-            buf[buf_idx++] = *num_str++;
-          }
-        } else if (fmt[i] == 'c') {
-          char c =
-              (char)va_arg(args, int); // Any type smaller than an int in ...
-                                       // gets promoted to int by the compiler
-          buf = grow_buffer(buf, capacity, buf_idx, buf_idx + 2);
-          if (!buf) {
-            va_end(args);
-            return 0;
-          }
-          buf[buf_idx++] = c;
-        }
-      } else {
-        buf = grow_buffer(buf, capacity, buf_idx, buf_idx + 2);
-        if (!buf) {
-          va_end(args);
-          return 0;
-        }
-        buf[buf_idx++] = fmt[i];
-      }
-    }
+				if (fmt[i] == '%') {
+					buf = grow_buffer(buf, capacity, out, (size_t)out + 2);
+					if (!buf) { va_end(args); return nullptr; }
+					buf[out++] = '%';
+				} else if (fmt[i] == 's') {
+					const char *s = va_arg(args, const char *);
+					if (!s) s = "";
+					while (*s) {
+						buf = grow_buffer(buf, capacity, out, (size_t)out + 2);
+						if (!buf) { va_end(args); return nullptr; }
+						buf[out++] = *s++;
+					}
+				} else if (fmt[i] == 'd') {
+					int v = va_arg(args, int);
+					const char *num = iota(v);
+					while (*num) {
+						buf = grow_buffer(buf, capacity, out, (size_t)out + 2);
+						if (!buf) { va_end(args); return nullptr; }
+						buf[out++] = *num++;
+					}
+				} else if (fmt[i] == 'c') {
+					char c = (char)va_arg(args, int);
+					buf = grow_buffer(buf, capacity, out, (size_t)out + 2);
+					if (!buf) { va_end(args); return nullptr; }
+					buf[out++] = c;
+				} else {
+					// unknown: output literally
+					buf = grow_buffer(buf, capacity, out, (size_t)out + 2);
+					if (!buf) { va_end(args); return nullptr; }
+					buf[out++] = fmt[i];
+				}
+			} else {
+				buf = grow_buffer(buf, capacity, out, (size_t)out + 2);
+				if (!buf) { va_end(args); return nullptr; }
+				buf[out++] = fmt[i];
+			}
+		}
 
-    buf[buf_idx] = '\0'; // Null-terminate the final string
-    va_end(args);
+		buf[out] = '\0';
+		va_end(args);
+		return buf;
+	}
 
-    return buf;
-  }
+	static void strcpy(char *dest, const char *src) {
+		if (!dest || !src) return;
+		int i = 0;
+		while (src[i] != '\0') { dest[i] = src[i]; i++; }
+		dest[i] = '\0';
+	}
 
-  static void strcpy(char *dest, char *src) {
-    if (!src || !dest)
-      return;
-    int i = 0;
-    while (src[i] != '\0') {
-      dest[i] = src[i];
-      i++;
-    }
-    dest[i] = '\0';
-  }
+	inline static int find(char *str, char c) {
+		if (!str) return -1;
+		for (int i = 0; str[i] != '\0'; i++) if (str[i] == c) return i;
+		return -1;
+	}
 
-  static int count(char *str, char *c) {
-    auto counter{0uz};
-    auto i{0uz};
-    while (str[i] != '\0') {
-      if ((char)str[i] == c[0])
-        counter++;
-      i++;
-    }
-    return counter;
-  }
+	inline static char *slice(char *str, int start, int end) {
+		if (!str) return nullptr;
+		int length = strlen(str);
+		if (start >= end) return nullptr;
+		if (start < 0 || end > length) return nullptr;
 
-  inline static void append(char *dest, const char *src) {
-    int dest_len = strlen(dest);
+		int size = end - start;
+		char *res = (char *)kmalloc((size_t)size + 1);
+		if (!res) return nullptr;
 
-    int i = 0;
+		for (int i = 0; i < size; i++) res[i] = str[start + i];
+		res[size] = '\0';
+		return res;
+	}
 
-    while (src[i] != '\0') {
-      dest[dest_len + i] = src[i];
-      i++;
-    }
-
-    dest[dest_len + i] = '\0';
-  }
-
-  inline static int find(char *str, char c) {
-    int index = -1;
-    int i = 0;
-    while (str[i] != '\0') {
-      if (str[i] == c) {
-        index = i;
-        break;
-      }
-      i++;
-    }
-
-    return index;
-  }
-
-  inline static char *slice(char *str, int start, int end) {
-    int length = strlen(str);
-
-    if (start >= end)
-      return nullptr;
-
-    if (end > length)
-      return nullptr;
-
-    int size = end - start;
-
-    char *res = (char *)kmalloc(size + 1);
-
-    if (!res)
-      return nullptr;
-
-    for (int i = 0; i < size; i++) {
-      res[i] = str[start + i];
-    }
-
-    res[size] = '\0';
-
-    return res;
-  }
-
-  inline static bool contains(const char* str, char c) {
-    int i = 0;
-    while(str[i] != '\0') {
-      if(str[i] == c) return true;
-      i++;
-    }
-    return false;
-  }
+	inline static bool contains(const char *str, char c) {
+		if (!str) return false;
+		for (int i = 0; str[i] != '\0'; i++) if (str[i] == c) return true;
+		return false;
+	}
 };

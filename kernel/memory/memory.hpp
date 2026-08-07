@@ -98,21 +98,6 @@ inline void *kfree(void *ptr) {
   return 0;
 }
 
-extern "C" void *memset(void *dest, int val, size_t num) {
-  unsigned char *p = (unsigned char *)dest;
-  while (num--) {
-    *p++ = (unsigned char)val;
-  }
-  return dest;
-}
-extern "C" void *memcpy(void *dest, const void *src, size_t size) {
-  unsigned char *d = (unsigned char *)dest;
-  const unsigned char *s = (const unsigned char *)src;
+extern "C" void *memset(void *dest, int val, size_t num);
+extern "C" void *memcpy(void *dest, const void *src, size_t size);
 
-  // Copy byte by byte using pointer increment
-  while (size--) {
-    *d++ = *s++;
-  }
-
-  return dest; // Must return the destination pointer
-}

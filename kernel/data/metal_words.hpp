@@ -137,3 +137,4 @@ const char* metal_word_list[] = {
 };
 
 constexpr int METAL_WORD_COUNT = sizeof(metal_word_list) / sizeof(metal_word_list[0]);
+

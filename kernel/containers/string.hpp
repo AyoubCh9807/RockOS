@@ -1,145 +1,185 @@
 #pragma once
+
 #include "../memory/memory.hpp"
 #include "../utils/string_utils.hpp"
-#include <stdarg.h>
+#include "../shared/types.hpp"
+
+constexpr int DEFAULT_STRING_INCREMENT = 16;
 
 class String {
 private:
-  size_t size;
-  size_t capacity;
-  char *data;
-  inline static char err_char = '\0';
+	size_t size_;
+	size_t capacity_;
+	char *data_;
+
+	static inline char err_char_ = '\0';
+
+	void ensure_capacity(size_t needed) {
+		// needed includes space for '\0'
+		if (needed <= capacity_) return;
+
+		size_t new_cap = capacity_;
+		if (new_cap == 0) new_cap = DEFAULT_STRING_INCREMENT;
+		while (new_cap < needed) new_cap += DEFAULT_STRING_INCREMENT;
+
+		char *new_data = (char *)kmalloc(new_cap);
+		if (!new_data) return; // keep old buffer if allocation fails
+
+		// copy old
+		for (size_t i = 0; i < size_; i++) new_data[i] = data_[i];
+		new_data[size_] = '\0';
+
+		if (data_) kfree(data_);
+		data_ = new_data;
+		capacity_ = new_cap;
+	}
 
 public:
-  String(const char *cstr) {
-    int length = StringUtils::strlen(cstr);
-    data = (char *)kmalloc(length + 1);
-    size = length;
-    capacity = size + DEFAULT_BUFFER_INCREMENT;
-    for (int i = 0; i < length; i++) {
-      data[i] = cstr[i];
-    }
-    data[length] = '\0';
-  };
+	String() : size_(0), capacity_(DEFAULT_STRING_INCREMENT), data_(nullptr) {
+		data_ = (char *)kmalloc(capacity_);
+		if (data_) data_[0] = '\0';
+		else capacity_ = 0;
+	}
 
-  String() {
-    size = 0;
-    capacity = size + DEFAULT_BUFFER_INCREMENT;
-    data = (char *)kmalloc(size + 1);
-    if (data) {
-      data[0] = '\0';
-    }
-  }
+	String(const char *cstr) : size_(0), capacity_(0), data_(nullptr) {
+		if (!cstr) cstr = "";
+		size_ = (size_t)StringUtils::strlen(cstr);
+		capacity_ = size_ + 1 + DEFAULT_STRING_INCREMENT;
 
-  // Rule of three: without these, the compiler-generated versions do a
-  // shallow copy of `data`. That leads to two Strings owning the same heap
-  // block; when one is destroyed it frees memory the other still points to
-  // (use-after-free / double-free), which is what was corrupting the shell
-  // input buffer on every keystroke.
+		data_ = (char *)kmalloc(capacity_);
+		if (!data_) {
+			size_ = 0;
+			capacity_ = 0;
+			return;
+		}
 
-  String(const String &other) {
-    size = other.size;
-    capacity = other.capacity;
-    data = (char *)kmalloc(capacity + 1);
-    if (data) {
-      for (size_t i = 0; i < size; i++) {
-        data[i] = other.data[i];
-      }
-      data[size] = '\0';
-    }
-  }
+		for (size_t i = 0; i < size_; i++) data_[i] = cstr[i];
+		data_[size_] = '\0';
+	}
 
-  String &operator=(const String &other) {
-    if (this == &other) {
-      return *this;
-    }
+	// Copy ctor (deep copy)
+	String(const String &other) : size_(0), capacity_(0), data_(nullptr) {
+		size_ = other.size_;
+		capacity_ = other.capacity_;
+		if (capacity_ == 0) return;
 
-    char *new_data = (char *)kmalloc(other.capacity + 1);
-    if (!new_data) {
-      return *this; // allocation failed, leave *this unchanged
-    }
+		data_ = (char *)kmalloc(capacity_);
+		if (!data_) {
+			size_ = 0;
+			capacity_ = 0;
+			return;
+		}
 
-    for (size_t i = 0; i < other.size; i++) {
-      new_data[i] = other.data[i];
-    }
-    new_data[other.size] = '\0';
+		for (size_t i = 0; i < size_; i++) data_[i] = other.data_[i];
+		data_[size_] = '\0';
+	}
 
-    if (data != nullptr) {
-      kfree(data);
-    }
+	// Copy assignment (deep copy, handles self-assign)
+	String &operator=(const String &other) {
+		if (this == &other) return *this;
 
-    data = new_data;
-    size = other.size;
-    capacity = other.capacity;
+		if (other.capacity_ == 0) {
+			// free current
+			if (data_) kfree(data_);
+			data_ = nullptr;
+			size_ = 0;
+			capacity_ = 0;
+			return *this;
+		}
 
-    return *this;
-  }
+		char *new_data = (char *)kmalloc(other.capacity_);
+		if (!new_data) return *this; // leave unchanged on alloc failure
 
-  ~String() {
-    if (data != nullptr) {
-      kfree(data);
-    }
-  }
+		for (size_t i = 0; i < other.size_; i++) new_data[i] = other.data_[i];
+		new_data[other.size_] = '\0';
 
-  int length() { return size; }
+		if (data_) kfree(data_);
+		data_ = new_data;
+		size_ = other.size_;
+		capacity_ = other.capacity_;
+		return *this;
+	}
 
-  // Shrinks the logical length by one, used for backspace. Unlike writing
-  // '\0' through operator[], this actually updates `size` so length() and
-  // future operator+ calls stay consistent.
-  void pop_back() {
-    if (size > 0) {
-      size--;
-      data[size] = '\0';
-    }
-  }
+	~String() {
+		if (data_) kfree(data_);
+		data_ = nullptr;
+		size_ = 0;
+		capacity_ = 0;
+	}
 
-  String operator+(const char *other_string) {
-    int len1 = size;
-    int len2 = StringUtils::strlen(other_string);
-    String res;
-    res.size = len1 + len2;
-    res.capacity = res.size + DEFAULT_BUFFER_INCREMENT;
-    if (res.data)
-      kfree(res.data);
-    res.data = (char *)kmalloc(res.capacity + 1);
-    for (int i = 0; i < len1; i++) {
-      res.data[i] = this->data[i];
-    }
-    for (int i = 0; i < len2; i++) {
-      res.data[i + len1] = other_string[i];
-    }
-    res.data[res.size] = '\0';
-    return res;
-  }
+	int length() const { return (int)size_; }
 
-  String operator+(const String &other_string) {
-    return operator+(other_string.data);
-  }
+	const char *c_str() const { return data_ ? data_ : ""; }
 
-  bool operator==(const char *other_string) {
-    return StringUtils::strcmp(data, other_string) == 0;
-  }
+	void pop_back() {
+		if (size_ == 0 || !data_) return;
+		size_--;
+		data_[size_] = '\0';
+	}
 
-  const char *c_str() { return data ? data : ""; }
+	// operator[] (safe-ish)
+	char &operator[](size_t index) {
+		if (!data_ || index >= size_) return err_char_;
+		return data_[index];
+	}
 
-  char &operator[](size_t index) {
-    if (index < size) {
-      return data[index];
-    }
-    return err_char;
-  }
+	// Append a C-string (returns new String)
+	String operator+(const char *other) const {
+		if (!other) other = "";
 
-  String operator+(char c) const {
-    size_t new_len = size + 1;
-    char *new_data = (char *)kmalloc(new_len + 1);
-    for (size_t i = 0; i < size; i++) {
-      new_data[i] = data[i];
-    }
-    new_data[size] = c;
-    new_data[new_len] = '\0';
+		size_t other_len = (size_t)StringUtils::strlen(other);
+		size_t new_len = size_ + other_len;
 
-    String result(new_data);
-    kfree(new_data);
-    return result;
-  }
+		// allocate exact-ish
+		size_t cap = new_len + 1 + DEFAULT_STRING_INCREMENT;
+		char *new_data = (char *)kmalloc(cap);
+		if (!new_data) {
+			// allocation failed: return a copy of *this (safe fallback)
+			return String(*this);
+		}
+
+		for (size_t i = 0; i < size_; i++) new_data[i] = data_ ? data_[i] : '\0';
+		for (size_t j = 0; j < other_len; j++) new_data[size_ + j] = other[j];
+		new_data[new_len] = '\0';
+
+		String result;
+		// replace result's buffer with ours
+		if (result.data_) kfree(result.data_);
+		result.data_ = new_data;
+		result.size_ = new_len;
+		result.capacity_ = cap;
+
+		return result;
+	}
+
+	String operator+(const String &other) const {
+		return (*this) + other.c_str();
+	}
+
+	// The one your warning references
+	String operator+(char c) const {
+		size_t new_len = size_ + 1;
+
+		size_t cap = new_len + 1 + DEFAULT_STRING_INCREMENT;
+		char *new_data = (char *)kmalloc(cap);
+		if (!new_data) {
+			return String(*this); // avoid writing through nullptr
+		}
+
+		for (size_t i = 0; i < size_; i++) new_data[i] = data_ ? data_[i] : '\0';
+		new_data[size_] = c;
+		new_data[new_len] = '\0';
+
+		String result;
+		if (result.data_) kfree(result.data_);
+		result.data_ = new_data;
+		result.size_ = new_len;
+		result.capacity_ = cap;
+
+		return result;
+	}
+
+	bool operator==(const char *other) const {
+		return StringUtils::strcmp(c_str(), other ? other : "") == 0;
+	}
 };

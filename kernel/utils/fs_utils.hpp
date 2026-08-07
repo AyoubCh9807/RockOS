@@ -1,17 +1,25 @@
 #pragma once
+
 #include "string_utils.hpp"
 
 namespace FSUtils {
+
+// Returns pointer into `path` (no allocation). `path` must remain valid.
+// Works with or without '/' present.
 inline static char *basename(char *path) {
-  int last = -1;
+	if (!path) return path;
 
-  int len = StringUtils::strlen(path);
+	int last = -1;
+	int len = StringUtils::strlen(path);
 
-  for (int i = 0; i < len; i++) {
-    if (path[i] == '/')
-      last = i;
-  }
-
-  return &path[last + 1];
+	for (int i = 0; i < len; i++) {
+		if (path[i] == '/') last = i;
+	}
+	return &path[last + 1];
 }
-} // namespace Utils
+
+inline static const char *basename(const char *path) {
+	return basename(const_cast<char *>(path));
+}
+
+} // namespace FSUtils
