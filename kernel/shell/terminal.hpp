@@ -43,5 +43,7 @@ public:
     return cmd->execute(argc, args);
   }
 
+  const char *get_current_path() { return fs.get_path(reg.current_dir); }
+
   void fill_registry() { reg.fill_registry(); }
 };

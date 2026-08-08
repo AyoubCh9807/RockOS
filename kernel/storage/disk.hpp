@@ -1,14 +1,20 @@
+// kernel/storage/disk.hpp
 #pragma once
 
 #include "../core/asm.hpp"
 #include "../shared/types.hpp"
+#include "../utils/terminal_utils.hpp"
+#include "layout.hpp"
 
 class Disk {
   constexpr static u8 ATA_SR_BSY = 0x80;
   constexpr static u8 ATA_SR_DRQ = 0x08;
   constexpr static u8 ATA_SR_ERR = 0x01;
+  constexpr static u8 ATA_SR_DF = 0x20;
 
   constexpr static u16 ATA_IO_BASE = 0x1F0;
+  constexpr static u16 ATA_CTRL_BASE =
+      0x3F6; // alternate status / device control
   constexpr static u16 ATA_REG_DATA = 0x00;
   constexpr static u16 ATA_REG_SECCOUNT = 0x02;
   constexpr static u16 ATA_REG_LBA_LOW = 0x03;
@@ -19,84 +25,211 @@ class Disk {
   constexpr static u16 ATA_REG_COMMAND = 0x07;
 
 private:
-  bool is_ready = false;
-
-  // ATA spec: after selecting the drive (writing ATA_REG_DEVICE) the status
-  // register isn't valid for ~400ns. Four throwaway status reads (~100ns
-  // each) reliably provide that settle time.
+  // 400ns settle delay. Reads the ALTERNATE status register (0x3F6), not the
+  // main status port, so it never clears a pending IRQ flag as a side effect.
   void io_delay() {
     for (int i = 0; i < 4; i++)
-      Asm::inb(ATA_IO_BASE + ATA_REG_STATUS);
+      Asm::inb(ATA_CTRL_BASE);
   }
 
-  void poll() {
-    while (1) {
-      u8 status = Asm::inb(ATA_IO_BASE + ATA_REG_STATUS); // fixed
+  void wait_not_busy() {
+    while (Asm::inb(ATA_IO_BASE + ATA_REG_STATUS) & ATA_SR_BSY)
+      ;
+  }
 
-      if (!(status & ATA_SR_BSY) && (status & ATA_SR_DRQ)) {
-        is_ready = true;
-        break;
-      }
-      if (status & ATA_SR_ERR) {
-        is_ready = false;
-        break;
-      }
+  // Waits for BSY=0 and DRQ=1 (ready to transfer data).
+  // Returns false immediately on ERR/DF instead of spinning forever.
+  bool wait_drq() {
+    while (1) {
+      u8 status = Asm::inb(ATA_IO_BASE + ATA_REG_STATUS);
+      if (status & (ATA_SR_ERR | ATA_SR_DF))
+        return false;
+      if (!(status & ATA_SR_BSY) && (status & ATA_SR_DRQ))
+        return true;
     }
+  }
+
+  void select_drive(u32 lba) {
+    Asm::outb(ATA_IO_BASE + ATA_REG_DEVICE, 0xE0 | ((lba >> 24) & 0x0F));
+    io_delay();
   }
 
 public:
   bool read_sector(u32 lba, u8 *buffer) {
-    while (Asm::inb(ATA_IO_BASE + ATA_REG_STATUS) & ATA_SR_BSY) // fixed
-      ;
+    wait_not_busy();
+    select_drive(lba);
 
-    Asm::outb(ATA_IO_BASE + ATA_REG_DEVICE, 0xE0 | ((lba >> 24) & 0x0F));
-
-    io_delay(); // Settle before touching SECCOUNT/LBA/COMMAND
     Asm::outb(ATA_IO_BASE + ATA_REG_SECCOUNT, 1);
     Asm::outb(ATA_IO_BASE + ATA_REG_LBA_LOW, (u8)lba);
     Asm::outb(ATA_IO_BASE + ATA_REG_LBA_MID, (u8)(lba >> 8));
     Asm::outb(ATA_IO_BASE + ATA_REG_LBA_HIGH, (u8)(lba >> 16));
-    Asm::outb(ATA_IO_BASE + ATA_REG_COMMAND, 0x20); // fixed
+    Asm::outb(ATA_IO_BASE + ATA_REG_COMMAND, 0x20); // READ SECTORS
 
-    poll();
-    if (!is_ready)
+    if (!wait_drq())
       return false;
 
     u16 *target_ptr = (u16 *)buffer;
+    for (int i = 0; i < 256; i++)
+      target_ptr[i] = Asm::inw(ATA_IO_BASE + ATA_REG_DATA);
+
+    return true;
+  }
+  bool write_sector(u32 lba, const u8 *buffer) {
+
+    if (!buffer)
+      return false;
+
+    wait_not_busy();
+    select_drive(lba);
+
+    Asm::outb(ATA_IO_BASE + ATA_REG_SECCOUNT, 1);
+
+    Asm::outb(ATA_IO_BASE + ATA_REG_LBA_LOW, (u8)lba);
+
+    Asm::outb(ATA_IO_BASE + ATA_REG_LBA_MID, (u8)(lba >> 8));
+
+    Asm::outb(ATA_IO_BASE + ATA_REG_LBA_HIGH, (u8)(lba >> 16));
+
+    Asm::outb(ATA_IO_BASE + ATA_REG_COMMAND, 0x30);
+
+    if (!wait_drq())
+      return false;
+
+    const u16 *source_ptr = (const u16 *)buffer;
+
     for (int i = 0; i < 256; i++) {
-      target_ptr[i] = Asm::inw(ATA_IO_BASE + ATA_REG_DATA); // fixed
+      Asm::outw(ATA_IO_BASE + ATA_REG_DATA, source_ptr[i]);
+    }
+
+    while (1) {
+
+      u8 status = Asm::inb(ATA_IO_BASE + ATA_REG_STATUS);
+
+      if (status & (ATA_SR_ERR | ATA_SR_DF))
+        return false;
+
+      if (!(status & ATA_SR_BSY))
+        break;
+    }
+
+    Asm::outb(ATA_IO_BASE + ATA_REG_COMMAND, 0xE7);
+
+    while (1) {
+
+      u8 status = Asm::inb(ATA_IO_BASE + ATA_REG_STATUS);
+
+      if (status & (ATA_SR_ERR | ATA_SR_DF))
+        return false;
+
+      if (!(status & ATA_SR_BSY))
+        break;
     }
 
     return true;
   }
 
-  bool write_sector(u32 lba, const u8 *buffer) {
-    while (Asm::inb(ATA_IO_BASE + ATA_REG_STATUS) & ATA_SR_BSY) // fixed
-      ;
+  bool test_sector_zero() {
 
-    Asm::outb(ATA_IO_BASE + ATA_REG_DEVICE, 0xE0 | ((lba >> 24) & 0x0F));
+    u8 write_buffer[BLOCK_SIZE] = {};
 
-    io_delay();
+    write_buffer[0] = 75;
+    write_buffer[1] = 67;
+    write_buffer[2] = 79;
+    write_buffer[3] = 82;
 
-    Asm::outb(ATA_IO_BASE + ATA_REG_SECCOUNT, 1);
-    Asm::outb(ATA_IO_BASE + ATA_REG_LBA_LOW, (u8)lba);
-    Asm::outb(ATA_IO_BASE + ATA_REG_LBA_MID, (u8)(lba >> 8));
-    Asm::outb(ATA_IO_BASE + ATA_REG_LBA_HIGH, (u8)(lba >> 16));
-    Asm::outb(ATA_IO_BASE + ATA_REG_COMMAND, 0x30); // fixed
+    TerminalUtils::print("=== SECTOR 0 TEST ===\n");
 
-    poll();
-    if (!is_ready)
+    TerminalUtils::print("BEFORE WRITE: ");
+
+    TerminalUtils::print_number(write_buffer[0]);
+    TerminalUtils::print(" ");
+
+    TerminalUtils::print_number(write_buffer[1]);
+    TerminalUtils::print(" ");
+
+    TerminalUtils::print_number(write_buffer[2]);
+    TerminalUtils::print(" ");
+
+    TerminalUtils::print_number(write_buffer[3]);
+
+    TerminalUtils::print("\n");
+
+    bool write_ok = write_sector(0, write_buffer);
+
+    TerminalUtils::print("WRITE RESULT: ");
+    TerminalUtils::print_number(write_ok);
+    TerminalUtils::print("\n");
+
+    u8 read_buffer[BLOCK_SIZE] = {};
+
+    bool read_ok = read_sector(0, read_buffer);
+
+    TerminalUtils::print("READ RESULT: ");
+    TerminalUtils::print_number(read_ok);
+    TerminalUtils::print("\n");
+
+    TerminalUtils::print("AFTER READ: ");
+
+    TerminalUtils::print_number(read_buffer[0]);
+    TerminalUtils::print(" ");
+
+    TerminalUtils::print_number(read_buffer[1]);
+    TerminalUtils::print(" ");
+
+    TerminalUtils::print_number(read_buffer[2]);
+    TerminalUtils::print(" ");
+
+    TerminalUtils::print_number(read_buffer[3]);
+
+    TerminalUtils::print("\n");
+
+    return write_ok && read_ok && read_buffer[0] == 75 &&
+           read_buffer[1] == 67 && read_buffer[2] == 79 && read_buffer[3] == 82;
+  }
+
+  bool test_sector_seven() {
+
+    u8 write_buffer[BLOCK_SIZE] = {};
+
+    write_buffer[0] = 75;
+    write_buffer[1] = 67;
+    write_buffer[2] = 79;
+    write_buffer[3] = 82;
+
+    TerminalUtils::print("=== SECTOR 7 TEST ===\n");
+
+    TerminalUtils::print("WRITE SECTOR 7\n");
+
+    if (!write_sector(7, write_buffer)) {
+      TerminalUtils::print("SECTOR 7 WRITE FAILED\n");
       return false;
-
-    const u16 *source_ptr = (const u16 *)buffer;
-    for (int i = 0; i < 256; i++) {
-      Asm::outw(ATA_IO_BASE + ATA_REG_DATA, source_ptr[i]); // fixed
     }
 
-    Asm::outb(ATA_IO_BASE + ATA_REG_COMMAND, 0xE7);             // fixed
-    while (Asm::inb(ATA_IO_BASE + ATA_REG_STATUS) & ATA_SR_BSY) // fixed
-      ;
+    TerminalUtils::print("READ SECTOR 7\n");
 
-    return true;
+    u8 read_buffer[BLOCK_SIZE] = {};
+
+    if (!read_sector(7, read_buffer)) {
+      TerminalUtils::print("SECTOR 7 READ FAILED\n");
+      return false;
+    }
+
+    TerminalUtils::print("SECTOR 7 RESULT: ");
+
+    TerminalUtils::print_number(read_buffer[0]);
+    TerminalUtils::print(" ");
+
+    TerminalUtils::print_number(read_buffer[1]);
+    TerminalUtils::print(" ");
+
+    TerminalUtils::print_number(read_buffer[2]);
+    TerminalUtils::print(" ");
+
+    TerminalUtils::print_number(read_buffer[3]);
+
+    TerminalUtils::print("\n");
+
+    return read_buffer[0] == 75 && read_buffer[1] == 67 &&
+           read_buffer[2] == 79 && read_buffer[3] == 82;
   }
 };

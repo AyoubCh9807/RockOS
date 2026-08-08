@@ -43,12 +43,13 @@ private:
   int count = 0;
 
 public:
-  u32& current_dir;
+  u32 &current_dir;
 
   TerminalRegistry(FileSystem &fs, u32 &current_dir)
       : current_dir(current_dir), reboot(), clear(), echo(), uptime(), help(),
-        ls(fs, current_dir), mkdir(fs), pwd(fs, current_dir), tyrant(),
-        damian(), cd(fs, current_dir), touch(fs), rm(fs), rmdir(fs), cat(fs) {}
+        ls(fs, current_dir), mkdir(fs, current_dir), pwd(fs, current_dir),
+        tyrant(), damian(), cd(fs, current_dir), touch(fs, current_dir),
+        rm(fs, current_dir), rmdir(fs, current_dir), cat(fs, current_dir) {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 
@@ -69,27 +70,14 @@ public:
     register_command(&rmdir);
     register_command(&cat);
 
-    TerminalUtils::print("COMMAND COUNT: ");
-    TerminalUtils::print_number(count);
-    TerminalUtils::print("\n");
+    TerminalUtils::print(StringUtils::format("Loaded %d commands successfully!", count));
   }
 
   ICommand *find(char *name) {
-
-    TerminalUtils::print("LOOKING FOR: ");
-    TerminalUtils::print(name);
-    TerminalUtils::print("\n");
-
     for (int i = 0; i < count; i++) {
-
-      TerminalUtils::print("CHECK: ");
-      TerminalUtils::print(commands[i]->name());
-      TerminalUtils::print("\n");
-
       if (StringUtils::strcmp(name, commands[i]->name()) == 0)
         return commands[i];
     }
-
     return nullptr;
-}
+  }
 };

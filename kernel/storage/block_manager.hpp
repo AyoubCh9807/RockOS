@@ -2,6 +2,7 @@
 
 #include "../shared/types.hpp"
 #include "../utils/bit_utils.hpp"
+#include "../utils/terminal_utils.hpp"
 #include "disk.hpp"
 #include "layout.hpp"
 
@@ -39,14 +40,16 @@ public:
               ? TOTAL_BLOCKS % BITS_PER_SECTOR
               : BITS_PER_SECTOR;
 
-      disk.read_sector(block_bitmap_start + sector, buffer);
+      if (!disk.read_sector(block_bitmap_start + sector, buffer))
+        return INVALID_BLOCK;
 
       u32 free_bit = BitUtils::find_first_free_bit(buffer, bits_to_search);
 
       if (free_bit != INVALID_BLOCK) {
         BitUtils::set_bit(buffer, free_bit);
 
-        disk.write_sector(block_bitmap_start + sector, buffer);
+        if (!disk.write_sector(block_bitmap_start + sector, buffer))
+          return INVALID_BLOCK;
 
         return sector * BITS_PER_SECTOR + free_bit;
       }
@@ -54,24 +57,24 @@ public:
 
     return INVALID_BLOCK;
   }
-
   bool free_block(u32 block_number) {
-
     if (block_number >= TOTAL_BLOCKS)
       return false;
 
     u32 bitmap_sector = block_number / BITS_PER_SECTOR;
-    u8 buffer[BLOCK_SIZE];
-    disk.read_sector(block_bitmap_start + bitmap_sector, buffer);
-
     u32 bit_index = block_number % BITS_PER_SECTOR;
+
+    u8 buffer[BLOCK_SIZE];
+
+    if (!disk.read_sector(block_bitmap_start + bitmap_sector, buffer))
+      return false;
+
     if (!BitUtils::is_bit_set(buffer, bit_index))
       return false;
 
     BitUtils::clear_bit(buffer, bit_index);
 
-    disk.write_sector(block_bitmap_start + bitmap_sector, buffer);
-    return true;
+    return disk.write_sector(block_bitmap_start + bitmap_sector, buffer);
   }
 
   bool read_block(u32 block_number, u8 *buffer) {
@@ -80,18 +83,32 @@ public:
       return false;
 
     u32 lba = data_block_start + block_number;
-    disk.read_sector(lba, buffer);
-    return true;
-  }
 
+    if (FS_DEBUG) {
+      TerminalUtils::print("READ BLOCK ");
+      TerminalUtils::print_number(block_number);
+      TerminalUtils::print(" -> SECTOR ");
+      TerminalUtils::print_number(lba);
+      TerminalUtils::print("\n");
+    }
+
+    return disk.read_sector(lba, buffer);
+  }
   bool write_block(u32 block_number, const u8 *buffer) {
 
     if (block_number >= TOTAL_BLOCKS)
       return false;
 
     u32 lba = data_block_start + block_number;
-    disk.write_sector(lba, buffer);
 
-    return true;
+    if (FS_DEBUG) {
+      TerminalUtils::print("WRITE BLOCK ");
+      TerminalUtils::print_number(block_number);
+      TerminalUtils::print(" -> SECTOR ");
+      TerminalUtils::print_number(lba);
+      TerminalUtils::print("\n");
+    }
+
+    return disk.write_sector(lba, buffer);
   }
 };

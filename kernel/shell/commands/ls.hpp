@@ -17,17 +17,13 @@ public:
 
   const char *name() const override { return "ls"; }
 
-  const char *execute(int argc, char **argv) {
-
-    TerminalUtils::print("CURRENT DIR: ");
-    TerminalUtils::print_number(current_dir);
-    TerminalUtils::print("\n");
+  const char *execute (int argc, char **argv) {
 
     if (argc == 1) {
       return fs.list_directory(current_dir);
     }
 
-    u32 inode = fs.resolve_path(argv[1]);
+    u32 inode = fs.resolve_path(argv[1], current_dir);
 
     if (inode == INVALID_INODE) {
       TerminalUtils::print("directory not found\n");
