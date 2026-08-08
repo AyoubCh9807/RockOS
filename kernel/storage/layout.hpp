@@ -1,8 +1,8 @@
 #pragma once
 #include "../shared/types.hpp"
 
-// enable debugging
-constexpr int FS_DEBUG = 1;
+// enable/disable debugging
+constexpr int FS_DEBUG = 0;
 
 struct SuperBlock {
 	u32 magic;

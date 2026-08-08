@@ -70,7 +70,7 @@ public:
     register_command(&rmdir);
     register_command(&cat);
 
-    TerminalUtils::print(StringUtils::format("Loaded %d commands successfully!", count));
+    TerminalUtils::print(StringUtils::format("Loaded %d commands successfully!\n", count));
   }
 
   ICommand *find(char *name) {

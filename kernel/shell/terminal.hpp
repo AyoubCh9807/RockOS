@@ -28,7 +28,7 @@ public:
     reg.current_dir = inode;
   }
 
-  inline const char *parse(char *str, char **args, int max_args) {
+  inline String parse(char *str, char **args, int max_args) {
     if (!str || !args || max_args <= 0)
       return "\n";
 
@@ -38,7 +38,7 @@ public:
 
     ICommand *cmd = reg.find(args[0]);
     if (cmd == nullptr)
-      return "Command not found";
+      return Generator::random_phrase(command_not_found_phrases); 
 
     return cmd->execute(argc, args);
   }

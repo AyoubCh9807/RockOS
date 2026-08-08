@@ -347,4 +347,5 @@ public:
       buf[j] = buf[k];
     buf[j] = '\0';
   }
+
 };

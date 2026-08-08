@@ -13,9 +13,11 @@ public:
 
 	const char *name() const override { return "cat"; }
 
-	const char *execute(int argc, char **argv) override {
-		if (argc < 2) return "usage: cat <file>\n\0";
-
+	String execute(int argc, char **argv) override {
+		if (argc < 2) {
+     String msg = "usage: cat <file>\n\0";
+      return msg;
+    }
 		static u8 buffer[DIRECT_BLOCKS * BLOCK_SIZE + 1];
 		size_t bytes_read = 0;
 

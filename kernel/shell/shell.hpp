@@ -76,7 +76,7 @@ public:
         }
         cmd_copy[i] = '\0';
 
-        TerminalUtils::print(terminal.parse(cmd_copy, args, max_args));
+        TerminalUtils::print(terminal.parse(cmd_copy, args, max_args).c_str());
 
         buffer = String("");
         constexpr const char* USER = "Ayoubch";

@@ -17,7 +17,7 @@ public:
 
   const char *name() const override { return "ls"; }
 
-  const char *execute (int argc, char **argv) {
+  String execute (int argc, char **argv) override {
 
     if (argc == 1) {
       return fs.list_directory(current_dir);
@@ -26,7 +26,7 @@ public:
     u32 inode = fs.resolve_path(argv[1], current_dir);
 
     if (inode == INVALID_INODE) {
-      TerminalUtils::print("directory not found\n");
+      TerminalUtils::print(Generator::random_phrase(command_not_found_phrases));
       return "";
     }
     return fs.list_directory(inode);

@@ -8,7 +8,7 @@ class UptimeCommand : public ICommand {
 public:
   const char *name() const override { return "uptime"; }
 
-  const char *execute(int argc, char **argv) override {
+ String execute(int argc, char **argv) override {
 
     static char buffer[64];
 

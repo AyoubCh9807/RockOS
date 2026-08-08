@@ -16,7 +16,7 @@ public:
 
   const char *name() const override { return "cd"; }
 
-  const char *execute(int argc, char **argv) override {
+String execute(int argc, char **argv) override {
 
     if (argc < 2)
       return "usage: cd <path>";

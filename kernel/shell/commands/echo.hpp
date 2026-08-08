@@ -10,7 +10,7 @@ public:
 
   const char *description() const  { return "Print text."; }
 
-  const char* execute(int argc, char **argv)  {
+  String execute(int argc, char **argv)  {
 
     for (int i = 1; i < argc; i++) {
 

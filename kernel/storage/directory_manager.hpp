@@ -152,12 +152,13 @@ public:
 
   bool add_entry(u32 directory_inode, char *name, u32 inode_number) {
 
-    TerminalUtils::print("ADDING ENTRY ");
-    TerminalUtils::print(name);
-    TerminalUtils::print(" inode ");
-    TerminalUtils::print_number(inode_number);
-    TerminalUtils::print("\n");
-
+    if (FS_DEBUG) {
+      TerminalUtils::print("ADDING ENTRY ");
+      TerminalUtils::print(name);
+      TerminalUtils::print(" inode ");
+      TerminalUtils::print_number(inode_number);
+      TerminalUtils::print("\n");
+    }
     if (!name)
       return false;
     if (directory_inode >= TOTAL_INODES)

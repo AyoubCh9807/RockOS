@@ -8,7 +8,7 @@ class TyrantCommand : public ICommand {
 public:
   const char *name() const override { return "tyrant"; }
 
-  const char *execute(int argc, char **argv) override {
+  String execute(int argc, char **argv) override {
 
     return Generator::generate_words();
   }

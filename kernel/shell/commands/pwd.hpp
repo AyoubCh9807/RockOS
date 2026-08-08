@@ -13,7 +13,7 @@ public:
 
   const char *name() const override { return "pwd"; }
 
-  const char *execute(int argc, char **argv) override {
+  String execute(int argc, char **argv) override {
     return fs.get_path(current_dir);
   }
 };

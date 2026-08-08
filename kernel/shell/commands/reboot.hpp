@@ -8,7 +8,9 @@ class RebootCommand : public ICommand {
 public:
   const char *name() const override { return "reboot"; }
 
-  const char *execute(int argc, char **argv) override {
+  String execute(int argc, char **argv) override {
+
+    TerminalUtils::print(Generator::random_phrase(reboot_phrases));
 
     Kernel::reboot();
 

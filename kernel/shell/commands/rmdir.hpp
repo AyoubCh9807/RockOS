@@ -8,11 +8,12 @@ class RmdirCommand : public ICommand {
   u32 &current_dir;
 
 public:
-  RmdirCommand(FileSystem &fs, u32 &current_dir) : fs(fs), current_dir(current_dir) {}
+  RmdirCommand(FileSystem &fs, u32 &current_dir)
+      : fs(fs), current_dir(current_dir) {}
 
   const char *name() const override { return "rmdir"; }
 
-  const char *execute(int argc, char **argv) {
+  String execute(int argc, char **argv) override {
 
     if (FS_DEBUG)
       TerminalUtils::print("RMDIR START\n");
