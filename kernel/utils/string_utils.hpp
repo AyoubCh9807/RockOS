@@ -41,7 +41,7 @@ public:
     return (unsigned char)s1[i] - (unsigned char)s2[i];
   }
 
-  // Splits in-place by `separator`. Returns argc, writes pointers into args[].
+  // Splits in-place by separator. Returns argc, writes pointers into args[].
   inline static int split_by(char *str, const char separator, char **args,
                              int max_args) {
     if (!str || !args || max_args <= 0)
