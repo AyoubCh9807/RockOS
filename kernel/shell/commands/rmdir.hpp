@@ -15,25 +15,21 @@ public:
 
   String execute(int argc, char **argv) override {
 
-    if (FS_DEBUG)
-      TerminalUtils::print("RMDIR START\n");
+    Debugger::log("RMDIR START\n");
 
     if (argc < 2)
-      return "usage\n";
+      return Generator::random_phrase(command_not_found_phrases);
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("REMOVING: ");
-      TerminalUtils::print(argv[1]);
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("REMOVING: ");
+    Debugger::log(argv[1]);
+    Debugger::log("\n");
     bool result = fs.remove_directory(argv[1], current_dir);
 
-    if (FS_DEBUG)
-      TerminalUtils::print("RMDIR END\n");
+    Debugger::log("RMDIR END\n");
 
     if (result)
-      return "removed\n";
+      return Generator::random_phrase(rmdir_phrases);
 
-    return "failed\n";
+    return Generator::random_phrase(command_not_found_phrases);
   }
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/kernel.hpp"
+#include "../utils/debugger.hpp"
 #include "../utils/terminal_utils.hpp"
 #include "disk.hpp"
 #include "layout.hpp"
@@ -19,6 +20,9 @@ public:
 
     for (u32 i = 0; i < INODE_BITMAP_SECTORS; i++) {
       if (!disk.write_sector(INODE_BITMAP_START + i, bitmap)) {
+        Debugger::log("INODE BITMAP FORMAT WRITE FAILED AT SECTOR ");
+        Debugger::log_number(INODE_BITMAP_START + i);
+        Debugger::log("\n");
         return false;
       }
     }
@@ -28,13 +32,15 @@ public:
 
     for (u32 i = 0; i < INODE_TABLE_SECTORS; i++) {
       if (!disk.write_sector(INODE_TABLE_START + i, empty)) {
+        Debugger::log("INODE TABLE FORMAT WRITE FAILED AT SECTOR ");
+        Debugger::log_number(INODE_TABLE_START + i);
+        Debugger::log("\n");
         return false;
       }
     }
 
     return true;
   }
-
   bool reserve_inode(u32 inode_number) {
     if (inode_number >= TOTAL_INODES)
       return false;
@@ -82,6 +88,20 @@ public:
     empty.id = inode_number;
     empty.used = false;
     empty.is_directory = false;
+    empty.size = 0;
+    empty.parent_inode = 0;
+
+    // IMPORTANT: Inode{} zero-initializes direct_blocks[]/indirect_block to 0,
+    // but 0 is a VALID block number, not "unused" — INVALID_BLOCK
+    // (0xFFFFFFFF) is the actual sentinel. Without this, a freed inode's
+    // direct_blocks[0] reads back as block 0, which just happens to be the
+    // very first block ever allocated (usually the root directory's own
+    // data block). Any later code that reads this freed inode (e.g. an
+    // orphaned directory entry still pointing at it) will misinterpret
+    // block 0 as real data and can never treat it as empty/unallocated.
+    for (int i = 0; i < DIRECT_BLOCKS; i++)
+      empty.direct_blocks[i] = INVALID_BLOCK;
+    empty.indirect_block = INVALID_BLOCK;
 
     return write_inode(inode_number, empty);
   }
@@ -124,35 +144,33 @@ public:
 
     u32 index = inode_number % INODES_PER_SECTOR;
 
-    TerminalUtils::print("WRITE INODE ");
-    TerminalUtils::print_number(inode_number);
-    TerminalUtils::print(" SECTOR ");
-    TerminalUtils::print_number(sector);
-    TerminalUtils::print(" INDEX ");
-    TerminalUtils::print_number(index);
-    TerminalUtils::print("\n");
-
+    Debugger::log("WRITE INODE ");
+    Debugger::log_number(inode_number);
+    Debugger::log(" SECTOR ");
+    Debugger::log_number(sector);
+    Debugger::log(" INDEX ");
+    Debugger::log_number(index);
+    Debugger::log("\n");
     u8 buffer[BLOCK_SIZE];
 
     /*
         Read the existing inode-table sector first.
     */
     if (!disk.read_sector(sector, buffer)) {
-      TerminalUtils::print("INODE TABLE READ FAILED\n");
+      Debugger::log("INODE TABLE READ FAILED\n");
       return false;
     }
 
-    TerminalUtils::print("SECTOR BEFORE MODIFY: ");
+    Debugger::log("SECTOR BEFORE MODIFY: ");
 
-    TerminalUtils::print_number(buffer[0]);
-    TerminalUtils::print(" ");
-    TerminalUtils::print_number(buffer[1]);
-    TerminalUtils::print(" ");
-    TerminalUtils::print_number(buffer[2]);
-    TerminalUtils::print(" ");
-    TerminalUtils::print_number(buffer[3]);
-    TerminalUtils::print("\n");
-
+    Debugger::log_number(buffer[0]);
+    Debugger::log(" ");
+    Debugger::log_number(buffer[1]);
+    Debugger::log(" ");
+    Debugger::log_number(buffer[2]);
+    Debugger::log(" ");
+    Debugger::log_number(buffer[3]);
+    Debugger::log("\n");
     /*
         Modify only this inode.
     */
@@ -164,38 +182,38 @@ public:
         Verify that the C++ structure actually made it
         into the sector buffer BEFORE touching the disk.
     */
-    TerminalUtils::print("BUFFER AFTER MODIFY: ");
 
-    TerminalUtils::print_number(buffer[0]);
-    TerminalUtils::print(" ");
-    TerminalUtils::print_number(buffer[1]);
-    TerminalUtils::print(" ");
-    TerminalUtils::print_number(buffer[2]);
-    TerminalUtils::print(" ");
-    TerminalUtils::print_number(buffer[3]);
-    TerminalUtils::print("\n");
+    Debugger::log("BUFFER AFTER MODIFY: ");
 
-    TerminalUtils::print("BUFFER INODE: ");
+    Debugger::log_number(buffer[0]);
+    Debugger::log(" ");
+    Debugger::log_number(buffer[1]);
+    Debugger::log(" ");
+    Debugger::log_number(buffer[2]);
+    Debugger::log(" ");
+    Debugger::log_number(buffer[3]);
+    Debugger::log("\n");
 
-    TerminalUtils::print_number(table[index].id);
+    Debugger::log("BUFFER INODE: ");
 
-    TerminalUtils::print(" USED=");
-    TerminalUtils::print_number(table[index].used);
+    Debugger::log_number(table[index].id);
 
-    TerminalUtils::print(" DIR=");
-    TerminalUtils::print_number(table[index].is_directory);
+    Debugger::log(" USED=");
+    Debugger::log_number(table[index].used);
 
-    TerminalUtils::print("\n");
+    Debugger::log(" DIR=");
+    Debugger::log_number(table[index].is_directory);
 
+    Debugger::log("\n");
     /*
         Now actually write the inode-table sector.
     */
     if (!disk.write_sector(sector, buffer)) {
-      TerminalUtils::print("INODE TABLE WRITE FAILED\n");
+      Debugger::log("INODE TABLE WRITE FAILED\n");
       return false;
     }
 
-    TerminalUtils::print("INODE TABLE WRITE RETURNED OK\n");
+    Debugger::log("INODE TABLE WRITE RETURNED OK\n");
 
     /*
         Immediately read sector 7 back.
@@ -203,41 +221,37 @@ public:
     u8 verify_buffer[BLOCK_SIZE];
 
     if (!disk.read_sector(sector, verify_buffer)) {
-      TerminalUtils::print("INODE VERIFY READ FAILED\n");
+      Debugger::log("INODE VERIFY READ FAILED\n");
       return false;
     }
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("SECTOR AFTER WRITE: ");
+    Debugger::log("SECTOR AFTER WRITE: ");
 
-      TerminalUtils::print_number(verify_buffer[0]);
-      TerminalUtils::print(" ");
+    Debugger::log_number(verify_buffer[0]);
+    Debugger::log(" ");
 
-      TerminalUtils::print_number(verify_buffer[1]);
-      TerminalUtils::print(" ");
+    Debugger::log_number(verify_buffer[1]);
+    Debugger::log(" ");
 
-      TerminalUtils::print_number(verify_buffer[2]);
-      TerminalUtils::print(" ");
+    Debugger::log_number(verify_buffer[2]);
+    Debugger::log(" ");
 
-      TerminalUtils::print_number(verify_buffer[3]);
+    Debugger::log_number(verify_buffer[3]);
 
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("\n");
     Inode *verify_table = (Inode *)verify_buffer;
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("VERIFY INODE: ");
+    Debugger::log("VERIFY INODE: ");
 
-      TerminalUtils::print_number(verify_table[index].id);
+    Debugger::log_number(verify_table[index].id);
 
-      TerminalUtils::print(" USED=");
-      TerminalUtils::print_number(verify_table[index].used);
+    Debugger::log(" USED=");
+    Debugger::log_number(verify_table[index].used);
 
-      TerminalUtils::print(" DIR=");
-      TerminalUtils::print_number(verify_table[index].is_directory);
+    Debugger::log(" DIR=");
+    Debugger::log_number(verify_table[index].is_directory);
 
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("\n");
     return true;
   }
   bool read_inode(u32 inode_number, Inode &out) {
@@ -248,15 +262,13 @@ public:
     u32 sector = INODE_TABLE_START + (inode_number / INODES_PER_SECTOR);
     u32 index = inode_number % INODES_PER_SECTOR;
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("READ INODE ");
-      TerminalUtils::print_number(inode_number);
-      TerminalUtils::print(" SECTOR ");
-      TerminalUtils::print_number(sector);
-      TerminalUtils::print(" INDEX ");
-      TerminalUtils::print_number(index);
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("READ INODE ");
+    Debugger::log_number(inode_number);
+    Debugger::log(" SECTOR ");
+    Debugger::log_number(sector);
+    Debugger::log(" INDEX ");
+    Debugger::log_number(index);
+    Debugger::log("\n");
     u8 buffer[BLOCK_SIZE];
 
     if (!disk.read_sector(sector, buffer))

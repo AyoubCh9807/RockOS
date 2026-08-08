@@ -8,8 +8,6 @@ class EchoCommand : public ICommand {
 public:
   const char *name() const  { return "echo"; }
 
-  const char *description() const  { return "Print text."; }
-
   String execute(int argc, char **argv)  {
 
     for (int i = 1; i < argc; i++) {

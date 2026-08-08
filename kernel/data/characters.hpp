@@ -1,0 +1,69 @@
+#pragma once
+
+const char* damian_phrases[] = {
+    "Damian: You called?\n",
+    "Damian: Finally. Something interesting.\n",
+    "Damian: Keep the machine loud.\n",
+    "Damian: Don't break my filesystem.\n",
+    "Damian: I've seen worse kernels.\n",
+    "Damian: Now THAT is a command.\n",
+    "Damian: You're getting the hang of this.\n",
+    "Damian: The machine is listening.\n",
+    "Damian: Keep pushing it.\n",
+    "Damian: RockOS doesn't sleep.\n",
+    "Damian: If it crashes, call it a feature.\n",
+    "Damian: Less talking. More hacking.\n",
+    "Damian: The forge is still burning.\n",
+    "Damian: Make something worth remembering.\n",
+    "Damian: That's enough noise. For now.\n",
+};
+
+const char* tyrant_phrases[] = {
+    "Tyrant: You have entered my domain.\n",
+    "Tyrant: Command accepted.\n",
+    "Tyrant: Proceed.\n",
+    "Tyrant: The machine obeys.\n",
+    "Tyrant: Another command. Another victory.\n",
+    "Tyrant: Do not waste the machine's time.\n",
+    "Tyrant: RockOS stands.\n",
+    "Tyrant: The filesystem is under control.\n",
+    "Tyrant: Keep moving.\n",
+    "Tyrant: Weak commands will be ignored.\n",
+    "Tyrant: The kernel remains undefeated.\n",
+    "Tyrant: You want power? Earn it.\n",
+    "Tyrant: The forge does not stop.\n",
+    "Tyrant: Chaos is acceptable. Corruption is not.\n",
+    "Tyrant: Continue.\n",
+};
+
+const char* damian_titles[] = {
+    "The Builder",
+    "The Rocker",
+    "The Architect",
+    "The Operator",
+    "The Voice",
+    "The Forgemaster",
+    "The Creator",
+};
+
+const char* tyrant_titles[] = {
+    "The Tyrant",
+    "The Overlord",
+    "The Commander",
+    "The Warden",
+    "The Master",
+    "The Authority",
+    "The Ruler",
+};
+
+constexpr int DAMIAN_PHRASE_COUNT =
+    sizeof(damian_phrases) / sizeof(damian_phrases[0]);
+
+constexpr int TYRANT_PHRASE_COUNT =
+    sizeof(tyrant_phrases) / sizeof(tyrant_phrases[0]);
+
+constexpr int DAMIAN_TITLE_COUNT =
+    sizeof(damian_titles) / sizeof(damian_titles[0]);
+
+constexpr int TYRANT_TITLE_COUNT =
+    sizeof(tyrant_titles) / sizeof(tyrant_titles[0]);

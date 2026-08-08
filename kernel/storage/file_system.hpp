@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../memory/memory.hpp"
+#include "../utils/debugger.hpp"
 #include "../utils/fs_utils.hpp"
 #include "../utils/string_utils.hpp"
 #include "../utils/terminal_utils.hpp"
@@ -56,6 +57,22 @@ public:
         directory_manager(inode_manager, block_manager),
         path_resolver(inode_manager, directory_manager) {}
 
+  // Returns true only if the inode exists, is in-use, and is a directory.
+  // Callers (like `cd`) that must reject files use this explicitly, since
+  // PathResolver::resolve_path() intentionally allows resolving to a file
+  // (cat/ls/rm all need that) and can't enforce "must be a directory" on
+  // its own.
+  bool is_directory(u32 inode_number) {
+    if (inode_number == INVALID_INODE)
+      return false;
+    Inode inode{};
+    if (!inode_manager.read_inode(inode_number, inode))
+      return false;
+    if (!inode.used)
+      return false;
+    return inode.is_directory;
+  }
+
   bool write_superblock() {
 
     u8 buffer[BLOCK_SIZE] = {};
@@ -71,53 +88,51 @@ public:
     sb->data_block_start = DATA_BLOCK_START;
     sb->size = 0;
 
-    TerminalUtils::print("SB WRITE 1\n");
+    Debugger::log("SB WRITE 1\n");
 
     if (!disk.write_sector(SUPERBLOCK_START, buffer)) {
-      TerminalUtils::print("SB DISK WRITE FAILED\n");
+      Debugger::log("SB DISK WRITE FAILED\n");
       return false;
     }
 
-    TerminalUtils::print("SB WRITE 2\n");
+    Debugger::log("SB WRITE 2\n");
 
     u8 raw[BLOCK_SIZE] = {};
 
     if (!disk.read_sector(SUPERBLOCK_START, raw)) {
-      TerminalUtils::print("SB DISK READ FAILED\n");
+      Debugger::log("SB DISK READ FAILED\n");
       return false;
     }
 
-    TerminalUtils::print("SB WRITE 3\n");
+    Debugger::log("SB WRITE 3\n");
 
     // Do NOT cast/read the entire structure yet.
     // Just inspect the first four bytes.
-    if (FS_DEBUG) {
-      TerminalUtils::print("SB RAW: ");
-      TerminalUtils::print_number(raw[0]);
-      TerminalUtils::print(" ");
-      TerminalUtils::print_number(raw[1]);
-      TerminalUtils::print(" ");
-      TerminalUtils::print_number(raw[2]);
-      TerminalUtils::print(" ");
-      TerminalUtils::print_number(raw[3]);
-      TerminalUtils::print("\n");
-    }
-    TerminalUtils::print("SB WRITE 4\n");
+    Debugger::log("SB RAW: ");
+    Debugger::log_number(raw[0]);
+    Debugger::log(" ");
+    Debugger::log_number(raw[1]);
+    Debugger::log(" ");
+    Debugger::log_number(raw[2]);
+    Debugger::log(" ");
+    Debugger::log_number(raw[3]);
+    Debugger::log("\n");
+
+    Debugger::log("SB WRITE 4\n");
 
     u32 magic = ((u32)raw[0]) | ((u32)raw[1] << 8) | ((u32)raw[2] << 16) |
                 ((u32)raw[3] << 24);
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("SB MAGIC: ");
-      TerminalUtils::print_number(magic);
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("SB MAGIC: ");
+    Debugger::log_number(magic);
+    Debugger::log("\n");
+
     if (magic != FS_MAGIC) {
-      TerminalUtils::print("SB MAGIC BAD\n");
+      Debugger::log("SB MAGIC BAD\n");
       return false;
     }
 
-    TerminalUtils::print("SB WRITE SUCCESS\n");
+    Debugger::log("SB WRITE SUCCESS\n");
 
     return true;
   }
@@ -125,12 +140,11 @@ public:
 
     u32 root = ROOT_INODE;
 
-    if (FS_DEBUG)
-      TerminalUtils::print("CREATE ROOT\n");
+    Debugger::log("CREATE ROOT\n");
 
     // Reserve inode 0.
     if (!inode_manager.reserve_inode(root)) {
-      TerminalUtils::print("reserve_inode(root) FAILED\n");
+      Debugger::log("reserve_inode(root) FAILED\n");
       return false;
     }
 
@@ -151,7 +165,7 @@ public:
     u32 block = block_manager.allocate_block();
 
     if (block == INVALID_BLOCK) {
-      TerminalUtils::print("allocate_block(root) FAILED\n");
+      Debugger::log("allocate_block(root) FAILED\n");
 
       inode_manager.free_inode(root);
       return false;
@@ -164,7 +178,7 @@ public:
 
     if (!block_manager.write_block(block, empty)) {
 
-      TerminalUtils::print("write_block(rootdir) FAILED\n");
+      Debugger::log("write_block(rootdir) FAILED\n");
 
       block_manager.free_block(block);
       inode_manager.free_inode(root);
@@ -172,29 +186,26 @@ public:
       return false;
     }
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("ROOT BEFORE WRITE\n");
+    Debugger::log("ROOT BEFORE WRITE\n");
 
-      TerminalUtils::print("id=");
-      TerminalUtils::print_number(inode.id);
+    Debugger::log("id=");
+    Debugger::log_number(inode.id);
 
-      TerminalUtils::print(" used=");
-      TerminalUtils::print_number(inode.used);
+    Debugger::log(" used=");
+    Debugger::log_number(inode.used);
 
-      TerminalUtils::print(" dir=");
-      TerminalUtils::print_number(inode.is_directory);
+    Debugger::log(" dir=");
+    Debugger::log_number(inode.is_directory);
 
-      TerminalUtils::print(" block=");
-      TerminalUtils::print_number(inode.direct_blocks[0]);
+    Debugger::log(" block=");
+    Debugger::log_number(inode.direct_blocks[0]);
 
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("\n");
 
     // Write inode 0 to the inode table.
     if (!inode_manager.write_inode(root, inode)) {
 
-      if (FS_DEBUG)
-        TerminalUtils::print("write_inode(root) FAILED\n");
+      Debugger::log("write_inode(root) FAILED\n");
 
       block_manager.free_block(block);
       inode_manager.free_inode(root);
@@ -205,50 +216,46 @@ public:
     // Verify immediately
     Inode verify{};
 
-    if (FS_DEBUG)
-      TerminalUtils::print("ROOT VERIFY READ START\n");
+    Debugger::log("ROOT VERIFY READ START\n");
 
     if (!inode_manager.read_inode(ROOT_INODE, verify)) {
-      TerminalUtils::print("ROOT VERIFY READ FAILED\n");
+      Debugger::log("ROOT VERIFY READ FAILED\n");
       return false;
     }
+    Debugger::log("ROOT VERIFY READ DONE\n");
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("ROOT VERIFY READ DONE\n");
+    Debugger::log("ROOT VERIFY:\n");
 
-      TerminalUtils::print("ROOT VERIFY:\n");
+    Debugger::log("id=");
+    Debugger::log_number(verify.id);
 
-      TerminalUtils::print("id=");
-      TerminalUtils::print_number(verify.id);
+    Debugger::log(" size=");
+    Debugger::log_number(verify.size);
 
-      TerminalUtils::print(" size=");
-      TerminalUtils::print_number(verify.size);
+    Debugger::log(" used=");
+    Debugger::log_number(verify.used);
 
-      TerminalUtils::print(" used=");
-      TerminalUtils::print_number(verify.used);
+    Debugger::log(" dir=");
+    Debugger::log_number(verify.is_directory);
 
-      TerminalUtils::print(" dir=");
-      TerminalUtils::print_number(verify.is_directory);
+    Debugger::log(" parent=");
+    Debugger::log_number(verify.parent_inode);
 
-      TerminalUtils::print(" parent=");
-      TerminalUtils::print_number(verify.parent_inode);
+    Debugger::log(" block=");
+    Debugger::log_number(verify.direct_blocks[0]);
 
-      TerminalUtils::print(" block=");
-      TerminalUtils::print_number(verify.direct_blocks[0]);
-
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("\n");
     if (!verify.used) {
-      TerminalUtils::print("ROOT VERIFY USED FALSE\n");
+      Debugger::log("ROOT VERIFY USED FALSE\n");
       return false;
     }
 
     if (!verify.is_directory) {
-      TerminalUtils::print("ROOT VERIFY DIR FALSE\n");
+      Debugger::log("ROOT VERIFY DIR FALSE\n");
       return false;
     }
 
-    TerminalUtils::print("ROOT VERIFY SUCCESS\n");
+    Debugger::log("ROOT VERIFY SUCCESS\n");
 
     return true;
   }
@@ -267,7 +274,7 @@ public:
     // inode 0 as "unused" and every mkdir/touch/rm/rmdir at the root
     // silently failed unless a stale disk image already had root set up. ***
     if (!create_root_directory()) {
-      TerminalUtils::print("create_root_directory FAILED\n");
+      Debugger::log("create_root_directory FAILED\n");
       return false;
     }
 
@@ -277,11 +284,9 @@ public:
 
     SuperBlock *sb = (SuperBlock *)buffer;
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("BEFORE ROOT MAGIC: ");
-      TerminalUtils::print_number(sb->magic);
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("BEFORE ROOT MAGIC: ");
+    Debugger::log_number(sb->magic);
+    Debugger::log("\n");
     return true;
   }
 
@@ -313,11 +318,9 @@ public:
 
     u32 inode_number = inode_manager.allocate_inode();
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("ALLOCATED INODE: ");
-      TerminalUtils::print_number(inode_number);
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("ALLOCATED INODE: ");
+    Debugger::log_number(inode_number);
+    Debugger::log("\n");
     if (inode_number == INVALID_INODE)
       return false;
 
@@ -457,8 +460,7 @@ public:
 
   bool remove_directory(char *path, u32 base_dir) {
 
-    if (FS_DEBUG)
-      TerminalUtils::print("RMDIR START\n");
+    Debugger::log("RMDIR START\n");
 
     if (!path)
       return false;
@@ -468,54 +470,64 @@ public:
 
     char *name = FSUtils::basename(path);
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("NAME: ");
-      TerminalUtils::print(name);
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("NAME: ");
+    Debugger::log(name);
+    Debugger::log("\n");
 
     u32 parent = path_resolver.resolve_parent(parent_copy, base_dir);
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("PARENT: ");
-      TerminalUtils::print_number(parent);
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("PARENT: ");
+    Debugger::log_number(parent);
+    Debugger::log("\n");
 
     if (parent == INVALID_INODE)
       return false;
 
     DirectoryEntry entry{};
 
-    if (FS_DEBUG)
-      TerminalUtils::print("BEFORE FIND\n");
+    Debugger::log("BEFORE FIND\n");
 
     bool found = directory_manager.find_entry(parent, name, entry);
 
-    if (FS_DEBUG)
-      TerminalUtils::print("AFTER FIND\n");
+    Debugger::log("AFTER FIND\n");
 
     if (!found)
       return false;
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("ENTRY INODE: ");
-      TerminalUtils::print_number(entry.inode_number);
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("ENTRY INODE: ");
+    Debugger::log_number(entry.inode_number);
+    Debugger::log("\n");
 
     Inode inode{};
 
-    if (FS_DEBUG)
-      TerminalUtils::print("BEFORE READ INODE\n");
+    Debugger::log("BEFORE READ INODE\n");
 
     bool read = inode_manager.read_inode(entry.inode_number, inode);
 
-    if (FS_DEBUG)
-      TerminalUtils::print("AFTER READ INODE\n");
-
-    if (!read)
+    if (!read) {
+      Debugger::log("RM INODE READ FAILED\n");
       return false;
+    }
+
+    Debugger::log("RM INODE READ OK\n");
+
+    Debugger::log(inode.is_directory ? "RM: DIR\n" : "RM: FILE\n");
+
+    Debugger::log(inode.used ? "RM: USED\n" : "RM: NOT USED\n");
+
+    Debugger::log(StringUtils::format("RM INODE: %d USED=%d DIR=%d SIZE=%d\n",
+                                      inode.id, inode.used, inode.is_directory,
+                                      inode.size));
+
+    Debugger::log("AFTER READ INODE\n");
+
+    // *** BUG FIX: this function never checked that the target is actually
+    // a directory. Without this, `rmdir` on a FILE would happily treat its
+    // (empty) direct_blocks as "an empty directory" and delete the file. ***
+    if (!inode.is_directory) {
+      Debugger::log("RMDIR TARGET IS NOT A DIRECTORY\n");
+      return false;
+    }
 
     // Check directory is empty
     for (int i = 0; i < DIRECT_BLOCKS; i++) {
@@ -532,8 +544,7 @@ public:
 
       for (u32 j = 0; j < DIRECTORY_ENTRIES_PER_BLOCK; j++) {
         if (entries[j].is_used) {
-          if (FS_DEBUG)
-            TerminalUtils::print("DIRECTORY NOT EMPTY\n");
+          Debugger::log("DIRECTORY NOT EMPTY\n");
           return false;
         }
       }
@@ -670,7 +681,7 @@ public:
     SuperBlock *sb = (SuperBlock *)buffer;
 
     if (sb->magic != FS_MAGIC) {
-      TerminalUtils::print("No filesystem found\n");
+      Debugger::log("No filesystem found\n");
       return false;
     }
 
@@ -679,12 +690,11 @@ public:
     Inode root{};
     if (!inode_manager.read_inode(ROOT_INODE, root) || !root.used ||
         !root.is_directory) {
-      TerminalUtils::print(
-          "Filesystem magic OK but root invalid, reformat needed\n");
+      Debugger::log("Filesystem magic OK but root invalid, reformat needed\n");
       return false;
     }
 
-    TerminalUtils::print("Filesystem mounted\n");
+    Debugger::log("Filesystem mounted\n");
 
     return true;
   }

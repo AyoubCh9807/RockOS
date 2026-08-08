@@ -13,6 +13,26 @@ inline static void clear() {
   Kernel::vram_index = 0;
 }
 
+inline static void scroll() {
+  for (int row = 1; row < 25; row++) {
+    for (int col = 0; col < 80; col++) {
+
+      int src = (row * 80 + col) * 2;
+      int dst = ((row - 1) * 80 + col) * 2;
+
+      Kernel::video_memory[dst] = Kernel::video_memory[src];
+
+      Kernel::video_memory[dst + 1] = Kernel::video_memory[src + 1];
+    }
+  }
+  for (int col = 0; col < 80; col++) {
+    int index = (24 * 80 + col) * 2;
+
+    Kernel::video_memory[index] = ' ';
+    Kernel::video_memory[index + 1] = 0x0F;
+  }
+}
+
 inline static void putchar(char c) {
   if (c == '\n') {
     Kernel::vram_index = ((Kernel::vram_index + 160) / 160) * 160;
@@ -30,7 +50,8 @@ inline static void putchar(char c) {
 
   // Prevent running off the VGA text buffer.
   if (Kernel::vram_index >= 80 * 25 * 2) {
-    Kernel::vram_index = 0; // simple wrap (until you implement scrolling)
+    scroll();
+    Kernel::vram_index = 24 * 80 * 2;
   }
 }
 

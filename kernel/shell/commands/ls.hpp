@@ -5,6 +5,8 @@
 #include "../../utils/terminal_utils.hpp"
 #include "icommand.hpp"
 
+#include "../../data/command_descriptions.hpp"
+
 class LsCommand : public ICommand {
 
 private:
@@ -16,6 +18,7 @@ public:
       : fs(fs), current_dir(current_dir) {}
 
   const char *name() const override { return "ls"; }
+
 
   String execute (int argc, char **argv) override {
 

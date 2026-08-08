@@ -2,6 +2,7 @@
 
 #include "../shared/types.hpp"
 #include "../utils/bit_utils.hpp"
+#include "../utils/debugger.hpp"
 #include "../utils/terminal_utils.hpp"
 #include "disk.hpp"
 #include "layout.hpp"
@@ -24,8 +25,12 @@ public:
       buffer[i] = 0;
 
     for (u32 i = 0; i < BLOCK_BITMAP_SECTORS; i++) {
-      if (!disk.write_sector(BLOCK_BITMAP_START + i, buffer))
+      if (!disk.write_sector(BLOCK_BITMAP_START + i, buffer)) {
+        Debugger::log("BLOCK BITMAP FORMAT WRITE FAILED AT SECTOR ");
+        Debugger::log_number(BLOCK_BITMAP_START + i);
+        Debugger::log("\n");
         return false;
+      }
     }
 
     return true;
@@ -84,13 +89,11 @@ public:
 
     u32 lba = data_block_start + block_number;
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("READ BLOCK ");
-      TerminalUtils::print_number(block_number);
-      TerminalUtils::print(" -> SECTOR ");
-      TerminalUtils::print_number(lba);
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("READ BLOCK ");
+    Debugger::log_number(block_number);
+    Debugger::log(" -> SECTOR ");
+    Debugger::log_number(lba);
+    Debugger::log("\n");
 
     return disk.read_sector(lba, buffer);
   }
@@ -101,13 +104,11 @@ public:
 
     u32 lba = data_block_start + block_number;
 
-    if (FS_DEBUG) {
-      TerminalUtils::print("WRITE BLOCK ");
-      TerminalUtils::print_number(block_number);
-      TerminalUtils::print(" -> SECTOR ");
-      TerminalUtils::print_number(lba);
-      TerminalUtils::print("\n");
-    }
+    Debugger::log("WRITE BLOCK ");
+    Debugger::log_number(block_number);
+    Debugger::log(" -> SECTOR ");
+    Debugger::log_number(lba);
+    Debugger::log("\n");
 
     return disk.write_sector(lba, buffer);
   }
