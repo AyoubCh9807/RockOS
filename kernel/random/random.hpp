@@ -16,6 +16,7 @@ public:
     }
     counter = 0;
     add_entropy(Timer::get_ticks());
+    add_entropy(Asm::rdtsc());
     initialized = true;
   }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../data/command_descriptions.hpp"
+#include "../data/shell_commands.hpp"
 #include "../utils/string_utils.hpp"
 #include "commands/cat.hpp"
 #include "commands/cd.hpp"
@@ -104,7 +105,7 @@ public:
     register_command(&lore);
     register_command(&diagnose);
 
-    TerminalUtils::print(
+    Debugger::log(
         StringUtils::format("Loaded %d commands successfully!\n", count));
   }
 

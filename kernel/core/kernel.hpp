@@ -6,6 +6,7 @@
 
 namespace Kernel {
 inline int vram_index = 0;
+inline int vram_cursor = 0;
 inline volatile char *video_memory = (volatile char *)0xB8000;
 
 inline void reboot() {

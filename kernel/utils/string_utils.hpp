@@ -8,22 +8,6 @@ constexpr int DEFAULT_BUFFER_INCREMENT = 16;
 
 class StringUtils {
 public:
-  inline static char scancode_to_ascii(unsigned char scancode) {
-    // Simple map (AZERTY-ish as in your original code).
-    // Unspecified entries default to 0.
-    static const char ascii_map[128] = {
-        0,   27,  '1',  '2',  '3',  '4', '5', '6',  '7', '8', '9', '0',
-        '-', '=', '\b', '\t', 'a',  'z', 'e', 'r',  't', 'y', 'u', 'i',
-        'o', 'p', '[',  ']',  '\n', 0,   'q', 's',  'd', 'f', 'g', 'h',
-        'j', 'k', 'l',  'm',  '\'', '`', 0,   '\\', 'w', 'x', 'c', 'v',
-        'b', 'n', ';',  ',',  '.',  '/', 0,   '*',  0,   ' ',
-    };
-
-    if (scancode < 128)
-      return ascii_map[scancode];
-    return 0;
-  }
-
   inline static int strcmp(const char *s1, const char *s2) {
     if (!s1 && !s2)
       return 0;

@@ -19,13 +19,12 @@ extern "C" void kernel_main() {
   FileSystem fs(disk);
 
   if (!fs.mount()) {
-    TerminalUtils::print("No filesystem, formatting...\n");
+    Debugger::log("No filesystem, formatting...\n");
     if (!fs.format()) {
-      TerminalUtils::print(
-          "FORMAT FAILED - filesystem commands will not work\n");
+      Debugger::log("FORMAT FAILED - filesystem commands will not work\n");
     }
   } else {
-    TerminalUtils::print("MOUNT SUCCESS\n");
+    Debugger::log("MOUNT SUCCESS\n");
   }
 
   u32 current_dir = ROOT_INODE;
@@ -33,6 +32,9 @@ extern "C" void kernel_main() {
   TerminalRegistry reg(fs, current_dir);
   Terminal terminal(fs, reg);
   terminal.fill_registry();
+
+  // Print reboot phrase
+  TerminalUtils::print(Generator::random_phrase(reboot_phrases));
 
   Shell shell(terminal);
   shell.run();

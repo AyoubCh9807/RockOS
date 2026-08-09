@@ -47,7 +47,8 @@ public:
   }
 
   void run() {
-    TerminalUtils::print("Rock OS Shell\n> ");
+    
+    TerminalUtils::print("\nRock OS Shell\n> ");
 
     while (1) {
       KeyEvent ev = Keyboard::read();

@@ -2,12 +2,12 @@
 
 #include "../../core/kernel.hpp"
 #include "icommand.hpp"
+#include "../../data/shell_commands.hpp"
 
 class RebootCommand : public ICommand {
 
 public:
   const char *name() const override { return "reboot"; }
-
 
   String execute(int argc, char **argv) override {
 
