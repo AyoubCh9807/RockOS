@@ -38,19 +38,6 @@ private:
     dst[len + i] = '\0';
   }
 
-  static void copy_path(char out[256], const char *in) {
-    int i = 0;
-    if (!in) {
-      out[0] = '\0';
-      return;
-    }
-    while (in[i] != '\0' && i < 255) {
-      out[i] = in[i];
-      i++;
-    }
-    out[i] = '\0';
-  }
-
 public:
   FileSystem(Disk &disk)
       : disk(disk), block_manager(disk), inode_manager(disk),
@@ -73,10 +60,23 @@ public:
     return inode.is_directory;
   }
 
+  static void copy_path(char out[256], const char *in) {
+    int i = 0;
+    if (!in) {
+      out[0] = '\0';
+      return;
+    }
+    while (in[i] != '\0' && i < 255) {
+      out[i] = in[i];
+      i++;
+    }
+    out[i] = '\0';
+  }
+
   bool write_superblock() {
     u8 buffer[BLOCK_SIZE] = {};
 
-    // Just put "ROCK" directly into the sector.
+    // Just puts "ROCK" directly into the sector.
     buffer[0] = 0x4B; // K
     buffer[1] = 0x43; // C
     buffer[2] = 0x4F; // O

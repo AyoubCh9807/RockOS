@@ -19,6 +19,7 @@
 #include "commands/touch.hpp"
 #include "commands/tyrant.hpp"
 #include "commands/uptime.hpp"
+#include "commands/write.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -52,6 +53,8 @@ private:
   RmCommand rm;
   RmdirCommand rmdir;
   CatCommand cat;
+  WriteCommand write;
+
   FortuneCommand fortune;
   WhoamiCommand whoami;
   MotdCommand motd;
@@ -73,7 +76,7 @@ public:
         ls(fs, current_dir), mkdir(fs, current_dir), pwd(fs, current_dir),
         tyrant(), damian(), cd(fs, current_dir), touch(fs, current_dir),
         rm(fs, current_dir), rmdir(fs, current_dir), cat(fs, current_dir),
-        fortune(), whoami(), motd(), rockfetch(), ascii(), stats(), mood(),
+        write(fs, current_dir), fortune(), whoami(), motd(), rockfetch(), ascii(), stats(), mood(),
         void_cmd(), lore(), diagnose() {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
@@ -94,6 +97,8 @@ public:
     register_command(&rm);
     register_command(&rmdir);
     register_command(&cat);
+    register_command(&write);
+
     register_command(&fortune);
     register_command(&whoami);
     register_command(&motd);
