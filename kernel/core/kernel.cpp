@@ -27,8 +27,8 @@ extern "C" void kernel_main() {
   Debugger::log("\n");
 
   if (!fs.mount()) {
-    disk.test_sector_one();
-    disk.test_sector_seven();
+    //    disk.test_sector_one();
+    //   disk.test_sector_seven();
     Debugger::log("No filesystem, formatting...\n");
     if (!fs.format()) {
       Debugger::log("FORMAT FAILED - filesystem commands will not work\n");

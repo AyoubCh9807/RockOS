@@ -12,7 +12,7 @@
 #include "path_resolver.hpp"
 
 class FileSystem {
-public:
+private:
   Disk &disk;
 
   BlockManager block_manager;
@@ -332,8 +332,8 @@ public:
     Debugger::log("ALLOCATED INODE: ");
     Debugger::log_number(inode_number);
     Debugger::log("\n");
-    // if (inode_number == INVALID_INODE)
-    //  return false;
+    if (inode_number == INVALID_INODE)
+      return false;
 
     Inode node{};
     node.id = inode_number;
@@ -441,36 +441,97 @@ public:
     copy_path(parent_copy, path);
 
     char *name = FSUtils::basename(path);
+
     u32 parent = path_resolver.resolve_parent(parent_copy, base_dir);
     if (parent == INVALID_INODE)
       return false;
 
     DirectoryEntry entry{};
+
     if (!directory_manager.find_entry(parent, name, entry))
       return false;
 
+    Debugger::log("REMOVE TARGET INODE: ");
+    Debugger::log_number(entry.inode_number);
+    Debugger::log("\n");
+
     Inode inode{};
+
     if (!inode_manager.read_inode(entry.inode_number, inode))
       return false;
-    if (!inode.used)
-      return false;
+
+    Debugger::log("REMOVE INODE:\n");
+
+    Debugger::log("id=");
+    Debugger::log_number(inode.id);
+
+    Debugger::log(" used=");
+    Debugger::log_number(inode.used);
+
+    Debugger::log(" dir=");
+    Debugger::log_number(inode.is_directory);
+
+    Debugger::log(" size=");
+    Debugger::log_number(inode.size);
+
+    Debugger::log("\n");
+
+    for (u32 i = 0; i < DIRECT_BLOCKS; i++) {
+      Debugger::log("block[");
+      Debugger::log_number(i);
+      Debugger::log("]=");
+      Debugger::log_number(inode.direct_blocks[i]);
+      Debugger::log("\n");
+    }
+
+    /*
+     * If this is a directory, delete_file() must not remove it.
+     */
     if (inode.is_directory)
       return false;
 
-    for (int i = 0; i < DIRECT_BLOCKS; i++) {
+    /*
+     * IMPORTANT:
+     *
+     * Remove the directory entry FIRST.
+     *
+     * We don't want to free the inode or its blocks while
+     * the directory still points at it.
+     */
+    if (!directory_manager.remove_entry(parent, name)) {
+      Debugger::log("FAILED REMOVING DIRECTORY ENTRY\n");
+      return false;
+    }
+
+    /*
+     * Now that the directory no longer references the inode,
+     * free its data blocks.
+     */
+    for (u32 i = 0; i < DIRECT_BLOCKS; i++) {
       if (inode.direct_blocks[i] != INVALID_BLOCK) {
-        block_manager.free_block(inode.direct_blocks[i]);
+        if (!block_manager.free_block(inode.direct_blocks[i])) {
+          Debugger::log("FAILED FREEING BLOCK\n");
+          return false;
+        }
+
         inode.direct_blocks[i] = INVALID_BLOCK;
       }
     }
 
-    if (!directory_manager.remove_entry(parent, name))
+    /*
+     * Finally mark the inode as free.
+     */
+    if (!inode_manager.free_inode(entry.inode_number)) {
+      Debugger::log("FAILED FREEING INODE\n");
       return false;
-    return inode_manager.free_inode(entry.inode_number);
+    }
+
+    Debugger::log("FILE REMOVED\n");
+
+    return true;
   }
 
   bool remove_directory(char *path, u32 base_dir) {
-
     Debugger::log("RMDIR START\n");
 
     if (!path)
@@ -498,12 +559,12 @@ public:
 
     Debugger::log("BEFORE FIND\n");
 
-    bool found = directory_manager.find_entry(parent, name, entry);
+    if (!directory_manager.find_entry(parent, name, entry)) {
+      Debugger::log("RMDIR ENTRY NOT FOUND\n");
+      return false;
+    }
 
     Debugger::log("AFTER FIND\n");
-
-    if (!found)
-      return false;
 
     Debugger::log("ENTRY INODE: ");
     Debugger::log_number(entry.inode_number);
@@ -513,9 +574,7 @@ public:
 
     Debugger::log("BEFORE READ INODE\n");
 
-    bool read = inode_manager.read_inode(entry.inode_number, inode);
-
-    if (!read) {
+    if (!inode_manager.read_inode(entry.inode_number, inode)) {
       Debugger::log("RM INODE READ FAILED\n");
       return false;
     }
@@ -523,25 +582,24 @@ public:
     Debugger::log("RM INODE READ OK\n");
 
     Debugger::log(inode.is_directory ? "RM: DIR\n" : "RM: FILE\n");
-
     Debugger::log(inode.used ? "RM: USED\n" : "RM: NOT USED\n");
 
     Debugger::log(StringUtils::format("RM INODE: %d USED=%d DIR=%d SIZE=%d\n",
                                       inode.id, inode.used, inode.is_directory,
                                       inode.size));
 
-    Debugger::log("AFTER READ INODE\n");
-
-    // *** BUG FIX: this function never checked that the target is actually
-    // a directory. Without this, `rmdir` on a FILE would happily treat its
-    // (empty) direct_blocks as "an empty directory" and delete the file. ***
+    /*
+     * The inode must actually represent a directory.
+     */
     if (!inode.is_directory) {
       Debugger::log("RMDIR TARGET IS NOT A DIRECTORY\n");
       return false;
     }
 
-    // Check directory is empty
-    for (int i = 0; i < DIRECT_BLOCKS; i++) {
+    /*
+     * The directory must be empty.
+     */
+    for (u32 i = 0; i < DIRECT_BLOCKS; i++) {
 
       if (inode.direct_blocks[i] == INVALID_BLOCK)
         continue;
@@ -554,6 +612,7 @@ public:
       DirectoryEntry *entries = (DirectoryEntry *)buffer;
 
       for (u32 j = 0; j < DIRECTORY_ENTRIES_PER_BLOCK; j++) {
+
         if (entries[j].is_used) {
           Debugger::log("DIRECTORY NOT EMPTY\n");
           return false;
@@ -561,18 +620,44 @@ public:
       }
     }
 
-    for (int i = 0; i < DIRECT_BLOCKS; i++) {
+    /*
+     * IMPORTANT:
+     *
+     * Remove the parent directory entry FIRST.
+     *
+     * Do not free the inode or its blocks while the parent
+     * directory still points at it.
+     */
+    if (!directory_manager.remove_entry(parent, name)) {
+      Debugger::log("FAILED REMOVING DIRECTORY ENTRY\n");
+      return false;
+    }
+
+    /*
+     * Now free the directory's data blocks.
+     */
+    for (u32 i = 0; i < DIRECT_BLOCKS; i++) {
+
       if (inode.direct_blocks[i] != INVALID_BLOCK) {
-        block_manager.free_block(inode.direct_blocks[i]);
+
+        if (!block_manager.free_block(inode.direct_blocks[i])) {
+          Debugger::log("FAILED FREEING DIRECTORY BLOCK\n");
+          return false;
+        }
+
         inode.direct_blocks[i] = INVALID_BLOCK;
       }
     }
 
-    if (!directory_manager.remove_entry(parent, name))
+    /*
+     * Finally free the inode.
+     */
+    if (!inode_manager.free_inode(entry.inode_number)) {
+      Debugger::log("FAILED FREEING DIRECTORY INODE\n");
       return false;
+    }
 
-    if (!inode_manager.free_inode(entry.inode_number))
-      return false;
+    Debugger::log("DIRECTORY REMOVED\n");
 
     return true;
   }
@@ -686,26 +771,52 @@ public:
   bool mount() {
     u8 buffer[BLOCK_SIZE];
 
-    if (!disk.read_sector(SUPERBLOCK_START, buffer))
+    Debugger::log("=== MOUNT START ===\n");
+
+    if (!disk.read_sector(SUPERBLOCK_START, buffer)) {
+      Debugger::log("MOUNT: SUPERBLOCK READ FAILED\n");
       return false;
+    }
+
+    Debugger::log("SUPERBLOCK RAW: ");
+    Debugger::log_number(buffer[0]);
+    Debugger::log(" ");
+    Debugger::log_number(buffer[1]);
+    Debugger::log(" ");
+    Debugger::log_number(buffer[2]);
+    Debugger::log(" ");
+    Debugger::log_number(buffer[3]);
+    Debugger::log("\n");
 
     SuperBlock *sb = (SuperBlock *)buffer;
 
     if (sb->magic != FS_MAGIC) {
-      Debugger::log("No filesystem found\n");
+      Debugger::log("MOUNT: MAGIC INVALID\n");
       return false;
     }
 
-    // Extra safety: even if magic matches, make sure root is actually
-    // usable (guards against disk images written by the old buggy format()).
     Inode root{};
-    if (!inode_manager.read_inode(ROOT_INODE, root) || !root.used ||
-        !root.is_directory) {
-      Debugger::log("Filesystem magic OK but root invalid, reformat needed\n");
+
+    if (!inode_manager.read_inode(ROOT_INODE, root)) {
+      Debugger::log("MOUNT: ROOT READ FAILED\n");
       return false;
     }
 
-    Debugger::log("Filesystem mounted\n");
+    Debugger::log("MOUNT ROOT: ");
+    Debugger::log("id=");
+    Debugger::log_number(root.id);
+    Debugger::log(" used=");
+    Debugger::log_number(root.used);
+    Debugger::log(" dir=");
+    Debugger::log_number(root.is_directory);
+    Debugger::log("\n");
+
+    if (!root.used || !root.is_directory) {
+      Debugger::log("MOUNT: ROOT INVALID\n");
+      return false;
+    }
+
+    Debugger::log("MOUNT SUCCESS\n");
 
     return true;
   }
