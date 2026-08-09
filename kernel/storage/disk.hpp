@@ -112,19 +112,19 @@ public:
         break;
     }
 
-    Asm::outb(ATA_IO_BASE + ATA_REG_COMMAND, 0xE7);
+    /*    Asm::outb(ATA_IO_BASE + ATA_REG_COMMAND, 0xE7);
 
-    while (1) {
+        while (1) {
 
-      u8 status = Asm::inb(ATA_IO_BASE + ATA_REG_STATUS);
+          u8 status = Asm::inb(ATA_IO_BASE + ATA_REG_STATUS);
 
-      if (status & (ATA_SR_ERR | ATA_SR_DF))
-        return false;
+          if (status & (ATA_SR_ERR | ATA_SR_DF))
+            return false;
 
-      if (!(status & ATA_SR_BSY))
-        break;
-    }
-
+          if (!(status & ATA_SR_BSY))
+            break;
+        }
+    */
     return true;
   }
 
@@ -185,6 +185,46 @@ public:
 
     return write_ok && read_ok && read_buffer[0] == 75 &&
            read_buffer[1] == 67 && read_buffer[2] == 79 && read_buffer[3] == 82;
+  }
+
+  bool test_sector_one() {
+    u8 write_buffer[BLOCK_SIZE] = {};
+
+    write_buffer[0] = 75;
+    write_buffer[1] = 67;
+    write_buffer[2] = 79;
+    write_buffer[3] = 82;
+
+    TerminalUtils::print("=== SECTOR 1 TEST ===\n");
+
+    TerminalUtils::print("WRITE SECTOR 1\n");
+
+    if (!write_sector(1, write_buffer)) {
+      TerminalUtils::print("SECTOR 1 WRITE FAILED\n");
+      return false;
+    }
+
+    TerminalUtils::print("READ SECTOR 1\n");
+
+    u8 read_buffer[BLOCK_SIZE] = {};
+
+    if (!read_sector(1, read_buffer)) {
+      TerminalUtils::print("SECTOR 1 READ FAILED\n");
+      return false;
+    }
+
+    TerminalUtils::print("SECTOR 1 RESULT: ");
+    TerminalUtils::print_number(read_buffer[0]);
+    TerminalUtils::print(" ");
+    TerminalUtils::print_number(read_buffer[1]);
+    TerminalUtils::print(" ");
+    TerminalUtils::print_number(read_buffer[2]);
+    TerminalUtils::print(" ");
+    TerminalUtils::print_number(read_buffer[3]);
+    TerminalUtils::print("\n");
+
+    return read_buffer[0] == 75 && read_buffer[1] == 67 &&
+           read_buffer[2] == 79 && read_buffer[3] == 82;
   }
 
   bool test_sector_seven() {

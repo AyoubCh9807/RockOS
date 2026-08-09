@@ -26,7 +26,7 @@ public:
     if (inode == INVALID_INODE)
       return "path not found";
 
-    // *** BUG FIX: resolve_path() only rejects non-directories for
+    // *** ONE BIG BUG FIX: resolve_path() only rejects non-directories for
     // intermediate path components (it has to allow resolving to a file
     // as the final component, since ls/cat/rm all rely on that). `cd`
     // specifically requires the final target to be a directory, so check

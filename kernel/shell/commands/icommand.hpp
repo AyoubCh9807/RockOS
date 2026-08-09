@@ -2,6 +2,7 @@
 #include "../../containers/string.hpp"
 #include "../../tyrant_generator/generator.hpp"
 #include "../../utils/terminal_utils.hpp"
+#include "../../data/shell_commands.hpp"
 
 class ICommand {
 public:

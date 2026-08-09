@@ -2,6 +2,7 @@
 
 #include "../containers/string.hpp"
 #include "../core/kernel.hpp"
+#include "../data/user_info.hpp"
 #include "../drivers/keyboard.hpp"
 #include "../shared/key_event.hpp"
 #include "../utils/fs_utils.hpp"
@@ -47,10 +48,13 @@ public:
   }
 
   void run() {
-    
-    TerminalUtils::print("\nRock OS Shell\n> ");
+    TerminalUtils::print(StringUtils::format("\n[%s@%s %s]$ ", USER, OS,
+                                             terminal.get_current_path()));
 
+    // terminal.draw_random_ascii();
     while (1) {
+      //      TerminalUtils::print("1234567890");
+
       KeyEvent ev = Keyboard::read();
       if (ev.scancode == 0 || ev.keytype == KeyType::None) {
         Kernel::halt();
@@ -80,9 +84,9 @@ public:
         TerminalUtils::print(terminal.parse(cmd_copy, args, max_args).c_str());
 
         buffer = String("");
-        constexpr const char* USER = "Ayoubch";
-        constexpr const char* OS = "rockos";
-        TerminalUtils::print(StringUtils::format("\n[%s@%s %s]$ ", USER, OS, terminal.get_current_path()));
+
+        TerminalUtils::print(StringUtils::format("\n[%s@%s %s]$ ", USER, OS,
+                                                 terminal.get_current_path()));
 
       } else if (ev.keytype == KeyType::ArrowUp) {
         if (currently_selected_history_item == total_history_items) {

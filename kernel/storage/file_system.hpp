@@ -12,7 +12,7 @@
 #include "path_resolver.hpp"
 
 class FileSystem {
-private:
+public:
   Disk &disk;
 
   BlockManager block_manager;
@@ -58,7 +58,7 @@ public:
         path_resolver(inode_manager, directory_manager) {}
 
   // Returns true only if the inode exists, is in-use, and is a directory.
-  // Callers (like `cd`) that must reject files use this explicitly, since
+  // Callers (like cd) that must reject files use this explicitly, since
   // PathResolver::resolve_path() intentionally allows resolving to a file
   // (cat/ls/rm all need that) and can't enforce "must be a directory" on
   // its own.
@@ -74,65 +74,62 @@ public:
   }
 
   bool write_superblock() {
-
     u8 buffer[BLOCK_SIZE] = {};
 
-    SuperBlock *sb = (SuperBlock *)buffer;
+    // Just put "ROCK" directly into the sector.
+    buffer[0] = 0x4B; // K
+    buffer[1] = 0x43; // C
+    buffer[2] = 0x4F; // O
+    buffer[3] = 0x52; // R
 
-    sb->magic = FS_MAGIC;
-    sb->total_blocks = TOTAL_BLOCKS;
-    sb->total_inodes = TOTAL_INODES;
-    sb->inode_bitmap_start = INODE_BITMAP_START;
-    sb->block_bitmap_start = BLOCK_BITMAP_START;
-    sb->inode_table_start = INODE_TABLE_START;
-    sb->data_block_start = DATA_BLOCK_START;
-    sb->size = 0;
+    Debugger::log("=== WRITE SUPERBLOCK ===\n");
 
-    Debugger::log("SB WRITE 1\n");
-
-    if (!disk.write_sector(SUPERBLOCK_START, buffer)) {
-      Debugger::log("SB DISK WRITE FAILED\n");
-      return false;
-    }
-
-    Debugger::log("SB WRITE 2\n");
-
-    u8 raw[BLOCK_SIZE] = {};
-
-    if (!disk.read_sector(SUPERBLOCK_START, raw)) {
-      Debugger::log("SB DISK READ FAILED\n");
-      return false;
-    }
-
-    Debugger::log("SB WRITE 3\n");
-
-    // Do NOT cast/read the entire structure yet.
-    // Just inspect the first four bytes.
-    Debugger::log("SB RAW: ");
-    Debugger::log_number(raw[0]);
-    Debugger::log(" ");
-    Debugger::log_number(raw[1]);
-    Debugger::log(" ");
-    Debugger::log_number(raw[2]);
-    Debugger::log(" ");
-    Debugger::log_number(raw[3]);
+    Debugger::log("TARGET SECTOR: ");
+    Debugger::log_number(SUPERBLOCK_START);
     Debugger::log("\n");
 
-    Debugger::log("SB WRITE 4\n");
-
-    u32 magic = ((u32)raw[0]) | ((u32)raw[1] << 8) | ((u32)raw[2] << 16) |
-                ((u32)raw[3] << 24);
-
-    Debugger::log("SB MAGIC: ");
-    Debugger::log_number(magic);
+    Debugger::log("BUFFER BEFORE WRITE: ");
+    Debugger::log_number(buffer[0]);
+    Debugger::log(" ");
+    Debugger::log_number(buffer[1]);
+    Debugger::log(" ");
+    Debugger::log_number(buffer[2]);
+    Debugger::log(" ");
+    Debugger::log_number(buffer[3]);
     Debugger::log("\n");
 
-    if (magic != FS_MAGIC) {
-      Debugger::log("SB MAGIC BAD\n");
+    bool write_ok = disk.write_sector(SUPERBLOCK_START, buffer);
+
+    Debugger::log("WRITE RESULT: ");
+    Debugger::log_number(write_ok);
+    Debugger::log("\n");
+
+    u8 verify[BLOCK_SIZE] = {};
+
+    bool read_ok = disk.read_sector(SUPERBLOCK_START, verify);
+
+    Debugger::log("READ RESULT: ");
+    Debugger::log_number(read_ok);
+    Debugger::log("\n");
+
+    Debugger::log("BUFFER AFTER READ: ");
+    Debugger::log_number(verify[0]);
+    Debugger::log(" ");
+    Debugger::log_number(verify[1]);
+    Debugger::log(" ");
+    Debugger::log_number(verify[2]);
+    Debugger::log(" ");
+    Debugger::log_number(verify[3]);
+    Debugger::log("\n");
+
+    if (verify[0] != 0x4B || verify[1] != 0x43 || verify[2] != 0x4F ||
+        verify[3] != 0x52) {
+
+      Debugger::log("SUPERBLOCK RAW WRITE FAILED\n");
       return false;
     }
 
-    Debugger::log("SB WRITE SUCCESS\n");
+    Debugger::log("SUPERBLOCK RAW WRITE SUCCESS\n");
 
     return true;
   }
@@ -260,33 +257,47 @@ public:
     return true;
   }
   bool format() {
+    Debugger::log("=== FORMAT START ===\n");
 
-    if (!block_manager.format())
-      return false;
+    Debugger::log("TEST SECTOR 1 BEFORE FORMATTING\n");
+    disk.test_sector_one();
 
-    if (!inode_manager.format())
-      return false;
+    Debugger::log("CALLING BLOCK MANAGER FORMAT\n");
 
-    if (!write_superblock())
-      return false;
-
-    // *** BUG FIX: root inode was never created, so directory_manager saw
-    // inode 0 as "unused" and every mkdir/touch/rm/rmdir at the root
-    // silently failed unless a stale disk image already had root set up. ***
-    if (!create_root_directory()) {
-      Debugger::log("create_root_directory FAILED\n");
+    if (!block_manager.format()) {
+      Debugger::log("BLOCK MANAGER FORMAT FAILED\n");
       return false;
     }
 
-    u8 buffer[BLOCK_SIZE] = {};
+    Debugger::log("TEST SECTOR 1 AFTER BLOCK FORMAT\n");
+    disk.test_sector_one();
 
-    disk.read_sector(0, buffer);
+    Debugger::log("CALLING INODE MANAGER FORMAT\n");
 
-    SuperBlock *sb = (SuperBlock *)buffer;
+    if (!inode_manager.format()) {
+      Debugger::log("INODE MANAGER FORMAT FAILED\n");
+      return false;
+    }
 
-    Debugger::log("BEFORE ROOT MAGIC: ");
-    Debugger::log_number(sb->magic);
-    Debugger::log("\n");
+    Debugger::log("TEST SECTOR 1 AFTER INODE FORMAT\n");
+    disk.test_sector_one();
+
+    Debugger::log("CALLING WRITE SUPERBLOCK\n");
+
+    if (!write_superblock()) {
+      Debugger::log("WRITE SUPERBLOCK FAILED\n");
+      return false;
+    }
+
+    Debugger::log("SUPERBLOCK OK\n");
+
+    if (!create_root_directory()) {
+      Debugger::log("CREATE ROOT FAILED\n");
+      return false;
+    }
+
+    Debugger::log("=== FORMAT SUCCESS ===\n");
+
     return true;
   }
 
@@ -321,8 +332,8 @@ public:
     Debugger::log("ALLOCATED INODE: ");
     Debugger::log_number(inode_number);
     Debugger::log("\n");
-    if (inode_number == INVALID_INODE)
-      return false;
+    // if (inode_number == INVALID_INODE)
+    //  return false;
 
     Inode node{};
     node.id = inode_number;

@@ -107,11 +107,8 @@ public:
   }
 
   u32 allocate_inode() {
-
     for (u32 i = 0; i < TOTAL_INODES; i++) {
-
       u32 sector = INODE_BITMAP_START + (i / BITS_PER_SECTOR);
-
       u32 bit = i % BITS_PER_SECTOR;
 
       u8 buffer[BLOCK_SIZE];
@@ -125,8 +122,10 @@ public:
       bool used = buffer[byte_index] & (1 << bit_index);
 
       if (!used) {
-        if (!reserve_inode(i))
+        if (!reserve_inode(i)) {
+          Debugger::log("COULD NOT RESERVE INODE\n");
           return INVALID_INODE;
+        }
 
         return i;
       }

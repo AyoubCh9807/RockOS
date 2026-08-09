@@ -17,6 +17,11 @@ private:
 public:
   Terminal(FileSystem &fs, TerminalRegistry &reg) : fs(fs), reg(reg) {}
 
+
+  void draw_random_ascii() {
+    TerminalUtils::print(Generator::random_phrase(ascii_art));
+  }
+
   void cd(char *path) {
     if (!path)
       return;
