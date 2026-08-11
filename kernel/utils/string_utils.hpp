@@ -6,6 +6,16 @@
 constexpr int DEFAULT_BUFFER_ALLOCATION_SIZE = 16;
 constexpr int DEFAULT_BUFFER_INCREMENT = 16;
 
+// Numeric Digits
+constexpr int NUMERIC_DIGITS_START = 48; // '0'
+constexpr int NUMERIC_DIGITS_END = 57;   // '9'
+
+// Alphabetic Characters
+constexpr int UPPERCASE_START = 65; // 'A'
+constexpr int UPPERCASE_END = 90;   // 'Z'
+constexpr int LOWERCASE_START = 97; // 'a'
+constexpr int LOWERCASE_END = 122;  // 'z'
+
 class StringUtils {
 public:
   inline static int strcmp(const char *s1, const char *s2) {
@@ -60,7 +70,6 @@ public:
   }
 
   // IMPORTANT: This allocates a new buffer. Caller owns it (and must kfree it).
-  // Name it explicitly so it isn't mistaken for normal strcat().
   inline static const char *strcat_alloc(const char *str1, const char *str2) {
     if (!str1)
       str1 = "";
@@ -311,7 +320,6 @@ public:
     return false;
   }
 
-  // string_utils.hpp
   inline static void print_number_into(char *buf, int cap, int n) {
     int i = cap - 1;
     buf[i--] = '\0';
@@ -332,4 +340,48 @@ public:
     buf[j] = '\0';
   }
 
+  inline static void substr(char *str, int start, int end) {
+    if (start >= end) {
+      str[0] = '\0';
+      return;
+    }
+
+    int i = 0;
+    while (start + i < end) {
+      str[i] = str[start + i];
+      i++;
+    }
+    str[i] = '\0';
+  }
+
+  inline static bool is_numeric(const char *str) {
+    if (str == nullptr || str[0] == '\0')
+      return false; // Handle empty strings
+
+    int i = 0;
+    while (str[i] != '\0') {
+      int c = (int)str[i];
+      if (c < NUMERIC_DIGITS_START || c > NUMERIC_DIGITS_END)
+        return false;
+      i++;
+    }
+    return true;
+  }
+
+  inline static bool is_alpha(const char *str) {
+    if (str == nullptr || str[0] == '\0')
+      return false; // Handle empty strings
+
+    int i = 0;
+    while (str[i] != '\0') {
+      int c = (int)str[i];
+      bool is_upper = (c >= UPPERCASE_START && c <= UPPERCASE_END);
+      bool is_lower = (c >= LOWERCASE_START && c <= LOWERCASE_END);
+
+      if (!is_upper && !is_lower)
+        return false;
+      i++;
+    }
+    return true;
+  }
 };
