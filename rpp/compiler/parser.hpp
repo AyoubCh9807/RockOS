@@ -66,13 +66,28 @@ public:
   size_t position() const { return current_position; }
 
   bool is_variable_declaration();
+  bool is_while_statement();
+  bool is_if_statement();
 
   ASTNode *parse_statement();
   ASTNode *parse_variable_declaration();
   ASTNode *parse_function();
 
-  Expression *parse_expression();
+  bool is_expression_start();
+  bool is_operator();
+
+  bool expect_literal();
+  bool expect_operator();
+
+  TokenType parse_operator();
+
   Expression *parse_primary();
+  Expression *parse_binary_expression();
+  Expression *parse_expression();
+  Expression *parse_assignment_expression();
+
+  ASTNode *parse_if_statement();
+  ASTNode *parse_while_statement();
 
   Program *parse_program();
 };

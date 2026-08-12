@@ -172,6 +172,18 @@ public:
     data_[size_] = '\0';
   }
 
+  // operator==
+  bool operator==(String &other) const { return StringUtils::strcmp(c_str(), other.c_str()) == 0; }
+  
+  // operator== for const string
+  bool operator==(const String &other) const { return StringUtils::strcmp(c_str(), other.c_str()) == 0; }
+
+  // operator!= 
+  bool operator!=(String &other) const { return !(*this == other); }
+  
+  // operator!= for const string
+  bool operator!=(const String &other) const { return !(*this == other); }
+
   // operator[] (safe-ish)
   char &operator[](size_t index) {
     if (!data_ || index >= size_)
@@ -185,7 +197,7 @@ public:
       return err_char_;
     return data_[index];
   }
-  
+
   // Clear the string contents
   void clear() {
     size_ = 0;

@@ -4,6 +4,9 @@
 #include "../../kernel/containers/vector.hpp"
 #include "lexer.hpp"
 
+// DONT FORGET TO IMPLEMENT DESTRUCTORS TO PREVENT MEMORY LEAKS
+// EG: delete value FOR ANYTHING W A VALUE MEMBER
+
 struct ASTNode {
   virtual ~ASTNode() = default;
 };
@@ -33,10 +36,20 @@ struct StringLiteral : Expression {
   String value;
 };
 
+
+struct BooleanLiteral : Expression {
+  bool value;
+};
+
 struct BinaryExpression : Expression {
   ASTNode *left;
   TokenType op;
   ASTNode *right;
+};
+
+struct AssignmentExpression : Expression {
+    String name;
+    Expression *value;
 };
 
 // statements
@@ -57,5 +70,16 @@ struct Function : Statement {
   String name;
 
   Vector<ASTNode *> parameters;
+  Vector<ASTNode *> body;
+};
+
+struct IfStatement : Statement {
+  Expression *condition;
+  Vector<ASTNode *> body;
+  Vector<ASTNode *> else_body;
+};
+
+struct WhileStatement : Statement {
+  Expression *condition;
   Vector<ASTNode *> body;
 };

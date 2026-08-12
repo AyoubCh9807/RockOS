@@ -1,135 +1,20 @@
 #pragma once
-
-#include "../../kernel/containers/string.hpp"
-#include "../../kernel/containers/vector.hpp"
-#include "../../kernel/utils/string_utils.hpp"
-#include "../../kernel/utils/terminal_utils.hpp"
-
-enum class TokenType {
-  ROCK,
-
-  LPAREN,
-  RPAREN,
-  LBRACE,
-  RBRACE,
-  SEMICOLON,
-  COMMA,
-  SCOPE,
-  DOT,
-
-  SPACE,
-
-  ASSIGN,
-
-  PLUS,
-  MINUS,
-  DIVIDE,
-  MULTIPLY,
-  MODULO,
-
-  KEYWORD,
-  IDENTIFIER,
-
-  STRING,
-  INT,
-  FLOAT,
-  BOOLEAN,
-
-  INVALID,
-  EOF_TOKEN
-};
-
-struct Token {
-  TokenType type;
-  String value;
-};
-
-const char *token_type_name(TokenType type) {
-  switch (type) {
-  case TokenType::ROCK:
-    return "ROCK";
-
-  case TokenType::LPAREN:
-    return "LPAREN";
-  case TokenType::RPAREN:
-    return "RPAREN";
-  case TokenType::LBRACE:
-    return "LBRACE";
-  case TokenType::RBRACE:
-    return "RBRACE";
-  case TokenType::SEMICOLON:
-    return "SEMICOLON";
-  case TokenType::COMMA:
-    return "COMMA";
-  case TokenType::SCOPE:
-    return "SCOPE";
-  case TokenType::DOT:
-    return "DOT";
-
-  case TokenType::SPACE:
-    return "SPACE";
-
-  case TokenType::ASSIGN:
-    return "ASSIGN";
-
-  case TokenType::PLUS:
-    return "PLUS";
-  case TokenType::MINUS:
-    return "MINUS";
-  case TokenType::DIVIDE:
-    return "DIVIDE";
-  case TokenType::MULTIPLY:
-    return "MULTIPLY";
-  case TokenType::MODULO:
-    return "MODULO";
-
-  case TokenType::KEYWORD:
-    return "KEYWORD";
-  case TokenType::IDENTIFIER:
-    return "IDENTIFIER";
-
-  case TokenType::STRING:
-    return "STRING";
-  case TokenType::INT:
-    return "INT";
-  case TokenType::FLOAT:
-    return "FLOAT";
-  case TokenType::BOOLEAN:
-    return "BOOLEAN";
-
-  case TokenType::INVALID:
-    return "INVALID";
-  case TokenType::EOF_TOKEN:
-    return "EOF";
-
-  default:
-    return "UNKNOWN";
-  }
-}
+#include "lexer_types.hpp"
 
 void print_token(const Token &token) {
-  TerminalUtils::print(
-      StringUtils::format(
-          "Type: %s | Val: %s\n",
-          token_type_name(token.type),
-          token.value.c_str()));
+  TerminalUtils::print(StringUtils::format("Type: %s | Val: %s\n",
+                                           token_type_name(token.type),
+                                           token.value.c_str()));
 }
 
 bool is_alpha_char(char c) {
-  return (c >= 'A' && c <= 'Z') ||
-         (c >= 'a' && c <= 'z') ||
-         c == '_';
+  return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
 }
 
-bool is_digit_char(char c) {
-  return c >= '0' && c <= '9';
-}
+bool is_digit_char(char c) { return c >= '0' && c <= '9'; }
 
 bool is_whitespace_char(char c) {
-  return c == ' ' ||
-         c == '\t' ||
-         c == '\n' ||
-         c == '\r';
+  return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
 bool is_symbol_char(char c) {
@@ -204,34 +89,21 @@ TokenType get_symbol_token_type(char c) {
   }
 }
 
+const String KEYWORDS[] = {"const", "constexpr",
+
+                           "i8",    "i16",       "i32", "i64",
+                           "u8",    "u16",       "u32", "u64",
+
+                           "f8",    "f16",       "f32", "f64",
+
+                           "str",   "bool",
+
+                           "awaken"};
 bool is_keyword(const String &str) {
-  if (str == "const")
-    return true;
-
-  if (str == "constexpr")
-    return true;
-
-  if (str == "i8" || str == "i16" ||
-      str == "i32" || str == "i64")
-    return true;
-
-  if (str == "u8" || str == "u16" ||
-      str == "u32" || str == "u64")
-    return true;
-
-  if (str == "f8" || str == "f16" ||
-      str == "f32" || str == "f64")
-    return true;
-
-  if (str == "str")
-    return true;
-
-  if (str == "bool")
-    return true;
-
-  if (str == "awaken")
-    return true;
-
+  for (auto &k : KEYWORDS) {
+    if (str == k)
+      return true;
+  }
   return false;
 }
 
@@ -275,9 +147,7 @@ bool is_float(const String &value) {
     return false;
   }
 
-  return found_dot &&
-         has_digit_before &&
-         has_digit_after;
+  return found_dot && has_digit_before && has_digit_after;
 }
 
 TokenType find_token_type(const String &str) {
@@ -286,6 +156,15 @@ TokenType find_token_type(const String &str) {
 
   if (str == "rock")
     return TokenType::ROCK;
+
+  if (str == "if")
+    return TokenType::IF;
+
+  if (str == "else")
+    return TokenType::ELSE;
+
+  if (str == "while")
+    return TokenType::WHILE;
 
   if (is_keyword(str))
     return TokenType::KEYWORD;
@@ -299,10 +178,8 @@ TokenType find_token_type(const String &str) {
   if (is_float(str))
     return TokenType::FLOAT;
 
-  if (str.length() == 1 &&
-      is_symbol_char(str[0])) {
+  if (str.length() == 1 && is_symbol_char(str[0]))
     return get_symbol_token_type(str[0]);
-  }
 
   if (is_alpha_char(str[0]))
     return TokenType::IDENTIFIER;
@@ -321,10 +198,7 @@ Vector<Token> LEX(const String &code) {
 
     if (is_whitespace_char(c)) {
       if (value.length() > 0) {
-        tokens.push_back({
-            find_token_type(value),
-            value
-        });
+        tokens.push_back({find_token_type(value), value});
 
         value.clear();
       }
@@ -332,13 +206,65 @@ Vector<Token> LEX(const String &code) {
       i++;
       continue;
     }
+    if (c == '=') {
+      if (i + 1 < (size_t)code.length() && code[i + 1] == '=') {
+        tokens.push_back({TokenType::EQUAL, String("==")});
+
+        i += 2;
+        continue;
+      }
+
+      tokens.push_back({TokenType::ASSIGN, String("=")});
+
+      i++;
+      continue;
+    }
+
+    if (c == '!') {
+      if (i + 1 < (size_t)code.length() && code[i + 1] == '=') {
+        tokens.push_back({TokenType::NOT_EQUAL, String("!=")});
+
+        i += 2;
+        continue;
+      }
+
+      tokens.push_back({TokenType::INVALID, String("!")});
+
+      i++;
+      continue;
+    }
+
+    if (c == '<') {
+      if (i + 1 < (size_t)code.length() && code[i + 1] == '=') {
+        tokens.push_back({TokenType::LTE, String("<=")});
+
+        i += 2;
+        continue;
+      }
+
+      tokens.push_back({TokenType::LT, String("<")});
+
+      i++;
+      continue;
+    }
+
+    if (c == '>') {
+      if (i + 1 < (size_t)code.length() && code[i + 1] == '=') {
+        tokens.push_back({TokenType::GTE, String(">=")});
+
+        i += 2;
+        continue;
+      }
+
+      tokens.push_back({TokenType::GT, String(">")});
+
+      i++;
+      continue;
+    }
 
     if (c == '"') {
       if (value.length() > 0) {
-        tokens.push_back({
-            find_token_type(value),
-            value
-        });
+        tokens.push_back({find_token_type(value), value});
 
         value.clear();
       }
@@ -362,18 +288,12 @@ Vector<Token> LEX(const String &code) {
       }
 
       if (!closed) {
-        tokens.push_back({
-            TokenType::INVALID,
-            string_value
-        });
+        tokens.push_back({TokenType::INVALID, string_value});
 
         return tokens;
       }
 
-      tokens.push_back({
-          TokenType::STRING,
-          string_value
-      });
+      tokens.push_back({TokenType::STRING, string_value});
 
       i++;
       continue;
@@ -389,16 +309,13 @@ Vector<Token> LEX(const String &code) {
       value += c;
       i++;
 
-      if (i < (size_t)code.length() &&
-          code[i] == '.' &&
-          i + 1 < (size_t)code.length() &&
-          is_digit_char(code[i + 1])) {
+      if (i < (size_t)code.length() && code[i] == '.' &&
+          i + 1 < (size_t)code.length() && is_digit_char(code[i + 1])) {
 
         value += '.';
         i++;
 
-        while (i < (size_t)code.length() &&
-               is_digit_char(code[i])) {
+        while (i < (size_t)code.length() && is_digit_char(code[i])) {
           value += code[i];
           i++;
         }
@@ -409,10 +326,7 @@ Vector<Token> LEX(const String &code) {
 
     if (is_symbol_char(c)) {
       if (value.length() > 0) {
-        tokens.push_back({
-            find_token_type(value),
-            value
-        });
+        tokens.push_back({find_token_type(value), value});
 
         value.clear();
       }
@@ -420,20 +334,14 @@ Vector<Token> LEX(const String &code) {
       String symbol;
       symbol += c;
 
-      tokens.push_back({
-          get_symbol_token_type(c),
-          symbol
-      });
+      tokens.push_back({get_symbol_token_type(c), symbol});
 
       i++;
       continue;
     }
 
     if (value.length() > 0) {
-      tokens.push_back({
-          find_token_type(value),
-          value
-      });
+      tokens.push_back({find_token_type(value), value});
 
       value.clear();
     }
@@ -441,25 +349,16 @@ Vector<Token> LEX(const String &code) {
     String invalid;
     invalid += c;
 
-    tokens.push_back({
-        TokenType::INVALID,
-        invalid
-    });
+    tokens.push_back({TokenType::INVALID, invalid});
 
     i++;
   }
 
   if (value.length() > 0) {
-    tokens.push_back({
-        find_token_type(value),
-        value
-    });
+    tokens.push_back({find_token_type(value), value});
   }
 
-  tokens.push_back({
-      TokenType::EOF_TOKEN,
-      String("")
-  });
+  tokens.push_back({TokenType::EOF_TOKEN, String("")});
 
   return tokens;
 }
