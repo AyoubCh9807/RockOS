@@ -1,3 +1,4 @@
+#pragma once
 #include "../memory/memory.hpp"
 #include "../shared/types.hpp"
 
@@ -28,13 +29,11 @@ public:
 
   // This constructor is broken
   Vector(const Vector &other) {
-    if (!other.data)
-      return;
-    if (other.data == this->data)
-      return;
     size = other.size;
     capacity = other.capacity;
-    
+
+    data = (T *)kmalloc(sizeof(T) * capacity);
+
     for (auto i{0uz}; i < size; i++) {
       data[i] = other.data[i];
     }
@@ -44,7 +43,7 @@ public:
     T *temp_data = data;
     size_t temp_size = size;
     size_t temp_cap = capacity;
-   
+
     data = other.data;
     size = other.size;
     capacity = other.capacity;
@@ -54,7 +53,6 @@ public:
     other.capacity = temp_cap;
 
     return *this;
-
   }
 
   void reallocate() {
@@ -95,25 +93,15 @@ public:
     size--;
   }
 
-  T &back() {
-    if (size > 0)
-      return data[size - 1];
-  }
+  T &back() { return data[size - 1]; }
 
-  T &front() {
-    if (size > 0)
-      return data[0];
-  }
+  T &front() { return data[0]; }
 
   bool empty() { return size == 0; }
 
-  T &operator[](size_t index) {
-    if (size == 0)
-      return 0;
-    if (index >= size)
-      return 0;
-    return data[index];
-  }
+  // returning anything is invalid because we are returning a reference to T
+  T &operator[](size_t index) { return data[index]; }
+  T &operator[](size_t index) const { return data[index]; }
 
   void clear() { size = 0; }
 

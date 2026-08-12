@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../kernel/memory/memory.hpp"
-#include "../kernel/utils/string_utils.hpp"
-#include "../kernel/utils/terminal_utils.hpp"
+#include "../../kernel/containers/string.hpp"
+#include "../../kernel/containers/vector.hpp"
+#include "../../kernel/utils/string_utils.hpp"
+#include "../../kernel/utils/terminal_utils.hpp"
 
 enum class TokenType {
   ROCK,
@@ -35,37 +36,103 @@ enum class TokenType {
   BOOLEAN,
 
   INVALID,
-  EOF
+  EOF_TOKEN
 };
 
 struct Token {
   TokenType type;
-  const char *value;
+  String value;
 };
 
-void print_token(Token &token) {
-  // temporary debugging
-  TerminalUtils::print(StringUtils::format("TYPE: %d | VALUE: %s\n",
-                                           (int)token.type, token.value));
+const char *token_type_name(TokenType type) {
+  switch (type) {
+  case TokenType::ROCK:
+    return "ROCK";
+
+  case TokenType::LPAREN:
+    return "LPAREN";
+  case TokenType::RPAREN:
+    return "RPAREN";
+  case TokenType::LBRACE:
+    return "LBRACE";
+  case TokenType::RBRACE:
+    return "RBRACE";
+  case TokenType::SEMICOLON:
+    return "SEMICOLON";
+  case TokenType::COMMA:
+    return "COMMA";
+  case TokenType::SCOPE:
+    return "SCOPE";
+  case TokenType::DOT:
+    return "DOT";
+
+  case TokenType::SPACE:
+    return "SPACE";
+
+  case TokenType::ASSIGN:
+    return "ASSIGN";
+
+  case TokenType::PLUS:
+    return "PLUS";
+  case TokenType::MINUS:
+    return "MINUS";
+  case TokenType::DIVIDE:
+    return "DIVIDE";
+  case TokenType::MULTIPLY:
+    return "MULTIPLY";
+  case TokenType::MODULO:
+    return "MODULO";
+
+  case TokenType::KEYWORD:
+    return "KEYWORD";
+  case TokenType::IDENTIFIER:
+    return "IDENTIFIER";
+
+  case TokenType::STRING:
+    return "STRING";
+  case TokenType::INT:
+    return "INT";
+  case TokenType::FLOAT:
+    return "FLOAT";
+  case TokenType::BOOLEAN:
+    return "BOOLEAN";
+
+  case TokenType::INVALID:
+    return "INVALID";
+  case TokenType::EOF_TOKEN:
+    return "EOF";
+
+  default:
+    return "UNKNOWN";
+  }
 }
 
-// Whitespace
-constexpr char WHITESPACE_TAB = '\t';
-constexpr char WHITESPACE_LF = '\n';
-constexpr char WHITESPACE_CR = '\r';
-constexpr char WHITESPACE_SPACE = ' ';
-
-inline static bool is_alpha_char(char c) {
-  return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
+void print_token(const Token &token) {
+  TerminalUtils::print(
+      StringUtils::format(
+          "Type: %s | Val: %s\n",
+          token_type_name(token.type),
+          token.value.c_str()));
 }
 
-inline static bool is_digit_char(char c) { return c >= '0' && c <= '9'; }
-
-inline static bool is_whitespace_char(char c) {
-  return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+bool is_alpha_char(char c) {
+  return (c >= 'A' && c <= 'Z') ||
+         (c >= 'a' && c <= 'z') ||
+         c == '_';
 }
 
-inline static bool is_symbol_char(char c) {
+bool is_digit_char(char c) {
+  return c >= '0' && c <= '9';
+}
+
+bool is_whitespace_char(char c) {
+  return c == ' ' ||
+         c == '\t' ||
+         c == '\n' ||
+         c == '\r';
+}
+
+bool is_symbol_char(char c) {
   switch (c) {
   case '(':
   case ')':
@@ -82,154 +149,317 @@ inline static bool is_symbol_char(char c) {
   case '*':
   case '%':
     return true;
+
   default:
     return false;
   }
 }
-inline static TokenType get_symbol_token_type(char c) {
+
+TokenType get_symbol_token_type(char c) {
   switch (c) {
   case '(':
     return TokenType::LPAREN;
+
   case ')':
     return TokenType::RPAREN;
+
   case '{':
     return TokenType::LBRACE;
+
   case '}':
     return TokenType::RBRACE;
+
   case ';':
     return TokenType::SEMICOLON;
+
   case ',':
     return TokenType::COMMA;
+
   case ':':
     return TokenType::SCOPE;
+
   case '.':
     return TokenType::DOT;
+
   case '=':
     return TokenType::ASSIGN;
+
   case '+':
     return TokenType::PLUS;
+
   case '-':
     return TokenType::MINUS;
+
   case '/':
     return TokenType::DIVIDE;
+
   case '*':
     return TokenType::MULTIPLY;
+
   case '%':
     return TokenType::MODULO;
+
   default:
     return TokenType::INVALID;
   }
 }
 
-// RPP keywords
-constexpr const char *KEYWORDS[] = {"const", "constexpr",
+bool is_keyword(const String &str) {
+  if (str == "const")
+    return true;
 
-                                    "i8",    "i16",       "i32", "i64",
+  if (str == "constexpr")
+    return true;
 
-                                    "u8",    "u16",       "u32", "u64",
+  if (str == "i8" || str == "i16" ||
+      str == "i32" || str == "i64")
+    return true;
 
-                                    "f8",    "f16",       "f32", "f64",
+  if (str == "u8" || str == "u16" ||
+      str == "u32" || str == "u64")
+    return true;
 
-                                    "str",   "bool",
+  if (str == "f8" || str == "f16" ||
+      str == "f32" || str == "f64")
+    return true;
 
-                                    "awaken"};
+  if (str == "str")
+    return true;
 
-bool is_keyword(const char *str) {
-  if (!str || str == nullptr)
-    return false;
-  for (const auto &k : KEYWORDS) {
-    if (StringUtils::strcmp(k, str) == 0)
-      return true;
-  }
+  if (str == "bool")
+    return true;
+
+  if (str == "awaken")
+    return true;
+
   return false;
 }
 
-bool is_numeric(const char *str) {
-  if (!str || str == nullptr)
+bool is_integer(const String &value) {
+  if (value.length() == 0)
     return false;
 
-  int i = 0;
-  while (str[i] != '\0') {
-    if (!is_digit_char(str[i]))
+  for (size_t i = 0; i < (size_t)value.length(); i++) {
+    if (!is_digit_char(value[i]))
       return false;
-    i++;
   }
+
   return true;
 }
 
-static constexpr int LEFT_PAREN_CHARCODE = 40;
-static constexpr int RIGHT_PAREN_CHARCODE = 41;
+bool is_float(const String &value) {
+  if (value.length() == 0)
+    return false;
 
-TokenType find_token_type(const char *str) {
-  if (!str)
+  bool found_dot = false;
+  bool has_digit_before = false;
+  bool has_digit_after = false;
+
+  for (size_t i = 0; i < (size_t)value.length(); i++) {
+    char c = value[i];
+
+    if (is_digit_char(c)) {
+      if (found_dot)
+        has_digit_after = true;
+      else
+        has_digit_before = true;
+
+      continue;
+    }
+
+    if (c == '.' && !found_dot) {
+      found_dot = true;
+      continue;
+    }
+
+    return false;
+  }
+
+  return found_dot &&
+         has_digit_before &&
+         has_digit_after;
+}
+
+TokenType find_token_type(const String &str) {
+  if (str.length() == 0)
     return TokenType::INVALID;
-  if (StringUtils::strcmp("rock", str) == 0) {
+
+  if (str == "rock")
     return TokenType::ROCK;
-  }
-  if (is_keyword(str)) {
+
+  if (is_keyword(str))
     return TokenType::KEYWORD;
-  }
-  if (is_numeric(str)) {
+
+  if (str == "true" || str == "false")
+    return TokenType::BOOLEAN;
+
+  if (is_integer(str))
     return TokenType::INT;
-  }
-  if (is_symbol_char(str[0]) && str[1] == '\0') {
+
+  if (is_float(str))
+    return TokenType::FLOAT;
+
+  if (str.length() == 1 &&
+      is_symbol_char(str[0])) {
     return get_symbol_token_type(str[0]);
   }
-  if (str[0] == ' ' && str[1] == '\0') {
-    return TokenType::SPACE;
-  }
-  if (is_alpha_char(str[0])) {
+
+  if (is_alpha_char(str[0]))
     return TokenType::IDENTIFIER;
-  }
+
   return TokenType::INVALID;
 }
 
-void LEX(const char *code) {
-  Token *tokens = (Token *)kmalloc(sizeof(Token) * 1024);
-  char *val = (char *)kmalloc(sizeof(char) * 32);
-  if (!tokens || !val)
-    return;
+Vector<Token> LEX(const String &code) {
+  Vector<Token> tokens;
+  String value;
 
-  if (code == nullptr || code[0] == '\0')
-    return;
+  size_t i = 0;
 
-  int i = 0;
-  int val_index = 0;
-  int token_index = 0;
-  Token t;
-  while (code[i] != '\0') {
-    if (is_whitespace_char(code[i])) {
-      t.type = find_token_type(val);
-      t.value = val;
-      tokens[token_index++] = t;
-      val_index = 0;
+  while (i < (size_t)code.length()) {
+    char c = code[i];
+
+    if (is_whitespace_char(c)) {
+      if (value.length() > 0) {
+        tokens.push_back({
+            find_token_type(value),
+            value
+        });
+
+        value.clear();
+      }
 
       i++;
       continue;
-    } else if (is_alpha_char(code[i]) || is_digit_char(code[i])) {
-      val[val_index++] = code[i];
-      val[val_index] = '\0';
-    } else if (is_symbol_char(code[i])) {
-      t.type = find_token_type(val);
-      t.value = val;
-      tokens[token_index++] = t;
-      val_index = 0;
-
-      t.type = get_symbol_token_type(code[i]);
-      t.value = &code[i];
-      tokens[token_index++] = t;
-    } else {
-      t.type = TokenType::INVALID;
-      t.value = "";
-      tokens[token_index++] = t;
-      val_index = 0;
     }
+
+    if (c == '"') {
+      if (value.length() > 0) {
+        tokens.push_back({
+            find_token_type(value),
+            value
+        });
+
+        value.clear();
+      }
+
+      String string_value;
+
+      i++;
+
+      bool closed = false;
+
+      while (i < (size_t)code.length()) {
+        char string_char = code[i];
+
+        if (string_char == '"') {
+          closed = true;
+          break;
+        }
+
+        string_value += string_char;
+        i++;
+      }
+
+      if (!closed) {
+        tokens.push_back({
+            TokenType::INVALID,
+            string_value
+        });
+
+        return tokens;
+      }
+
+      tokens.push_back({
+          TokenType::STRING,
+          string_value
+      });
+
+      i++;
+      continue;
+    }
+
+    if (is_alpha_char(c)) {
+      value += c;
+      i++;
+      continue;
+    }
+
+    if (is_digit_char(c)) {
+      value += c;
+      i++;
+
+      if (i < (size_t)code.length() &&
+          code[i] == '.' &&
+          i + 1 < (size_t)code.length() &&
+          is_digit_char(code[i + 1])) {
+
+        value += '.';
+        i++;
+
+        while (i < (size_t)code.length() &&
+               is_digit_char(code[i])) {
+          value += code[i];
+          i++;
+        }
+      }
+
+      continue;
+    }
+
+    if (is_symbol_char(c)) {
+      if (value.length() > 0) {
+        tokens.push_back({
+            find_token_type(value),
+            value
+        });
+
+        value.clear();
+      }
+
+      String symbol;
+      symbol += c;
+
+      tokens.push_back({
+          get_symbol_token_type(c),
+          symbol
+      });
+
+      i++;
+      continue;
+    }
+
+    if (value.length() > 0) {
+      tokens.push_back({
+          find_token_type(value),
+          value
+      });
+
+      value.clear();
+    }
+
+    String invalid;
+    invalid += c;
+
+    tokens.push_back({
+        TokenType::INVALID,
+        invalid
+    });
+
     i++;
   }
-  t.type = find_token_type(val);
-  t.value = val;
-  tokens[token_index++] = t;
-  val_index = 0;
 
-  int j = 0;
+  if (value.length() > 0) {
+    tokens.push_back({
+        find_token_type(value),
+        value
+    });
+  }
+
+  tokens.push_back({
+      TokenType::EOF_TOKEN,
+      String("")
+  });
+
+  return tokens;
 }

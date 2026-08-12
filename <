@@ -185,14 +185,13 @@ public:
       return err_char_;
     return data_[index];
   }
-  
-  // Clear the string contents
-  void clear() {
+// Clear the string contents
+void clear() {
     size_ = 0;
 
     if (data_)
-      data_[0] = '\0';
-  }
+        data_[0] = '\0';
+}
 
   // Append a C-string (returns new String)
   String operator+(const char *other) const {
