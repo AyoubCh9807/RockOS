@@ -2,6 +2,34 @@
 
 #include "code_generator.hpp"
 #include "parser_types.hpp"
+#include "register_manager.hpp"
+
+void CodeGenerator::emit(const String &line) { output += line + '\n'; }
+
+String CodeGenerator::register_name(Register reg) {
+  switch (reg) {
+  case Register::EAX:
+    return "EAX";
+
+  case Register::EBX:
+    return "EBX";
+
+  case Register::ECX:
+    return "ECX";
+
+  case Register::EDX:
+    return "EDX";
+
+  case Register::ESI:
+    return "ESI";
+
+  case Register::EDI:
+    return "EDI";
+
+  default:
+    return "INVALID";
+  }
+}
 
 const char *CodeGenerator::binary_op(TokenType op) {
   switch (op) {
@@ -68,54 +96,205 @@ bool CodeGenerator::is_assignment(Expression *expr) {
 bool CodeGenerator::is_identifier(Expression *expr) {
   return dynamic_cast<Identifier *>(expr) != nullptr;
 }
-void CodeGenerator::emit(const String &line) { output += line + '\n'; }
 
-void CodeGenerator::gen_expression(Expression *expr) {}
-
-void CodeGenerator::gen_binary(BinaryExpression *expr) {
+Register CodeGenerator::gen_expression(Expression *expr) {
   if (!expr)
-    return;
+    return Register::INVALID;
 
-  // Generate LEFT
-  if (auto *id = dynamic_cast<Identifier *>(expr->left)) {
-    // identifier
-    emit(StringUtils::format("mov eax, %s", id->name.c_str()));
+  if (auto *binary = dynamic_cast<BinaryExpression *>(expr))
+    return gen_binary(binary);
 
-  } else if (auto *integer = dynamic_cast<IntegerLiteral *>(expr->left)) {
-    emit(StringUtils::format("mov eax, %d", expr->left));
+  if (auto *assignment = dynamic_cast<AssignmentExpression *>(expr))
+    return gen_assignment(assignment);
 
-  } else if (auto *floating = dynamic_cast<FloatLiteral *>(expr->left)) {
-    // float
-  } else if (auto *string = dynamic_cast<StringLiteral *>(expr->left)) {
-    // string
-  } else if (auto *boolean = dynamic_cast<BooleanLiteral *>(expr->left)) {
-    // boolean
-  } else if (auto *binary = dynamic_cast<BinaryExpression *>(expr->left)) {
-    // nested binary expression
-  }
-  if (auto *literal = dynamic_cast<IntegerLiteral *>(expr->left)) {
-  } else if (auto *id = dynamic_cast<Identifier *>(expr->left)) {
-    emit(StringUtils::format("mov eax, [%s]", id->name.c_str()));
-  }
+  if (auto *id = dynamic_cast<Identifier *>(expr))
+    return gen_identifier(id);
 
-  // Generate RIGHT
-  if (auto *literal = dynamic_cast<IntegerLiteral *>(expr->right)) {
-    emit(StringUtils::format("mov ebx, %d", literal->value));
-  } else if (auto *id = dynamic_cast<Identifier *>(expr->right)) {
-    emit(StringUtils::format("mov ebx, [%s]", id->name.c_str()));
-  }
+  if (auto *integer = dynamic_cast<IntegerLiteral *>(expr))
+    return gen_integer(integer);
 
-  emit(StringUtils::format("%s eax, ebx", binary_op(expr->op)));
+  if (auto *floating = dynamic_cast<FloatLiteral *>(expr))
+    return gen_float(floating);
+
+  if (auto *string = dynamic_cast<StringLiteral *>(expr))
+    return gen_string(string);
+
+  if (auto *boolean = dynamic_cast<BooleanLiteral *>(expr))
+    return gen_boolean(boolean);
+
+  return Register::INVALID;
 }
 
-void CodeGenerator::gen_assignment(AssignmentExpression *expr) {}
+Register CodeGenerator::gen_binary(BinaryExpression *expr) {
+  if (!expr)
+    return Register::INVALID;
 
-void CodeGenerator::gen_statement(ASTNode *node) {}
+  Register left = gen_expression(expr->left);
 
-void CodeGenerator::gen_declaration(VariableDeclaration *decl) {}
+  if (left == Register::INVALID)
+    return Register::INVALID;
 
-void CodeGenerator::gen_if(IfStatement *statement) {}
+  Register right = gen_expression(expr->right);
 
-void CodeGenerator::gen_while(WhileStatement *statement) {}
+  if (right == Register::INVALID) {
+    registers.free(left);
+    return Register::INVALID;
+  }
 
-String CodeGenerator::generate(Program *program) {}
+  const char *op = binary_op(expr->op);
+
+  if (!op) {
+    registers.free(left);
+    registers.free(right);
+    return Register::INVALID;
+  }
+
+  emit(StringUtils::format("%s %s, %s", op, register_name(left).c_str(),
+                           register_name(right).c_str()));
+
+  // Right hand value is no longer needed.
+  registers.free(right);
+
+  // Result remains in left.
+  return left;
+}
+
+Register CodeGenerator::gen_declaration(VariableDeclaration *decl) {
+
+  if (!decl || !decl->initializer)
+    return Register::INVALID;
+  Expression *initializer = dynamic_cast<Expression *>(decl->initializer);
+
+  if (!initializer)
+    return Register::INVALID;
+
+  Register reg = gen_expression(initializer);
+
+  if (reg == Register::INVALID)
+    return Register::INVALID;
+
+  emit(StringUtils::format("mov [%s], %s", decl->name.c_str(),
+                           register_name(reg).c_str()));
+
+  registers.free(reg);
+
+  return Register::INVALID;
+}
+
+void CodeGenerator::gen_statement(ASTNode *node) {
+  if (!node)
+    return;
+
+  if (auto *expr = dynamic_cast<Expression *>(node)) {
+    Register result = gen_expression(expr);
+
+    if (result != Register::INVALID)
+      registers.free(result);
+
+    return;
+  }
+
+  if (auto *decl = dynamic_cast<VariableDeclaration *>(node)) {
+    gen_declaration(decl);
+    return;
+  }
+
+  if (auto *if_stmt = dynamic_cast<IfStatement *>(node)) {
+    gen_if(if_stmt);
+    return;
+  }
+
+  if (auto *while_stmt = dynamic_cast<WhileStatement *>(node)) {
+    gen_while(while_stmt);
+    return;
+  }
+}
+
+Register CodeGenerator::gen_assignment(AssignmentExpression *expr) {
+  if (!expr)
+    return Register::INVALID;
+
+  Register value = gen_expression(expr->value);
+
+  if (value == Register::INVALID)
+    return Register::INVALID;
+
+  emit(StringUtils::format("mov [%s], %s", expr->name.c_str(),
+                           register_name(value).c_str()));
+
+  return value;
+}
+
+Register CodeGenerator::gen_integer(IntegerLiteral *expr) {
+  if (!expr)
+    return Register::INVALID;
+
+  Register reg = registers.alloc();
+
+  if (reg == Register::INVALID)
+    return Register::INVALID;
+
+  emit(StringUtils::format("mov %s, %d", register_name(reg).c_str(),
+                           expr->value));
+
+  return reg;
+}
+
+Register CodeGenerator::gen_identifier(Identifier *expr) {
+  if (!expr)
+    return Register::INVALID;
+
+  Register reg = registers.alloc();
+
+  if (reg == Register::INVALID)
+    return Register::INVALID;
+
+  emit(StringUtils::format("mov %s, [%s]", register_name(reg).c_str(),
+                           expr->name.c_str()));
+
+  return reg;
+}
+
+Register CodeGenerator::gen_float(FloatLiteral *expr) {
+  if (!expr)
+    return Register::INVALID;
+
+  Register reg = registers.alloc();
+
+  if (reg == Register::INVALID)
+    return Register::INVALID;
+
+  // TODO: emit float loading data reference.
+
+  return reg;
+}
+
+Register CodeGenerator::gen_string(StringLiteral *expr) {
+  if (!expr)
+    return Register::INVALID;
+
+  Register reg = registers.alloc();
+
+  if (reg == Register::INVALID)
+    return Register::INVALID;
+
+  // TODO: strings should be stored in .rodata
+  // and this register should receive their address.
+
+  return reg;
+}
+
+Register CodeGenerator::gen_boolean(BooleanLiteral *expr) {
+  if (!expr)
+    return Register::INVALID;
+
+  Register reg = registers.alloc();
+
+  if (reg == Register::INVALID)
+    return Register::INVALID;
+
+  emit(StringUtils::format("mov %s, %d", register_name(reg).c_str(),
+                           expr->value ? 1 : 0));
+
+  return reg;
+}

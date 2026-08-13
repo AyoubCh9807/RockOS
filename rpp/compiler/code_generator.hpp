@@ -1,12 +1,16 @@
 #pragma once
 
 #include "parser_types.hpp"
+#include "register_manager.hpp"
 
 class CodeGenerator {
 private:
   String output;
+  RegisterManager registers;
 
+  // Assembly
   void emit(const String &line);
+  String register_name(Register reg);
 
   // Operators
   const char *binary_op(TokenType op);
@@ -19,13 +23,19 @@ private:
   bool is_identifier(Expression *expr);
 
   // Expressions
-  void gen_expression(Expression *expr);
-  void gen_binary(BinaryExpression *expr);
-  void gen_assignment(AssignmentExpression *expr);
+  Register gen_expression(Expression *expr);
+  Register gen_binary(BinaryExpression *expr);
+  Register gen_assignment(AssignmentExpression *expr);
+
+  Register gen_identifier(Identifier *expr);
+  Register gen_integer(IntegerLiteral *expr);
+  Register gen_float(FloatLiteral *expr);
+  Register gen_string(StringLiteral *expr);
+  Register gen_boolean(BooleanLiteral *expr);
 
   // Statements
   void gen_statement(ASTNode *node);
-  void gen_declaration(VariableDeclaration *decl);
+  Register gen_declaration(VariableDeclaration *decl);
   void gen_if(IfStatement *statement);
   void gen_while(WhileStatement *statement);
 

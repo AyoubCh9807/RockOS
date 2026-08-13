@@ -36,20 +36,19 @@ struct StringLiteral : Expression {
   String value;
 };
 
-
 struct BooleanLiteral : Expression {
   bool value;
 };
 
 struct BinaryExpression : Expression {
-  ASTNode *left;
+  Expression *left;
   TokenType op;
-  ASTNode *right;
+  Expression *right;
 };
 
 struct AssignmentExpression : Expression {
-    String name;
-    Expression *value;
+  String name;
+  Expression *value;
 };
 
 // statements
@@ -83,3 +82,6 @@ struct WhileStatement : Statement {
   Expression *condition;
   Vector<ASTNode *> body;
 };
+
+// Register
+enum class Register { EAX, EBX, ECX, EDX, ESI, EDI, INVALID };
