@@ -1,7 +1,9 @@
 #pragma once
 
+#include "compiler_types.hpp"
 #include "parser.hpp"
 #include "parser_types.hpp"
+#include <iostream>
 
 bool Parser::is_variable_declaration() {
   return check(TokenType::KEYWORD) &&
@@ -19,11 +21,11 @@ ASTNode *Parser::parse_variable_declaration() {
 
   VariableDeclaration *declaration = new VariableDeclaration();
 
-  declaration->type = String(current().value.c_str());
+  declaration->type = std::string(current().value.c_str());
 
   advance();
 
-  declaration->name = String(current().value.c_str());
+  declaration->name = std::string(current().value.c_str());
 
   advance();
 
@@ -195,15 +197,39 @@ ASTNode *Parser::parse_while_statement() {
   return statement;
 }
 
+ASTNode *Parser::parse_function() { return nullptr; }
+
 ASTNode *Parser::parse_statement() {
-  if (is_variable_declaration())
+  if (is_variable_declaration()) {
+    std::cout << "Parsing variable declaration..." << std::endl;
     return parse_variable_declaration();
+  }
 
-  if (is_if_statement())
+  if (is_if_statement()) {
+    std::cout << "Parsing if statement..." << std::endl;
     return parse_if_statement();
+  }
 
-  if (is_while_statement())
+  if (is_while_statement()) {
+    std::cout << "Parsing while statement..." << std::endl;
     return parse_while_statement();
+  }
+
+  if (is_expression_start()) {
+    std::cout << "Parsing expression..." << std::endl;
+
+    Expression *expr = parse_expression();
+
+    if (!expr)
+      return nullptr;
+
+    if (!expect(TokenType::SEMICOLON)) {
+      delete expr;
+      return nullptr;
+    }
+
+    return expr;
+  }
 
   if (check(TokenType::KEYWORD) &&
       check(current_position + 1, TokenType::IDENTIFIER) &&

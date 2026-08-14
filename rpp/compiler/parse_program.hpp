@@ -1,4 +1,6 @@
 #pragma once
+#include "parser_types.hpp"
+#include "parser.hpp"
 
 Program *Parser::parse_program() {
   if (!expect(TokenType::ROCK))

@@ -7,13 +7,13 @@ Program *INVALID_PROGRAM = nullptr;
 
 class Parser {
 private:
-  Vector<Token> tokens;
+  std::vector<Token> tokens;
   size_t token_count = 0;
   size_t current_position = 0;
 
 public:
-  Parser(const Vector<Token> &token_list) : tokens(token_list) {
-    token_count = tokens.get_size();
+  Parser(const std::vector<Token> &token_list) : tokens(token_list) {
+    token_count = tokens.size();
   }
 
   bool check(TokenType type) {
@@ -91,7 +91,3 @@ public:
 
   Program *parse_program();
 };
-
-#include "parse_expressions.hpp"
-#include "parse_program.hpp"
-#include "parse_statements.hpp"

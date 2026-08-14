@@ -93,11 +93,11 @@ public:
     size--;
   }
 
-  T &back() { return data[size - 1]; }
+  T &back() const { return data[size - 1]; }
 
-  T &front() { return data[0]; }
+  T &front() const { return data[0]; }
 
-  bool empty() { return size == 0; }
+  bool empty() const { return size == 0; }
 
   // returning anything is invalid because we are returning a reference to T
   T &operator[](size_t index) { return data[index]; }
@@ -166,4 +166,11 @@ public:
 
   size_t get_size() { return size; };
   size_t get_capacity() { return capacity; }
+
+  T *begin() { return data; }
+  T *end() { return data + size; }
+
+  // const versions
+  T *begin() const { return data; }
+  T *end() const { return data + size; }
 };

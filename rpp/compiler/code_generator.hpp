@@ -3,14 +3,16 @@
 #include "parser_types.hpp"
 #include "register_manager.hpp"
 
+
 class CodeGenerator {
 private:
-  String output;
+  std::string output;
   RegisterManager registers;
+  size_t label_counter = 0;
 
   // Assembly
-  void emit(const String &line);
-  String register_name(Register reg);
+  void emit(const std::string &line);
+  std::string register_name(Register reg);
 
   // Operators
   const char *binary_op(TokenType op);
@@ -39,6 +41,11 @@ private:
   void gen_if(IfStatement *statement);
   void gen_while(WhileStatement *statement);
 
+  const char *inverse_compare_jump(TokenType op);
+
+  void gen_condition(Expression *expr, const std::string &false_label);
+  std::string new_label(const char* prefix);
+
 public:
-  String generate(Program *program);
+  std::string generate(Program *program);
 };

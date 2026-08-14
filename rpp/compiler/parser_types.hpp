@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../../kernel/containers/string.hpp"
-#include "../../kernel/containers/vector.hpp"
 #include "lexer.hpp"
 
 // DONT FORGET TO IMPLEMENT DESTRUCTORS TO PREVENT MEMORY LEAKS
@@ -15,13 +13,13 @@ struct Statement : ASTNode {};
 struct Expression : ASTNode {};
 
 struct Program : ASTNode {
-  Vector<ASTNode *> body;
+  std::vector<ASTNode *> body;
 };
 
 // expressions
 
 struct Identifier : Expression {
-  String name;
+  std::string name;
 };
 
 struct IntegerLiteral : Expression {
@@ -33,7 +31,7 @@ struct FloatLiteral : Expression {
 };
 
 struct StringLiteral : Expression {
-  String value;
+  std::string value;
 };
 
 struct BooleanLiteral : Expression {
@@ -47,40 +45,40 @@ struct BinaryExpression : Expression {
 };
 
 struct AssignmentExpression : Expression {
-  String name;
+  std::string name;
   Expression *value;
 };
 
 // statements
 
 struct VariableDeclaration : Statement {
-  String type;
-  String name;
+  std::string type;
+  std::string name;
   ASTNode *initializer;
 };
 
 struct Parameter : ASTNode {
-  String type;
-  String name;
+  std::string type;
+  std::string name;
 };
 
 struct Function : Statement {
-  String return_type;
-  String name;
+  std::string return_type;
+  std::string name;
 
-  Vector<ASTNode *> parameters;
-  Vector<ASTNode *> body;
+  std::vector<ASTNode *> parameters;
+  std::vector<ASTNode *> body;
 };
 
 struct IfStatement : Statement {
   Expression *condition;
-  Vector<ASTNode *> body;
-  Vector<ASTNode *> else_body;
+  std::vector<ASTNode *> body;
+  std::vector<ASTNode *> else_body;
 };
 
 struct WhileStatement : Statement {
   Expression *condition;
-  Vector<ASTNode *> body;
+  std::vector<ASTNode *> body;
 };
 
 // Register

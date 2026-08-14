@@ -1,12 +1,13 @@
 #pragma once
 
+#include "compiler_string_utils.hpp"
 #include "code_generator.hpp"
 #include "parser_types.hpp"
 #include "register_manager.hpp"
 
-void CodeGenerator::emit(const String &line) { output += line + '\n'; }
+void CodeGenerator::emit(const std::string &line) { output += line + '\n'; }
 
-String CodeGenerator::register_name(Register reg) {
+std::string CodeGenerator::register_name(Register reg) {
   switch (reg) {
   case Register::EAX:
     return "EAX";
@@ -265,6 +266,8 @@ Register CodeGenerator::gen_float(FloatLiteral *expr) {
     return Register::INVALID;
 
   // TODO: emit float loading data reference.
+  
+  
 
   return reg;
 }
@@ -297,4 +300,140 @@ Register CodeGenerator::gen_boolean(BooleanLiteral *expr) {
                            expr->value ? 1 : 0));
 
   return reg;
+}
+
+const char *CodeGenerator::inverse_compare_jump(TokenType op) {
+  switch (op) {
+  case TokenType::EQUAL:
+    return "jne";
+
+  case TokenType::NOT_EQUAL:
+    return "je";
+
+  case TokenType::LT:
+    return "jge";
+
+  case TokenType::GT:
+    return "jle";
+
+  case TokenType::LTE:
+    return "jg";
+
+  case TokenType::GTE:
+    return "jl";
+
+  default:
+    return nullptr;
+  }
+}
+std::string CodeGenerator::new_label(const char *prefix) {
+  return StringUtils::format(".L_%s_%d", prefix, label_counter++);
+}
+
+void CodeGenerator::gen_condition(Expression *expr, const std::string &false_label) {
+  auto *binary = dynamic_cast<BinaryExpression *>(expr);
+
+  if (!binary)
+    return;
+
+  Register left = gen_expression(binary->left);
+  Register right = gen_expression(binary->right);
+
+  if (left == Register::INVALID || right == Register::INVALID) {
+    if (left != Register::INVALID)
+      registers.free(left);
+
+    if (right != Register::INVALID)
+      registers.free(right);
+
+    return;
+  }
+
+  emit(StringUtils::format("cmp %s, %s", register_name(left).c_str(),
+                           register_name(right).c_str()));
+
+  const char *jump = inverse_compare_jump(binary->op);
+
+  if (jump) {
+    emit(StringUtils::format("%s %s", jump, false_label.c_str()));
+  }
+
+  registers.free(left);
+  registers.free(right);
+}
+
+void CodeGenerator::gen_while(WhileStatement *stmt) {
+  if (!stmt)
+    return;
+
+  std::string start = new_label("while_start");
+  std::string end = new_label("while_end");
+
+  emit(StringUtils::format("%s:", start.c_str()));
+
+  gen_condition(stmt->condition, end);
+
+  for (const auto &node : stmt->body)
+    gen_statement(node);
+
+  emit(StringUtils::format("jmp %s", start.c_str()));
+  emit(StringUtils::format("%s:", end.c_str()));
+}
+
+void CodeGenerator::gen_if(IfStatement *stmt) {
+  if (!stmt)
+    return;
+
+  std::string else_label = new_label("if_else");
+  std::string end_label = new_label("if_end");
+
+  gen_condition(stmt->condition, else_label);
+
+  // IF body
+  for (const auto &node : stmt->body)
+    gen_statement(node);
+
+  // Don't execute ELSE after executing IF.
+  emit(StringUtils::format("jmp %s", end_label.c_str()));
+
+  // ELSE
+  emit(StringUtils::format("%s:", else_label.c_str()));
+
+  for (const auto &node : stmt->else_body)
+    gen_statement(node);
+
+  // END
+  emit(StringUtils::format("%s:", end_label.c_str()));
+}
+
+std::string CodeGenerator::generate(Program *program) {
+    output.clear();
+
+    emit("global _start");
+    emit("");
+
+    // Variables
+    emit("section .bss");
+
+    for (const auto &node : program->body) {
+        if (auto *decl = dynamic_cast<VariableDeclaration *>(node)) {
+            emit(StringUtils::format("%s resd 1", decl->name.c_str()));
+        }
+    }
+
+    emit("");
+    emit("section .text");
+    emit("");
+    emit("_start:");
+
+    // Actual instructions
+    for (const auto &node : program->body)
+        gen_statement(node);
+
+    emit("");
+    emit("mov EAX, 1");
+    emit("xor EBX, EBX");
+    emit("int 0x80");
+
+    return output;
 }

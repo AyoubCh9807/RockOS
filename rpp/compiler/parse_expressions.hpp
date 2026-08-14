@@ -37,7 +37,7 @@ Expression *Parser::parse_primary() {
   if (check(TokenType::STRING)) {
     StringLiteral *literal = new StringLiteral();
 
-    literal->value = String(current().value.c_str());
+    literal->value = std::string(current().value.c_str());
 
     advance();
     return literal;
@@ -54,7 +54,7 @@ Expression *Parser::parse_primary() {
   if (check(TokenType::IDENTIFIER)) {
     Identifier *identifier = new Identifier();
 
-    identifier->name = String(current().value.c_str());
+    identifier->name = std::string(current().value.c_str());
 
     advance();
     return identifier;
@@ -132,8 +132,11 @@ Expression *Parser::parse_binary_expression() {
 Expression *Parser::parse_assignment_expression() {
   if (!check(TokenType::IDENTIFIER))
     return nullptr;
+
   Identifier *id = new Identifier();
-  id->name = String(current().value);
+
+  id->name = current().value;
+
   advance();
 
   if (!expect(TokenType::ASSIGN)) {
@@ -142,21 +145,18 @@ Expression *Parser::parse_assignment_expression() {
   }
 
   Expression *val = parse_binary_expression();
+
   if (!val) {
-    delete val;
     delete id;
     return nullptr;
   }
 
   AssignmentExpression *exp = new AssignmentExpression();
+
   exp->name = id->name;
   exp->value = val;
 
-  if (!expect(TokenType::SEMICOLON)) {
-    delete id;
-    delete exp;
-    return nullptr;
-  }
+  delete id;
 
   return exp;
 }

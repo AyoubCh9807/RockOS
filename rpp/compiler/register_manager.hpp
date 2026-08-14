@@ -1,6 +1,7 @@
 #pragma once
 
 #include "parser_types.hpp"
+#include "../../kernel/shared/types.hpp"
 
 class RegisterManager {
 private:

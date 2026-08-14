@@ -1,11 +1,11 @@
 #pragma once
 #include "lexer_types.hpp"
 
-void print_token(const Token &token) {
+/* void print_token(const Token &token) {
   TerminalUtils::print(StringUtils::format("Type: %s | Val: %s\n",
                                            token_type_name(token.type),
                                            token.value.c_str()));
-}
+} */
 
 bool is_alpha_char(char c) {
   return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_';
@@ -89,7 +89,7 @@ TokenType get_symbol_token_type(char c) {
   }
 }
 
-const String KEYWORDS[] = {"const", "constexpr",
+const std::string KEYWORDS[] = {"const", "constexpr",
 
                            "i8",    "i16",       "i32", "i64",
                            "u8",    "u16",       "u32", "u64",
@@ -99,7 +99,7 @@ const String KEYWORDS[] = {"const", "constexpr",
                            "str",   "bool",
 
                            "awaken"};
-bool is_keyword(const String &str) {
+bool is_keyword(const std::string &str) {
   for (auto &k : KEYWORDS) {
     if (str == k)
       return true;
@@ -107,7 +107,7 @@ bool is_keyword(const String &str) {
   return false;
 }
 
-bool is_integer(const String &value) {
+bool is_integer(const std::string &value) {
   if (value.length() == 0)
     return false;
 
@@ -119,7 +119,7 @@ bool is_integer(const String &value) {
   return true;
 }
 
-bool is_float(const String &value) {
+bool is_float(const std::string &value) {
   if (value.length() == 0)
     return false;
 
@@ -150,7 +150,7 @@ bool is_float(const String &value) {
   return found_dot && has_digit_before && has_digit_after;
 }
 
-TokenType find_token_type(const String &str) {
+TokenType find_token_type(const std::string &str) {
   if (str.length() == 0)
     return TokenType::INVALID;
 
@@ -187,9 +187,9 @@ TokenType find_token_type(const String &str) {
   return TokenType::INVALID;
 }
 
-Vector<Token> LEX(const String &code) {
-  Vector<Token> tokens;
-  String value;
+std::vector<Token> LEX(const std::string &code) {
+  std::vector<Token> tokens;
+  std::string value;
 
   size_t i = 0;
 
@@ -208,13 +208,13 @@ Vector<Token> LEX(const String &code) {
     }
     if (c == '=') {
       if (i + 1 < (size_t)code.length() && code[i + 1] == '=') {
-        tokens.push_back({TokenType::EQUAL, String("==")});
+        tokens.push_back({TokenType::EQUAL, std::string("==")});
 
         i += 2;
         continue;
       }
 
-      tokens.push_back({TokenType::ASSIGN, String("=")});
+      tokens.push_back({TokenType::ASSIGN, std::string("=")});
 
       i++;
       continue;
@@ -222,13 +222,13 @@ Vector<Token> LEX(const String &code) {
 
     if (c == '!') {
       if (i + 1 < (size_t)code.length() && code[i + 1] == '=') {
-        tokens.push_back({TokenType::NOT_EQUAL, String("!=")});
+        tokens.push_back({TokenType::NOT_EQUAL, std::string("!=")});
 
         i += 2;
         continue;
       }
 
-      tokens.push_back({TokenType::INVALID, String("!")});
+      tokens.push_back({TokenType::INVALID, std::string("!")});
 
       i++;
       continue;
@@ -236,13 +236,13 @@ Vector<Token> LEX(const String &code) {
 
     if (c == '<') {
       if (i + 1 < (size_t)code.length() && code[i + 1] == '=') {
-        tokens.push_back({TokenType::LTE, String("<=")});
+        tokens.push_back({TokenType::LTE, std::string("<=")});
 
         i += 2;
         continue;
       }
 
-      tokens.push_back({TokenType::LT, String("<")});
+      tokens.push_back({TokenType::LT, std::string("<")});
 
       i++;
       continue;
@@ -250,13 +250,13 @@ Vector<Token> LEX(const String &code) {
 
     if (c == '>') {
       if (i + 1 < (size_t)code.length() && code[i + 1] == '=') {
-        tokens.push_back({TokenType::GTE, String(">=")});
+        tokens.push_back({TokenType::GTE, std::string(">=")});
 
         i += 2;
         continue;
       }
 
-      tokens.push_back({TokenType::GT, String(">")});
+      tokens.push_back({TokenType::GT, std::string(">")});
 
       i++;
       continue;
@@ -269,7 +269,7 @@ Vector<Token> LEX(const String &code) {
         value.clear();
       }
 
-      String string_value;
+      std::string string_value;
 
       i++;
 
@@ -331,7 +331,7 @@ Vector<Token> LEX(const String &code) {
         value.clear();
       }
 
-      String symbol;
+      std::string symbol;
       symbol += c;
 
       tokens.push_back({get_symbol_token_type(c), symbol});
@@ -346,7 +346,7 @@ Vector<Token> LEX(const String &code) {
       value.clear();
     }
 
-    String invalid;
+    std::string invalid;
     invalid += c;
 
     tokens.push_back({TokenType::INVALID, invalid});
@@ -358,7 +358,7 @@ Vector<Token> LEX(const String &code) {
     tokens.push_back({find_token_type(value), value});
   }
 
-  tokens.push_back({TokenType::EOF_TOKEN, String("")});
+  tokens.push_back({TokenType::EOF_TOKEN, std::string("")});
 
   return tokens;
 }
