@@ -4,5 +4,6 @@ rock() {
   str name = "Rock";
   bool alive = true;
 
-  Damian::print("ts works!");
+  Damian::print("Hello from Damian!");
+  Damian::print("Damian says x + y = z");
 }

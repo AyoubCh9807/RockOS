@@ -7,12 +7,12 @@ Program *INVALID_PROGRAM = nullptr;
 
 class Parser {
 private:
-  Vector<Token> tokens;
+  std::vector<Token> tokens;
   size_t token_count = 0;
   size_t current_position = 0;
 
 public:
-  Parser(const Vector<Token> &token_list) : tokens(token_list) {
+  Parser(const std::vector<Token> &token_list) : tokens(token_list) {
     token_count = tokens.size();
   }
 

@@ -1,12 +1,13 @@
 #pragma once
 
-#include "../../kernel/containers/string.hpp"
 #include "code_generator.hpp"
+#include "compiler_string_utils.hpp"
 #include "parser_types.hpp"
 #include "register_manager.hpp"
- void CodeGenerator::emit(const String &line) { output += line + '\n'; }
 
-String CodeGenerator::register_name(Register reg) {
+void CodeGenerator::emit(const std::string &line) { output += line + '\n'; }
+
+std::string CodeGenerator::register_name(Register reg) {
   switch (reg) {
   case Register::EAX:
     return "EAX";
@@ -122,45 +123,47 @@ const char *CodeGenerator::compare_jump(TokenType op) {
 }
 
 bool CodeGenerator::is_literal(Expression *expr) {
-  return rock_cast<IntegerLiteral>(expr) || rock_cast<FloatLiteral>(expr) ||
-         rock_cast<StringLiteral>(expr) || rock_cast<BooleanLiteral>(expr);
+  return dynamic_cast<IntegerLiteral *>(expr) ||
+         dynamic_cast<FloatLiteral *>(expr) ||
+         dynamic_cast<StringLiteral *>(expr) ||
+         dynamic_cast<BooleanLiteral *>(expr);
 }
 
 bool CodeGenerator::is_binary(Expression *expr) {
-  return rock_cast<BinaryExpression>(expr) != nullptr;
+  return dynamic_cast<BinaryExpression *>(expr) != nullptr;
 }
 
 bool CodeGenerator::is_assignment(Expression *expr) {
-  return rock_cast<AssignmentExpression>(expr) != nullptr;
+  return dynamic_cast<AssignmentExpression *>(expr) != nullptr;
 }
 
 bool CodeGenerator::is_identifier(Expression *expr) {
-  return rock_cast<Identifier>(expr) != nullptr;
+  return dynamic_cast<Identifier *>(expr) != nullptr;
 }
 
 Register CodeGenerator::gen_expression(Expression *expr) {
   if (!expr)
     return Register::INVALID;
 
-  if (auto *binary = rock_cast<BinaryExpression>(expr))
+  if (auto *binary = dynamic_cast<BinaryExpression *>(expr))
     return gen_binary(binary);
 
-  if (auto *assignment = rock_cast<AssignmentExpression>(expr))
+  if (auto *assignment = dynamic_cast<AssignmentExpression *>(expr))
     return gen_assignment(assignment);
 
-  if (auto *id = rock_cast<Identifier>(expr))
+  if (auto *id = dynamic_cast<Identifier *>(expr))
     return gen_identifier(id);
 
-  if (auto *integer = rock_cast<IntegerLiteral>(expr))
+  if (auto *integer = dynamic_cast<IntegerLiteral *>(expr))
     return gen_integer(integer);
 
-  if (auto *floating = rock_cast<FloatLiteral>(expr))
+  if (auto *floating = dynamic_cast<FloatLiteral *>(expr))
     return gen_float(floating);
 
-  if (auto *string = rock_cast<StringLiteral>(expr))
+  if (auto *string = dynamic_cast<StringLiteral *>(expr))
     return gen_string(string);
 
-  if (auto *boolean = rock_cast<BooleanLiteral>(expr))
+  if (auto *boolean = dynamic_cast<BooleanLiteral *>(expr))
     return gen_boolean(boolean);
 
   return Register::INVALID;
@@ -184,8 +187,8 @@ Register CodeGenerator::gen_binary(BinaryExpression *expr) {
 
   const char *op = nullptr;
 
-  if (rock_cast<FloatLiteral>(expr->left) ||
-      rock_cast<FloatLiteral>(expr->right)) {
+  if (dynamic_cast<FloatLiteral *>(expr->left) ||
+      dynamic_cast<FloatLiteral *>(expr->right)) {
     op = float_binary_op(expr->op);
   } else {
     op = binary_op(expr->op);
@@ -209,7 +212,7 @@ Register CodeGenerator::gen_declaration(VariableDeclaration *decl) {
   if (!decl || !decl->initializer)
     return Register::INVALID;
 
-  Expression *initializer = static_cast<Expression *>(decl->initializer);
+  Expression *initializer = dynamic_cast<Expression *>(decl->initializer);
 
   if (!initializer)
     return Register::INVALID;
@@ -236,11 +239,12 @@ void CodeGenerator::gen_statement(ASTNode *node) {
   if (!node)
     return;
 
-  if (auto *print = rock_cast<PrintStatement>(node)) {
+  if (auto *print = dynamic_cast<PrintStatement *>(node)) {
+    gen_print(print);
     return;
   }
 
-  if (auto *expr = rock_cast_expression(node)) {
+  if (auto *expr = dynamic_cast<Expression *>(node)) {
     Register result = gen_expression(expr);
 
     if (result != Register::INVALID)
@@ -249,22 +253,22 @@ void CodeGenerator::gen_statement(ASTNode *node) {
     return;
   }
 
-  if (auto *function = rock_cast<Function>(node)) {
+  if (auto *function = dynamic_cast<Function *>(node)) {
     gen_function(*function);
     return;
   }
 
-  if (auto *decl = rock_cast<VariableDeclaration>(node)) {
+  if (auto *decl = dynamic_cast<VariableDeclaration *>(node)) {
     gen_declaration(decl);
     return;
   }
 
-  if (auto *if_stmt = rock_cast<IfStatement>(node)) {
+  if (auto *if_stmt = dynamic_cast<IfStatement *>(node)) {
     gen_if(if_stmt);
     return;
   }
 
-  if (auto *while_stmt = rock_cast<WhileStatement>(node)) {
+  if (auto *while_stmt = dynamic_cast<WhileStatement *>(node)) {
     gen_while(while_stmt);
     return;
   }
@@ -279,7 +283,7 @@ Register CodeGenerator::gen_assignment(AssignmentExpression *expr) {
   if (value == Register::INVALID)
     return Register::INVALID;
 
-  if (rock_cast<FloatLiteral>(expr->value)) {
+  if (dynamic_cast<FloatLiteral *>(expr->value)) {
     emit(StringUtils::format("movsd [rel %s], %s", expr->name.c_str(),
                              register_name(value).c_str()));
   } else {
@@ -329,7 +333,7 @@ Register CodeGenerator::gen_float(FloatLiteral *expr) {
   if (reg == Register::INVALID)
     return Register::INVALID;
 
-  String label = rodata.add_f64(expr->value);
+  std::string label = rodata.add_f64(expr->value);
 
   emit(StringUtils::format("movsd %s, [%s]", register_name(reg).c_str(),
                            label.c_str()));
@@ -345,9 +349,10 @@ Register CodeGenerator::gen_string(StringLiteral *expr) {
   if (reg == Register::INVALID)
     return Register::INVALID;
 
-  String label = rodata.add_string(expr->value);
+  std::string label = rodata.add_string(expr->value);
 
-  emit(StringUtils::format("lea %s, [rel %s]", register_name(reg).c_str(),
+  emit(StringUtils::format("lea %s, [rel %s]",
+                           register_name(reg).c_str(),
                            label.c_str()));
 
   return reg;
@@ -400,12 +405,13 @@ const char *CodeGenerator::inverse_compare_jump(TokenType op) {
     return nullptr;
   }
 }
-String CodeGenerator::new_label(const char *prefix) {
+std::string CodeGenerator::new_label(const char *prefix) {
   return StringUtils::format(".L_%s_%d", prefix, label_counter++);
 }
 
-void CodeGenerator::gen_condition(Expression *expr, const String &false_label) {
-  auto *binary = rock_cast<BinaryExpression>(expr);
+void CodeGenerator::gen_condition(Expression *expr,
+                                  const std::string &false_label) {
+  auto *binary = dynamic_cast<BinaryExpression *>(expr);
 
   if (!binary)
     return;
@@ -440,8 +446,8 @@ void CodeGenerator::gen_while(WhileStatement *stmt) {
   if (!stmt)
     return;
 
-  String start = new_label("while_start");
-  String end = new_label("while_end");
+  std::string start = new_label("while_start");
+  std::string end = new_label("while_end");
 
   emit(StringUtils::format("%s:", start.c_str()));
 
@@ -458,8 +464,8 @@ void CodeGenerator::gen_if(IfStatement *stmt) {
   if (!stmt)
     return;
 
-  String else_label = new_label("if_else");
-  String end_label = new_label("if_end");
+  std::string else_label = new_label("if_else");
+  std::string end_label = new_label("if_end");
 
   gen_condition(stmt->condition, else_label);
 
@@ -480,7 +486,7 @@ void CodeGenerator::gen_if(IfStatement *stmt) {
   emit(StringUtils::format("%s:", end_label.c_str()));
 }
 
-size_t type_size(const String &type) {
+size_t type_size(const std::string &type) {
   if (type == "f64")
     return 8;
 
@@ -493,8 +499,8 @@ void CodeGenerator::gen_print(PrintStatement *statement) {
 
   Expression *expr = statement->value;
 
-  if (auto *string = rock_cast<StringLiteral>(expr)) {
-    String label = rodata.add_string(string->value);
+  if (auto *string = dynamic_cast<StringLiteral *>(expr)) {
+    std::string label = rodata.add_string(string->value);
 
     emit(StringUtils::format("lea RDI, [rel %s]", label.c_str()));
     emit("xor EAX, EAX");
@@ -504,7 +510,7 @@ void CodeGenerator::gen_print(PrintStatement *statement) {
   }
 }
 
-String CodeGenerator::generate(Program *program) {
+std::string CodeGenerator::generate(Program *program) {
   output.clear();
   rodata.clear();
 
@@ -516,7 +522,7 @@ String CodeGenerator::generate(Program *program) {
   emit("section .bss");
 
   for (const auto &node : program->body) {
-    if (auto *decl = rock_cast<VariableDeclaration>(node)) {
+    if (auto *decl = dynamic_cast<VariableDeclaration *>(node)) {
       size_t size = type_size(decl->type);
 
       if (size == 8) {

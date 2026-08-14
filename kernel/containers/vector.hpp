@@ -8,169 +8,169 @@ template <typename T>
 
 class Vector {
 private:
-  T *data;
-  size_t size;
-  size_t capacity;
+  T *data_;
+  size_t size_;
+  size_t capacity_;
 
 public:
   Vector() {
-    size = 0;
-    capacity = DEFAULT_VECTOR_REALLOCATION_INCREMENT;
-    data = (T *)kmalloc(sizeof(T) * capacity);
+    size_ = 0;
+    capacity_ = DEFAULT_VECTOR_REALLOCATION_INCREMENT;
+    data_ = (T *)kmalloc(sizeof(T) * capacity_);
 
-    if (!data)
+    if (!data_)
       return;
   };
 
   ~Vector() {
-    if (data)
-      kfree(data);
+    if (data_)
+      kfree(data_);
   }
 
   // This constructor is broken
   Vector(const Vector &other) {
-    size = other.size;
-    capacity = other.capacity;
+    size_ = other.size_;
+    capacity_ = other.capacity_;
 
-    data = (T *)kmalloc(sizeof(T) * capacity);
+    data_ = (T *)kmalloc(sizeof(T) * capacity_);
 
-    for (auto i{0uz}; i < size; i++) {
-      data[i] = other.data[i];
+    for (auto i{0uz}; i < size_; i++) {
+      data_[i] = other.data_[i];
     }
   }
 
   Vector<T> &operator=(Vector<T> other) {
-    T *temp_data = data;
-    size_t temp_size = size;
-    size_t temp_cap = capacity;
+    T *temp_data_ = data_;
+    size_t temp_size = size_;
+    size_t temp_cap = capacity_;
 
-    data = other.data;
-    size = other.size;
-    capacity = other.capacity;
+    data_ = other.data_;
+    size_ = other.size_;
+    capacity_ = other.capacity_;
 
-    other.data = temp_data;
-    other.size = temp_size;
-    other.capacity = temp_cap;
+    other.data_ = temp_data_;
+    other.size_ = temp_size;
+    other.capacity_ = temp_cap;
 
     return *this;
   }
 
   void reallocate() {
-    capacity += DEFAULT_VECTOR_REALLOCATION_INCREMENT;
-    T *new_data = (T *)kmalloc(sizeof(T) * capacity);
-    if (!new_data)
+    capacity_ += DEFAULT_VECTOR_REALLOCATION_INCREMENT;
+    T *new_data_ = (T *)kmalloc(sizeof(T) * capacity_);
+    if (!new_data_)
       return;
-    for (int i = 0; i < size; i++) {
-      new_data[i] = data[i];
+    for (int i = 0; i < size_; i++) {
+      new_data_[i] = data_[i];
     }
-    kfree(data);
-    data = new_data;
+    kfree(data_);
+    data_ = new_data_;
   }
 
   void push_back(T val) {
-    if (size >= capacity)
+    if (size_ >= capacity_)
       reallocate();
-    data[size++] = val;
+    data_[size_++] = val;
   }
 
   void emplace_back(T &val) {
-    if (size >= capacity)
+    if (size_ >= capacity_)
       reallocate();
-    data[size++] = val;
+    data_[size_++] = val;
   }
 
   void pop_back() {
-    if (size > 0)
-      size--;
+    if (size_ > 0)
+      size_--;
   }
 
   void pop_front() {
-    if (size == 0)
+    if (size_ == 0)
       return;
-    for (int i = 0; i < size - 1; i++) {
-      data[i] = data[i + 1];
+    for (int i = 0; i < size_ - 1; i++) {
+      data_[i] = data_[i + 1];
     }
-    size--;
+    size_--;
   }
 
-  T &back() const { return data[size - 1]; }
+  T &back() const { return data_[size_ - 1]; }
 
-  T &front() const { return data[0]; }
+  T &front() const { return data_[0]; }
 
-  bool empty() const { return size == 0; }
+  bool empty() const { return size_ == 0; }
 
   // returning anything is invalid because we are returning a reference to T
-  T &operator[](size_t index) { return data[index]; }
-  T &operator[](size_t index) const { return data[index]; }
+  T &operator[](size_t index) { return data_[index]; }
+  T &operator[](size_t index) const { return data_[index]; }
 
-  void clear() { size = 0; }
+  void clear() { size_ = 0; }
 
-  void reserve(size_t new_capacity) {
-    if (capacity >= new_capacity)
+  void reserve(size_t new_capacity_) {
+    if (capacity_ >= new_capacity_)
       return;
 
-    capacity = new_capacity;
-    T *new_data = (T *)kmalloc(capacity * sizeof(T));
-    if (!new_data)
+    capacity_ = new_capacity_;
+    T *new_data_ = (T *)kmalloc(capacity_ * sizeof(T));
+    if (!new_data_)
       return;
 
-    for (auto i{0uz}; i < size; i++) {
-      new_data[i] = data[i];
+    for (auto i{0uz}; i < size_; i++) {
+      new_data_[i] = data_[i];
     }
 
-    if (data) {
-      kfree(data);
+    if (data_) {
+      kfree(data_);
     }
-    data = new_data;
+    data_ = new_data_;
   }
 
   void shrink_to_fit() {
-    if (size >= capacity)
+    if (size_ >= capacity_)
       return;
-    if (!data)
+    if (!data_)
       return;
-    T *new_data = (T *)kmalloc(sizeof(T) * size);
-    if (!new_data)
+    T *new_data_ = (T *)kmalloc(sizeof(T) * size_);
+    if (!new_data_)
       return;
-    for (int i = 0; i < size; i++) {
-      new_data[i] = data[i];
+    for (int i = 0; i < size_; i++) {
+      new_data_[i] = data_[i];
     }
-    kfree(data);
-    capacity = size;
-    data = new_data;
+    kfree(data_);
+    capacity_ = size_;
+    data_ = new_data_;
   }
 
   void insert(size_t index, T &val) {
-    if (size == 0 && index == 0) {
-      data[size++] = val;
+    if (size_ == 0 && index == 0) {
+      data_[size_++] = val;
       return;
     }
 
-    if (index > size)
+    if (index > size_)
       return;
-    if (size == capacity)
+    if (size_ == capacity_)
       reallocate();
 
-    if (index == size) {
-      data[size++] = val;
+    if (index == size_) {
+      data_[size_++] = val;
       return;
     } else {
-      for (auto i{size}; i > index; i--)
-        data[i] = data[i - 1];
-      data[index] = val;
+      for (auto i{size_}; i > index; i--)
+        data_[i] = data_[i - 1];
+      data_[index] = val;
       return;
     }
   }
 
   void erase() {}
 
-  size_t get_size() { return size; };
-  size_t get_capacity() { return capacity; }
+  size_t size() { return size_; };
+  size_t capacity() { return capacity_; }
 
-  T *begin() { return data; }
-  T *end() { return data + size; }
+  T *begin() { return data_; }
+  T *end() { return data_ + size_; }
 
   // const versions
-  T *begin() const { return data; }
-  T *end() const { return data + size; }
+  T *begin() const { return data_; }
+  T *end() const { return data_ + size_; }
 };

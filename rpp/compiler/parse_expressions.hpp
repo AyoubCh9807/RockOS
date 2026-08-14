@@ -6,75 +6,77 @@
 
 Expression *Parser::parse_primary() {
   if (check(TokenType::INT)) {
-    IntegerLiteral *literal = new IntegerLiteral();
+    int value = 0;
 
-    literal->value = 0;
+    const char *text = current().value.c_str();
 
-    const char *value = current().value.c_str();
-
-    for (size_t i = 0; value[i] != '\0'; i++) {
-      if (value[i] < '0' || value[i] > '9') {
-        delete literal;
+    for (size_t i = 0; text[i] != '\0'; i++) {
+      if (text[i] < '0' || text[i] > '9')
         return nullptr;
-      }
 
-      literal->value = literal->value * 10 + (value[i] - '0');
+      value = value * 10 + (text[i] - '0');
     }
 
     advance();
-    return literal;
+
+    return new IntegerLiteral(value);
   }
 
   if (check(TokenType::FLOAT)) {
-    FloatLiteral *literal = new FloatLiteral();
-
-    literal->value = 0.0;
+    double value = to_double(current().value);
 
     advance();
-    return literal;
+
+    return new FloatLiteral(value);
   }
 
   if (check(TokenType::STRING)) {
-    StringLiteral *literal = new StringLiteral();
-
-    literal->value = std::string(current().value.c_str());
+    String value = current().value;
 
     advance();
-    return literal;
+
+    return new StringLiteral(value);
   }
 
   if (check(TokenType::BOOLEAN)) {
-    BooleanLiteral *literal = new BooleanLiteral();
-    literal->value = (current().value == "true" ? true : false);
+    bool value = current().value == "true";
 
     advance();
-    return literal;
+
+    return new BooleanLiteral(value);
   }
 
   if (check(TokenType::IDENTIFIER)) {
-    Identifier *identifier = new Identifier();
-
-    identifier->name = std::string(current().value.c_str());
+    String name = current().value;
 
     advance();
-    return identifier;
+
+    return new Identifier(name);
   }
 
   return nullptr;
 }
 
 bool Parser::is_expression_start() {
-  return check(TokenType::INT) || check(TokenType::FLOAT) ||
-         check(TokenType::STRING) || check(TokenType::BOOLEAN) ||
+  return check(TokenType::INT) ||
+         check(TokenType::FLOAT) ||
+         check(TokenType::STRING) ||
+         check(TokenType::BOOLEAN) ||
          check(TokenType::IDENTIFIER);
 }
 
 bool Parser::is_operator() {
-  return check(TokenType::PLUS) || check(TokenType::MINUS) ||
-         check(TokenType::MULTIPLY) || check(TokenType::DIVIDE) ||
-         check(TokenType::MODULO) || check(TokenType::EQUAL) ||
-         check(TokenType::NOT_EQUAL) || check(TokenType::LT) ||
-         check(TokenType::GT) || check(TokenType::GTE) || check(TokenType::LTE);
+  return check(TokenType::PLUS) ||
+         check(TokenType::MINUS) ||
+         check(TokenType::MULTIPLY) ||
+         check(TokenType::DIVIDE) ||
+         check(TokenType::MODULO) ||
+         check(TokenType::EQUAL) ||
+         check(TokenType::NOT_EQUAL) ||
+         check(TokenType::LT) ||
+         check(TokenType::GT) ||
+         check(TokenType::GTE) ||
+         check(TokenType::LTE);
 }
 
 bool Parser::expect_operator() {
@@ -88,8 +90,10 @@ bool Parser::expect_operator() {
 TokenType Parser::parse_operator() {
   TokenType op = current().type;
   advance();
+
   return op;
 }
+
 Expression *Parser::parse_binary_expression() {
   if (!is_expression_start())
     return nullptr;
@@ -98,9 +102,6 @@ Expression *Parser::parse_binary_expression() {
 
   if (!left)
     return nullptr;
-
-  if (!is_operator())
-    return left;
 
   while (is_operator()) {
     TokenType op = parse_operator();
@@ -117,13 +118,7 @@ Expression *Parser::parse_binary_expression() {
       return nullptr;
     }
 
-    BinaryExpression *binary = new BinaryExpression();
-
-    binary->left = left;
-    binary->op = op;
-    binary->right = right;
-
-    left = binary;
+    left = new BinaryExpression(left, op, right);
   }
 
   return left;
@@ -133,32 +128,19 @@ Expression *Parser::parse_assignment_expression() {
   if (!check(TokenType::IDENTIFIER))
     return nullptr;
 
-  Identifier *id = new Identifier();
-
-  id->name = current().value;
+  String name = current().value;
 
   advance();
 
-  if (!expect(TokenType::ASSIGN)) {
-    delete id;
+  if (!expect(TokenType::ASSIGN))
     return nullptr;
-  }
 
-  Expression *val = parse_binary_expression();
+  Expression *value = parse_binary_expression();
 
-  if (!val) {
-    delete id;
+  if (!value)
     return nullptr;
-  }
 
-  AssignmentExpression *exp = new AssignmentExpression();
-
-  exp->name = id->name;
-  exp->value = val;
-
-  delete id;
-
-  return exp;
+  return new AssignmentExpression(name, "", value);
 }
 
 Expression *Parser::parse_expression() {

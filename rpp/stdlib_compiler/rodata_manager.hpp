@@ -1,28 +1,28 @@
-#pragma once
-#include "../../kernel/utils/string_utils.hpp"
-#include "../../kernel/containers/string.hpp"
-#include "../../kernel/shared/types.hpp"
+#include "compiler_string_utils.hpp"
+#include <bit>
+#include <cstdint>
+#include <iostream>
 
 class RodataManager {
 private:
-  String output;
+  std::string output;
   size_t str_counter = 0;
   size_t f64_counter = 0;
   size_t f32_counter = 0;
 
 public:
-  String add_string(const String &value) {
-    String label = StringUtils::format("l_str_%d", str_counter++);
+  std::string add_string(const std::string &value) {
+    std::string label = StringUtils::format("l_str_%d", str_counter++);
 
     output.append(StringUtils::format("%s:\n", label.c_str()));
 
     output.append("db ");
 
-    for (size_t i = 0; i < value.length(); ++i) {
+    for (size_t i = 0; i < value.size(); ++i) {
       output.append(
           StringUtils::format("0x%02X", static_cast<unsigned char>(value[i])));
 
-      if (i + 1 < value.length())
+      if (i + 1 < value.size())
         output.append(", ");
     }
 
@@ -34,12 +34,12 @@ public:
     return label;
   }
 
-  String add_f32(float value) {
-    String label = StringUtils::format("l_f32_%d", f32_counter++);
+  std::string add_f32(float value) {
+    std::string label = StringUtils::format("l_f32_%d", f32_counter++);
 
-    u32 bits = bit_cast<u32>(value);
+    uint32_t bits = std::bit_cast<uint32_t>(value);
 
-    String hex = StringUtils::format("0x%08X", bits);
+    std::string hex = StringUtils::format("0x%08X", bits);
 
     output.append(StringUtils::format("%s:\n", label.c_str()));
 
@@ -48,12 +48,12 @@ public:
     return label;
   }
 
-  String add_f64(double value) {
-    String label = StringUtils::format("l_f64_%d", f64_counter++);
+  std::string add_f64(double value) {
+    std::string label = StringUtils::format("l_f64_%d", f64_counter++);
 
-    u64 bits = bit_cast<u64>(value);
+    uint64_t bits = std::bit_cast<uint64_t>(value);
 
-    String hex =
+    std::string hex =
         StringUtils::format("0x%016llX", static_cast<unsigned long long>(bits));
 
     output.append(StringUtils::format("%s:\n", label.c_str()));
@@ -62,7 +62,7 @@ public:
 
     return label;
   }
-  const String &get_output() const { return output; }
+  const std::string &get_output() const { return output; }
 
   void clear() {
     output.clear();

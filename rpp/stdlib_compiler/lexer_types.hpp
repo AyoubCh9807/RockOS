@@ -1,6 +1,5 @@
-#pragma once
-#include "../../kernel/containers/string.hpp"
-#include "../../kernel/containers/vector.hpp"
+#include "compiler_types.hpp"
+
 
 enum class TokenType {
   ROCK,
@@ -49,7 +48,7 @@ enum class TokenType {
 
 struct Token {
   TokenType type;
-  String value;
+  std::string value;
 };
 
 const char *token_type_name(TokenType type) {

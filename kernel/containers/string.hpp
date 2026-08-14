@@ -173,14 +173,18 @@ public:
   }
 
   // operator==
-  bool operator==(String &other) const { return StringUtils::strcmp(c_str(), other.c_str()) == 0; }
-  
-  // operator== for const string
-  bool operator==(const String &other) const { return StringUtils::strcmp(c_str(), other.c_str()) == 0; }
+  bool operator==(String &other) const {
+    return StringUtils::strcmp(c_str(), other.c_str()) == 0;
+  }
 
-  // operator!= 
+  // operator== for const string
+  bool operator==(const String &other) const {
+    return StringUtils::strcmp(c_str(), other.c_str()) == 0;
+  }
+
+  // operator!=
   bool operator!=(String &other) const { return !(*this == other); }
-  
+
   // operator!= for const string
   bool operator!=(const String &other) const { return !(*this == other); }
 
@@ -271,6 +275,25 @@ public:
   bool operator==(const char *other) const {
     return StringUtils::strcmp(c_str(), other ? other : "") == 0;
   }
+
+  bool empty() { return size_ == 0; }
+  bool empty() const { return size_ == 0; }
+
+  void append(const String &str) { *this += str; }
+
+  void append(const char *cstr) { *this += cstr; }
+
+  // Non-const iterators
+  char *begin() { return data_; }
+  char *end() { return data_ + size_; }
+
+  // Const iterators for range-based for loops on const Strings
+  const char *begin() const { return data_; }
+  const char *end() const { return data_ + size_; }
+
+  const char *cbegin() const { return data_; }
+  const char *cend() const { return data_ + size_; }
+
 
   static String format(const char *fmt, ...) {
     if (!fmt)

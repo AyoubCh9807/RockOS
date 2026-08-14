@@ -1,69 +1,75 @@
+#include "../../kernel/storage/file_system.hpp"
+#include "../../kernel/memory/memory.hpp"
+
 #include "lexer.hpp"
+#include "lexer_types.hpp"
+
 #include "parser.hpp"
-#include "code_generator.hpp"
-#include "code_generator_helpers.hpp"
-#include "parse_expressions.hpp"
-#include "parse_program.hpp"
-#include "parse_statements.hpp"
 #include "parser_types.hpp"
 
-#include <fstream>
-#include <iostream>
-#include <string>
+#include "parse_expressions.hpp"
+#include "parse_statements.hpp"
+#include "parse_program.hpp"
 
-int main(int argc, char **argv) {
-    if (argc < 2) {
-        std::cerr << "usage: rpp <file.rpp>\n";
+#include "register_manager.hpp"
+#include "rodata_manager.hpp"
+
+#include "code_generator.hpp"
+#include "code_generator_helpers.hpp"
+int compile(FileSystem& fs, char* input_path, char* output_path) {
+    // Read source file
+    u8 buffer[64 * 1024];
+    size_t bytes_read = 0;
+
+    if (!fs.read_file(
+            input_path,
+            buffer,
+            sizeof(buffer),
+            bytes_read,
+            ROOT_INODE)) {
         return 1;
     }
 
-    const char *filename = argv[1];
+    // Convert the bytes into your String
+    String code;
 
-    std::ifstream file(filename);
-
-    if (!file) {
-        std::cerr << "error: could not open " << filename << "\n";
-        return 1;
+    for (size_t i = 0; i < bytes_read; i++) {
+        code += (char)buffer[i];
     }
-
-    std::string std_code(
-        (std::istreambuf_iterator<char>(file)),
-        std::istreambuf_iterator<char>()
-    );
-
-    std::string code = std_code.c_str();
 
     // Lexer
-    std::vector<Token> tokens = LEX(code);
+    Vector<Token> tokens = LEX(code);
 
-    for(const auto& token : tokens) {
-      std::cout << "Token: " << token_type_name(token.type) << std::endl;
+    for (const auto& token : tokens) {
+        TerminalUtils::print("Token: ");
+        TerminalUtils::print(token_type_name(token.type));
+        TerminalUtils::print("\n");
     }
 
     // Parser
     Parser parser(tokens);
-    Program *program = parser.parse_program();
+    Program* program = parser.parse_program();
 
     if (!program) {
-        std::cerr << "error: parsing failed because its not a program, !program evaluated to true\n";
+        TerminalUtils::print(
+            "error: parsing failed because input is not a program\n"
+        );
         return 1;
     }
 
     // Code generation
     CodeGenerator generator;
-    std::string assembly = generator.generate(program);
+    String assembly = generator.generate(program);
 
-    // Output assembly
-    std::ofstream out("main.asm");
-
-    if (!out) {
-        std::cerr << "error: could not create main.asm\n";
+    // Write generated assembly
+    if (!fs.write_file(
+            output_path,
+            (const u8*)assembly.c_str(),
+            assembly.length(),
+            ROOT_INODE)) {
+        TerminalUtils::print("error: could not write output file\n");
         return 1;
     }
-
-    out << assembly.c_str();
-
-    std::cout << "Generated main.asm\n";
 
     return 0;
 }
