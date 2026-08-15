@@ -154,7 +154,7 @@ public:
     dest[dest_len + i] = '\0';
   }
 
-  // Legacy unbounded append: keep ONLY if you are 100% sure dest has room.
+  // Legacy unbounded append (btw dest MUST Have room): 
   inline static void append(char *dest, const char *src) {
     if (!dest || !src)
       return;

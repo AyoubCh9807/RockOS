@@ -685,9 +685,9 @@ public:
     Inode inode{};
     if (!inode_manager.read_inode(inode_number, inode))
       return false;
-    if (inode.is_directory)
+    if (inode.is_directory) {
       return false;
-
+    }
     u32 blocks_needed =
         (size == 0) ? 0 : (u32)((size + BLOCK_SIZE - 1) / BLOCK_SIZE);
     if (blocks_needed > DIRECT_BLOCKS)

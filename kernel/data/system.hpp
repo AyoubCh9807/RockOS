@@ -350,3 +350,145 @@ const char *write_failure_phrases[] = {
 
 constexpr int WRITE_FAILURE_PHRASE_COUNT =
     sizeof(write_failure_phrases) / sizeof(write_failure_phrases[0]);
+
+/*
+ * Environment command messages.
+ */
+
+const char *env_success_phrases[] = {
+    "Environment updated. The machine knows something new.\n",
+    "Environment variable set. RockOS has taken note.\n",
+    "Variable stored. The shell remembers.\n",
+    "Environment updated successfully.\n",
+    "The shell has accepted the new variable.\n",
+    "Variable committed to the environment.\n",
+    "Environment modified. Damian approves.\n",
+    "The machine has learned something new.\n",
+    "Variable set. Tyrant has been informed.\n",
+    "Environment updated. No sparks detected.\n",
+    "The shell remembers your decision.\n",
+    "Variable successfully added to the environment.\n",
+    "Environment state changed.\n",
+    "The variable has found its place in the shell.\n",
+    "Environment updated. Keep building.\n",
+    "The shell has recorded the variable.\n",
+    "Variable accepted. RockOS carries on.\n",
+    "Environment successfully modified.\n",
+    "The machine will remember this variable.\n",
+    "Environment updated. Maximum configuration achieved.\n",
+};
+
+constexpr int ENV_SUCCESS_PHRASE_COUNT =
+    sizeof(env_success_phrases) / sizeof(env_success_phrases[0]);
+
+const char *env_failure_phrases[] = {
+    "Could not modify the environment.\n",
+    "Environment update failed.\n",
+    "The shell rejected the variable.\n",
+    "Environment operation failed.\n",
+    "The machine refused to remember that variable.\n",
+    "Environment update failed. Check your arguments.\n",
+    "The variable could not be stored.\n",
+    "RockOS rejected the environment change.\n",
+    "Environment operation failed. Damian is checking the logs.\n",
+    "The shell could not process that variable.\n",
+    "Variable rejected. Tyrant is not impressed.\n",
+    "The environment refused your request.\n",
+    "Environment update failed. Something went quiet.\n",
+    "The shell couldn't make that change.\n",
+    "Variable operation failed. Check the command.\n",
+    "Environment modification failed.\n",
+    "The machine refused to alter its environment.\n",
+    "Environment operation aborted.\n",
+    "The variable never made it into the shell.\n",
+    "Environment failure. Tyrant blames the operator.\n",
+};
+
+constexpr int ENV_FAILURE_PHRASE_COUNT =
+    sizeof(env_failure_phrases) / sizeof(env_failure_phrases[0]);
+
+const char *env_get_failure_phrases[] = {
+    "That variable does not exist.\n",
+    "The shell has never heard of that variable.\n",
+    "Variable not found.\n",
+    "Nothing in the environment matches that name.\n",
+    "The requested variable is missing.\n",
+    "RockOS could not find that variable.\n",
+    "The machine does not remember that variable.\n",
+    "Variable lookup failed. Damian found nothing.\n",
+    "Tyrant searched the environment. Nothing.\n",
+    "That name isn't in the environment.\n",
+};
+
+constexpr int ENV_GET_FAILURE_PHRASE_COUNT =
+    sizeof(env_get_failure_phrases) / sizeof(env_get_failure_phrases[0]);
+
+/*
+ * Environment command messages.
+ */
+
+const char *env_set_success_phrases[] = {
+    "Environment variable forged. Damian approves.\n",
+    "Variable stored. The machine remembers.\n",
+    "Environment updated. Tyrant has accepted the change.\n",
+    "Variable successfully carved into the environment.\n",
+    "Environment variable set. Keep making noise.\n",
+    "Damian has recorded the new variable.\n",
+    "The environment has been altered successfully.\n",
+    "Variable deployed. Tyrant finds it acceptable.\n",
+    "Environment updated without incident.\n",
+    "The machine now knows your variable.\n",
+};
+
+constexpr int ENV_SET_SUCCESS_PHRASE_COUNT =
+    sizeof(env_set_success_phrases) / sizeof(env_set_success_phrases[0]);
+
+const char *env_set_failure_phrases[] = {
+    "Environment variable rejected. Damian is suspicious.\n",
+    "Could not set the variable. Tyrant blames the operator.\n",
+    "Environment update failed. The machine refused.\n",
+    "Variable could not be forged.\n",
+    "Tyrant rejected the environment change.\n",
+    "Environment is full. Damian says make some room.\n",
+    "Variable set failed. Something went quiet.\n",
+    "The machine refused your variable.\n",
+};
+
+constexpr int ENV_SET_FAILURE_PHRASE_COUNT =
+    sizeof(env_set_failure_phrases) / sizeof(env_set_failure_phrases[0]);
+
+const char *env_unset_success_phrases[] = {
+    "Environment variable destroyed. Damian approves.\n",
+    "Variable removed from the machine.\n",
+    "Tyrant has erased the variable.\n",
+    "Environment cleaned. The machine remembers less now.\n",
+    "Variable successfully dismantled.\n",
+    "Damian pulled the variable from the environment.\n",
+    "Environment variable eliminated.\n",
+    "The variable has been banished.\n",
+};
+
+constexpr int ENV_UNSET_SUCCESS_PHRASE_COUNT =
+    sizeof(env_unset_success_phrases) / sizeof(env_unset_success_phrases[0]);
+
+const char *env_unset_failure_phrases[] = {
+    "Variable not found. Damian searched everywhere.\n",
+    "Nothing to unset. Tyrant is unimpressed.\n",
+    "Environment variable does not exist.\n",
+    "The machine could not find that variable.\n",
+    "Unset failed. Damian found nothing to destroy.\n",
+    "Tyrant searched the environment and found nothing.\n",
+};
+
+constexpr int ENV_UNSET_FAILURE_PHRASE_COUNT =
+    sizeof(env_unset_failure_phrases) / sizeof(env_unset_failure_phrases[0]);
+const char *env_clear_success_phrases[] = {
+    "Environment purged. Damian approves the destruction.\n",
+    "All environment variables have been wiped.\n",
+    "Tyrant has cleared the environment.\n",
+    "Environment reset. Nothing remains.\n",
+    "The environment has been reduced to silence.\n",
+};
+
+constexpr int ENV_CLEAR_SUCCESS_PHRASE_COUNT =
+    sizeof(env_clear_success_phrases) / sizeof(env_clear_success_phrases[0]);

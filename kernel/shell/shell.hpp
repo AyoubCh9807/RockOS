@@ -8,6 +8,7 @@
 #include "../utils/fs_utils.hpp"
 #include "../utils/string_utils.hpp"
 #include "../utils/terminal_utils.hpp"
+#include "environment.hpp"
 #include "terminal.hpp"
 
 constexpr static int SHELL_MAX_AGRGS = 16;
@@ -15,7 +16,7 @@ constexpr static int SHELL_MAX_AGRGS = 16;
 class Shell {
 private:
   Terminal &terminal;
-
+  Environment &env;
   String buffer;
 
   static constexpr int MAX_HISTORY = 32;
@@ -28,7 +29,7 @@ private:
   int currently_selected_history_item = 0;
 
 public:
-  Shell(Terminal &t) : terminal(t), buffer("") {
+  Shell(Terminal &t) : terminal(t), env(t.get_env()), buffer("") {
     for (int i = 0; i < MAX_HISTORY; i++)
       history[i] = "";
   }

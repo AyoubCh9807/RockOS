@@ -3,7 +3,7 @@
 
 #include "../core/asm.hpp"
 #include "../shared/types.hpp"
-#include "../utils/terminal_utils.hpp"
+#include "../utils/debugger.hpp"
 #include "layout.hpp"
 
 class Disk {
@@ -137,51 +137,51 @@ public:
     write_buffer[2] = 79;
     write_buffer[3] = 82;
 
-    TerminalUtils::print("=== SECTOR 0 TEST ===\n");
+    Debugger::log("=== SECTOR 0 TEST ===\n");
 
-    TerminalUtils::print("BEFORE WRITE: ");
+    Debugger::log("BEFORE WRITE: ");
 
-    TerminalUtils::print_number(write_buffer[0]);
-    TerminalUtils::print(" ");
+    Debugger::log_number(write_buffer[0]);
+    Debugger::log(" ");
 
-    TerminalUtils::print_number(write_buffer[1]);
-    TerminalUtils::print(" ");
+    Debugger::log_number(write_buffer[1]);
+    Debugger::log(" ");
 
-    TerminalUtils::print_number(write_buffer[2]);
-    TerminalUtils::print(" ");
+    Debugger::log_number(write_buffer[2]);
+    Debugger::log(" ");
 
-    TerminalUtils::print_number(write_buffer[3]);
+    Debugger::log_number(write_buffer[3]);
 
-    TerminalUtils::print("\n");
+    Debugger::log("\n");
 
     bool write_ok = write_sector(0, write_buffer);
 
-    TerminalUtils::print("WRITE RESULT: ");
-    TerminalUtils::print_number(write_ok);
-    TerminalUtils::print("\n");
+    Debugger::log("WRITE RESULT: ");
+    Debugger::log_number(write_ok);
+    Debugger::log("\n");
 
     u8 read_buffer[BLOCK_SIZE] = {};
 
     bool read_ok = read_sector(0, read_buffer);
 
-    TerminalUtils::print("READ RESULT: ");
-    TerminalUtils::print_number(read_ok);
-    TerminalUtils::print("\n");
+    Debugger::log("READ RESULT: ");
+    Debugger::log_number(read_ok);
+    Debugger::log("\n");
 
-    TerminalUtils::print("AFTER READ: ");
+    Debugger::log("AFTER READ: ");
 
-    TerminalUtils::print_number(read_buffer[0]);
-    TerminalUtils::print(" ");
+    Debugger::log_number(read_buffer[0]);
+    Debugger::log(" ");
 
-    TerminalUtils::print_number(read_buffer[1]);
-    TerminalUtils::print(" ");
+    Debugger::log_number(read_buffer[1]);
+    Debugger::log(" ");
 
-    TerminalUtils::print_number(read_buffer[2]);
-    TerminalUtils::print(" ");
+    Debugger::log_number(read_buffer[2]);
+    Debugger::log(" ");
 
-    TerminalUtils::print_number(read_buffer[3]);
+    Debugger::log_number(read_buffer[3]);
 
-    TerminalUtils::print("\n");
+    Debugger::log("\n");
 
     return write_ok && read_ok && read_buffer[0] == 75 &&
            read_buffer[1] == 67 && read_buffer[2] == 79 && read_buffer[3] == 82;
@@ -195,33 +195,33 @@ public:
     write_buffer[2] = 79;
     write_buffer[3] = 82;
 
-    TerminalUtils::print("=== SECTOR 1 TEST ===\n");
+    Debugger::log("=== SECTOR 1 TEST ===\n");
 
-    TerminalUtils::print("WRITE SECTOR 1\n");
+    Debugger::log("WRITE SECTOR 1\n");
 
     if (!write_sector(1, write_buffer)) {
-      TerminalUtils::print("SECTOR 1 WRITE FAILED\n");
+      Debugger::log("SECTOR 1 WRITE FAILED\n");
       return false;
     }
 
-    TerminalUtils::print("READ SECTOR 1\n");
+    Debugger::log("READ SECTOR 1\n");
 
     u8 read_buffer[BLOCK_SIZE] = {};
 
     if (!read_sector(1, read_buffer)) {
-      TerminalUtils::print("SECTOR 1 READ FAILED\n");
+      Debugger::log("SECTOR 1 READ FAILED\n");
       return false;
     }
 
-    TerminalUtils::print("SECTOR 1 RESULT: ");
-    TerminalUtils::print_number(read_buffer[0]);
-    TerminalUtils::print(" ");
-    TerminalUtils::print_number(read_buffer[1]);
-    TerminalUtils::print(" ");
-    TerminalUtils::print_number(read_buffer[2]);
-    TerminalUtils::print(" ");
-    TerminalUtils::print_number(read_buffer[3]);
-    TerminalUtils::print("\n");
+    Debugger::log("SECTOR 1 RESULT: ");
+    Debugger::log_number(read_buffer[0]);
+    Debugger::log(" ");
+    Debugger::log_number(read_buffer[1]);
+    Debugger::log(" ");
+    Debugger::log_number(read_buffer[2]);
+    Debugger::log(" ");
+    Debugger::log_number(read_buffer[3]);
+    Debugger::log("\n");
 
     return read_buffer[0] == 75 && read_buffer[1] == 67 &&
            read_buffer[2] == 79 && read_buffer[3] == 82;
@@ -236,38 +236,38 @@ public:
     write_buffer[2] = 79;
     write_buffer[3] = 82;
 
-    TerminalUtils::print("=== SECTOR 7 TEST ===\n");
+    Debugger::log("=== SECTOR 7 TEST ===\n");
 
-    TerminalUtils::print("WRITE SECTOR 7\n");
+    Debugger::log("WRITE SECTOR 7\n");
 
     if (!write_sector(7, write_buffer)) {
-      TerminalUtils::print("SECTOR 7 WRITE FAILED\n");
+      Debugger::log("SECTOR 7 WRITE FAILED\n");
       return false;
     }
 
-    TerminalUtils::print("READ SECTOR 7\n");
+    Debugger::log("READ SECTOR 7\n");
 
     u8 read_buffer[BLOCK_SIZE] = {};
 
     if (!read_sector(7, read_buffer)) {
-      TerminalUtils::print("SECTOR 7 READ FAILED\n");
+      Debugger::log("SECTOR 7 READ FAILED\n");
       return false;
     }
 
-    TerminalUtils::print("SECTOR 7 RESULT: ");
+    Debugger::log("SECTOR 7 RESULT: ");
 
-    TerminalUtils::print_number(read_buffer[0]);
-    TerminalUtils::print(" ");
+    Debugger::log_number(read_buffer[0]);
+    Debugger::log(" ");
 
-    TerminalUtils::print_number(read_buffer[1]);
-    TerminalUtils::print(" ");
+    Debugger::log_number(read_buffer[1]);
+    Debugger::log(" ");
 
-    TerminalUtils::print_number(read_buffer[2]);
-    TerminalUtils::print(" ");
+    Debugger::log_number(read_buffer[2]);
+    Debugger::log(" ");
 
-    TerminalUtils::print_number(read_buffer[3]);
+    Debugger::log_number(read_buffer[3]);
 
-    TerminalUtils::print("\n");
+    Debugger::log("\n");
 
     return read_buffer[0] == 75 && read_buffer[1] == 67 &&
            read_buffer[2] == 79 && read_buffer[3] == 82;

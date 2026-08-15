@@ -20,6 +20,7 @@
 #include "commands/tyrant.hpp"
 #include "commands/uptime.hpp"
 #include "commands/write.hpp"
+#include "commands/env.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -54,6 +55,7 @@ private:
   RmdirCommand rmdir;
   CatCommand cat;
   WriteCommand write;
+  EnvCommand env;
 
   FortuneCommand fortune;
   WhoamiCommand whoami;
@@ -71,12 +73,12 @@ private:
 public:
   u32 &current_dir;
 
-  TerminalRegistry(FileSystem &fs, u32 &current_dir)
+  TerminalRegistry(FileSystem &fs, u32 &current_dir, Environment& environment)
       : current_dir(current_dir), reboot(), clear(), echo(), uptime(), help(),
         ls(fs, current_dir), mkdir(fs, current_dir), pwd(fs, current_dir),
         tyrant(), damian(), cd(fs, current_dir), touch(fs, current_dir),
         rm(fs, current_dir), rmdir(fs, current_dir), cat(fs, current_dir),
-        write(fs, current_dir), fortune(), whoami(), motd(), rockfetch(), ascii(), stats(), mood(),
+        write(fs, current_dir), env(environment), fortune(), whoami(), motd(), rockfetch(), ascii(), stats(), mood(),
         void_cmd(), lore(), diagnose() {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
@@ -98,6 +100,7 @@ public:
     register_command(&rmdir);
     register_command(&cat);
     register_command(&write);
+    register_command(&env);
 
     register_command(&fortune);
     register_command(&whoami);

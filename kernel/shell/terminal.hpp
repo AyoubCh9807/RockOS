@@ -7,15 +7,17 @@
 #include "../utils/string_utils.hpp"
 #include "../utils/terminal_utils.hpp"
 #include "commands/icommand.hpp"
+#include "environment.hpp"
 #include "terminal_registry.hpp"
 
 class Terminal {
 private:
   FileSystem &fs;
   TerminalRegistry &reg;
+  Environment& env;
 
 public:
-  Terminal(FileSystem &fs, TerminalRegistry &reg) : fs(fs), reg(reg) {}
+  Terminal(FileSystem &fs, TerminalRegistry &reg, Environment& env) : fs(fs), reg(reg), env(env) {}
 
 
   void draw_random_ascii() {
@@ -47,6 +49,8 @@ public:
 
     return cmd->execute(argc, args);
   }
+
+  Environment& get_env() { return env; }
 
   const char *get_current_path() { return fs.get_path(reg.current_dir); }
 

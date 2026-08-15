@@ -162,10 +162,22 @@ public:
     }
   }
 
-  void erase() {}
+  void erase(int index) {
+    if (index < 0 || (size_t)index >= size_)
+      return;
+
+    for (size_t i = index; i + 1 < size_; i++) {
+      data_[i] = data_[i + 1];
+    }
+
+    pop_back();
+  }
 
   size_t size() { return size_; };
+  size_t size() const { return size_; };
+
   size_t capacity() { return capacity_; }
+  size_t capacity() const { return capacity_; }
 
   T *begin() { return data_; }
   T *end() { return data_ + size_; }
