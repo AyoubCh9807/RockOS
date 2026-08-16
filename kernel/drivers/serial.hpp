@@ -1,4 +1,5 @@
-#include "asm.hpp"
+#pragma once
+#include "../core/asm.hpp"
 
 inline void init_serial() {
     Asm::outb(0x3f8 + 1, 0x00);    // Disable interrupts

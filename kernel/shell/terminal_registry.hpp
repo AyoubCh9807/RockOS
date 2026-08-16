@@ -21,6 +21,7 @@
 #include "commands/uptime.hpp"
 #include "commands/write.hpp"
 #include "commands/env.hpp"
+#include "commands/date.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -56,6 +57,7 @@ private:
   CatCommand cat;
   WriteCommand write;
   EnvCommand env;
+  DateCommand date;
 
   FortuneCommand fortune;
   WhoamiCommand whoami;
@@ -78,7 +80,7 @@ public:
         ls(fs, current_dir), mkdir(fs, current_dir), pwd(fs, current_dir),
         tyrant(), damian(), cd(fs, current_dir), touch(fs, current_dir),
         rm(fs, current_dir), rmdir(fs, current_dir), cat(fs, current_dir),
-        write(fs, current_dir), env(environment), fortune(), whoami(), motd(), rockfetch(), ascii(), stats(), mood(),
+        write(fs, current_dir), env(environment), date(), fortune(), whoami(), motd(), rockfetch(), ascii(), stats(), mood(),
         void_cmd(), lore(), diagnose() {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
@@ -101,6 +103,7 @@ public:
     register_command(&cat);
     register_command(&write);
     register_command(&env);
+    register_command(&date);
 
     register_command(&fortune);
     register_command(&whoami);

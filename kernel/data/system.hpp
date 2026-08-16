@@ -492,3 +492,29 @@ const char *env_clear_success_phrases[] = {
 
 constexpr int ENV_CLEAR_SUCCESS_PHRASE_COUNT =
     sizeof(env_clear_success_phrases) / sizeof(env_clear_success_phrases[0]);
+
+const char *date_success_phrases[] = {
+    "Damian checked the clock. It says: ",
+    "Tyrant consulted the machine. Current time: ",
+    "The forge reports the current time: ",
+    "Damian says the machine currently reads: ",
+    "Tyrant has inspected the clock: ",
+    "The machine knows what time it is: ",
+    "Clock queried. Damian reports: ",
+    "Tyrant says you should probably know the time: ",
+    "The clock has spoken: ",
+    "Damian checked the RTC. It reports: ",
+    "RockOS time signal received: ",
+    "The machine has revealed the hour: ",
+    "Tyrant has confirmed the current timestamp: ",
+    "The RTC is alive and reporting: ",
+    "Damian says time keeps moving. Currently: ",
+    "Clock status: operational. Current time: ",
+    "The forge has checked its clock: ",
+    "Tyrant demands that you observe the time: ",
+    "RockOS has no idea why you asked, but here it is: ",
+    "Time retrieved successfully. Damian approves: ",
+};
+
+constexpr int DATE_SUCCESS_PHRASE_COUNT =
+    sizeof(date_success_phrases) / sizeof(date_success_phrases[0]);

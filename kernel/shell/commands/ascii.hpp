@@ -1,3 +1,4 @@
+#pragma once
 #include "../../data/ascii.hpp"
 
 #pragma once
