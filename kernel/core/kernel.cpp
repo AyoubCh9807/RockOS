@@ -1,6 +1,8 @@
 #include "kernel.hpp"
 #include "../memory/memory.hpp"
-#include "../multiboot/multiboot_info.hpp"
+// #include "../multiboot/multiboot_info.hpp"
+#include "../../boot/graphics.hpp"
+#include "../../boot/multiboot2.hpp"
 #include "../random/random.hpp"
 #include "../shared/types.hpp"
 #include "../shell/shell.hpp"
@@ -12,38 +14,19 @@
 // kernel/core/kernel.cpp
 //   MultibootInfo(const MultibootInfoRaw* info) {
 
-extern "C" void kernel_main(/*u32 *mb_info*/) {
+extern "C" void kernel_main(u32 mb_addr) {
   init_heap();
   call_constructors();
   Timer::init();
   Random::init();
 
-  /* auto *info = reinterpret_cast<MultibootInfoRaw *>(mb_info);
-  if (info) {
-    MultibootInfo multiboot_info(info);
-    TerminalUtils::print(StringUtils::format("FRAMEBUFFER WIDTH (casted to int): %d", multiboot_info.get_width()));
-    TerminalUtils::print(StringUtils::format("FRAMEBUFFER HEIGHT (casted to int): %d", multiboot_info.get_height()));
-    TerminalUtils::print(StringUtils::format("FRAMEBUFFER PITCH (casted to int): %d", multiboot_info.get_pitch()));
-    TerminalUtils::print(StringUtils::format("FRAMEBUFFER BPP (casted to int): %d", multiboot_info.get_pitch()));
-  } else {
-    TerminalUtils::print("Damian could not command the framebuffer pointer to "
-                         "stay still, PROCEEDING!");
-  } */
-
   Disk disk;
   FileSystem fs(disk);
 
-  Debugger::log("INODE TABLE START = ");
-  Debugger::log_number(INODE_TABLE_START);
-  Debugger::log("\n");
-
-  Debugger::log("DATA BLOCK START = ");
-  Debugger::log_number(DATA_BLOCK_START);
-  Debugger::log("\n");
-
   if (!fs.mount()) {
-    //    disk.test_sector_one();
-    //   disk.test_sector_seven();
+    // OLD DISK TESTS:
+    // disk.test_sector_one();
+    // disk.test_sector_seven();
     Debugger::log("No filesystem, formatting...\n");
     if (!fs.format()) {
       Debugger::log("FORMAT FAILED - filesystem commands will not work\n");
@@ -58,6 +41,14 @@ extern "C" void kernel_main(/*u32 *mb_info*/) {
   Terminal terminal(fs, reg, env);
   terminal.fill_registry();
 
+  Multiboot2::print_tags(mb_addr);
+  Graphics::clear(0x000000);
+
+  Graphics::draw_rect(100, 100, 300, 100, 0xFF0000);
+
+  Graphics::draw_line(100, 250, 400, 0x00FF00);
+
+  Graphics::draw_string("ROCK OS", 100, 300, 0xFFFFFF);
   TerminalUtils::print(Generator::random_phrase(reboot_phrases));
 
   ShellHistory sh;

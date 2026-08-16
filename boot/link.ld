@@ -4,32 +4,42 @@ SECTIONS
 {
     . = 1M;
 
-    .text : {
-        *(.multiboot)
+    /*
+     * Multiboot2 header MUST be near the beginning
+     * of the kernel image.
+     */
+    .multiboot ALIGN(8) :
+    {
+        KEEP(*(.multiboot))
+    }
+
+    .text ALIGN(16) :
+    {
         *(.text)
     }
 
-    .rodata : {
+    .rodata ALIGN(16) :
+    {
         *(.rodata*)
     }
 
-  .data : {
+    .data ALIGN(16) :
+    {
         *(.data)
-        
-        /* Modern constructors (.init_array) */
+
         __init_array_start = .;
         KEEP(*(SORT(.init_array*)))
         __init_array_end = .;
 
-        /* Legacy constructors (.ctors) */
         __ctors_start = .;
         KEEP(*(SORT(.ctors*)))
         KEEP(*(.ctors))
         __ctors_end = .;
     }
 
-
-    .bss : {
+    .bss ALIGN(16) :
+    {
         *(.bss)
+        *(COMMON)
     }
 }

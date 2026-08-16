@@ -1,15 +1,35 @@
-MODULE_ALIGN   equ 1<<0
-MEM_INFO       equ 1<<1
-FLAGS          equ MODULE_ALIGN | MEM_INFO
-MAGIC          equ 0x1BADB002
-CHECKSUM       equ -(MAGIC + FLAGS)
-
 section .multiboot
-    align 4
-    dd MAGIC
-    dd FLAGS
+align 8
+
+MULTIBOOT2_MAGIC equ 0xE85250D6
+ARCHITECTURE      equ 0
+
+HEADER_LENGTH equ multiboot_header_end - multiboot_header_start
+CHECKSUM      equ -(MULTIBOOT2_MAGIC + ARCHITECTURE + HEADER_LENGTH)
+
+multiboot_header_start:
+
+    dd MULTIBOOT2_MAGIC
+    dd ARCHITECTURE
+    dd HEADER_LENGTH
     dd CHECKSUM
 
+    ; Framebuffer request
+    dw 5
+    dw 0
+    dd 20
+    dd 640
+    dd 480
+    dd 32
+
+    dd 0
+
+    ; End tag
+    dw 0
+    dw 0
+    dd 8
+
+multiboot_header_end:
 section .text
 
 global loader
@@ -58,7 +78,7 @@ default_stub:
 loader:
     mov esp, stack_space + KERNEL_STACK_SIZE
 
-    ; Multiboot1 gives the information structure in EBX
+    ; Multiboot2 gives the information structure in EBX
     push ebx
     call kernel_main
     add esp, 4
