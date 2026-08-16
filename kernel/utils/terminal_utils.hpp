@@ -5,6 +5,10 @@
 
 namespace TerminalUtils {
 
+constexpr static int COLUMNS = 80;
+constexpr static int ROWS = 25;
+constexpr static int SCREEN_SIZE = COLUMNS * ROWS;
+
 inline static void save_char() {
   Kernel::saved_char = Kernel::video_memory[Kernel::vram_cursor * 2];
   Kernel::saved_attr = Kernel::video_memory[Kernel::vram_cursor * 2 + 1];
@@ -28,34 +32,32 @@ inline static void update_cursor() {
 }
 
 inline static void clear() {
-  for (int i = 0; i < 80 * 25 * 2; i += 2) {
+  for (int i = 0; i < SCREEN_SIZE * 2; i += 2) {
     Kernel::video_memory[i] = ' ';
     Kernel::video_memory[i + 1] = 0x0F;
   }
+
   Kernel::vram_cursor = 0;
   update_cursor();
 }
 
 inline static void scroll() {
+  for (int row = 1; row < ROWS; row++) {
+    for (int col = 0; col < COLUMNS; col++) {
+      int src = (row * COLUMNS + col) * 2;
+      int dst = ((row - 1) * COLUMNS + col) * 2;
 
-  if (Kernel::vram_cursor >= 80) {
-    Kernel::saved_char = Kernel::video_memory[(Kernel::vram_cursor + 80) * 2];
-    Kernel::saved_attr =
-        Kernel::video_memory[(Kernel::vram_cursor + 80) * 2 + 1];
-  }
+      Kernel::video_memory[dst] =
+          Kernel::video_memory[src];
 
-  for (int row = 1; row < 25; row++) {
-    for (int col = 0; col < 80; col++) {
-      int src = (row * 80 + col) * 2;
-      int dst = ((row - 1) * 80 + col) * 2;
-
-      Kernel::video_memory[dst] = Kernel::video_memory[src];
-      Kernel::video_memory[dst + 1] = Kernel::video_memory[src + 1];
+      Kernel::video_memory[dst + 1] =
+          Kernel::video_memory[src + 1];
     }
   }
 
-  for (int col = 0; col < 80; col++) {
-    int index = (24 * 80 + col) * 2;
+  // Clear the new bottom row.
+  for (int col = 0; col < COLUMNS; col++) {
+    int index = ((ROWS - 1) * COLUMNS + col) * 2;
 
     Kernel::video_memory[index] = ' ';
     Kernel::video_memory[index + 1] = 0x0F;
@@ -63,47 +65,53 @@ inline static void scroll() {
 }
 
 inline static void putchar(char c) {
-  // Remove the visual cursor from the old position before modifying memory
+  // Remove the visual cursor before touching the screen.
   restore_cursor();
 
   if (c == '\n') {
-    // Move to the beginning of the next row (next multiple of 80)
-    Kernel::vram_cursor = ((Kernel::vram_cursor / 80) + 1) * 80;
-  } else if (c == '\b') {
+    // Jump to the beginning of the next line.
+    Kernel::vram_cursor =
+        ((Kernel::vram_cursor / COLUMNS) + 1) * COLUMNS;
+  }
+
+  else if (c == '\b') {
     if (Kernel::vram_cursor > 0) {
       Kernel::vram_cursor--;
+
       Kernel::vram_index = Kernel::vram_cursor * 2;
 
-      // Clear the character cell
       Kernel::video_memory[Kernel::vram_index] = ' ';
       Kernel::video_memory[Kernel::vram_index + 1] = 0x0F;
     }
-  } else {
-    // Write character and attribute byte
+  }
+
+  else {
+    // If we're already at the beginning of a new line, we're good.
+    // Write the character normally.
     Kernel::vram_index = Kernel::vram_cursor * 2;
+
     Kernel::video_memory[Kernel::vram_index] = c;
     Kernel::video_memory[Kernel::vram_index + 1] = 0x0F;
 
-    // Advance cursor (linear increment naturally wraps at column 80 to the next
-    // row)
-    if (Kernel::vram_cursor % 80 == 79) {
-      Kernel::vram_cursor =
-          (Kernel::vram_cursor + 80) - (Kernel::vram_cursor % 80);
-    } else {
-      Kernel::vram_cursor++;
+    Kernel::vram_cursor++;
+
+    // Reached the end of the column line.
+    if (Kernel::vram_cursor % COLUMNS == 0) {
+      // vram_cursor is already exactly at the next line.
+      // Nothing else is needed.
     }
   }
 
-  // Check if the cursor has exceeded the total screen size (80 * 25)
-  if (Kernel::vram_cursor >= 80 * 25) {
+  // If we've moved beyond the screen, scroll upward.
+  if (Kernel::vram_cursor >= SCREEN_SIZE) {
     scroll();
-    Kernel::vram_cursor = 24 * 80; // Snap to the start of the bottom row
+    Kernel::vram_cursor = (ROWS - 1) * COLUMNS;
   }
 
-  // Redraw the visual cursor at the new position
-  // and save what's underneath it
+  // Put the visual cursor back.
   update_cursor();
 }
+
 inline static void move_left() {
   if (Kernel::vram_cursor == 0)
     return;
@@ -114,7 +122,7 @@ inline static void move_left() {
 }
 
 inline static void move_right() {
-  if (Kernel::vram_cursor >= 80 * 25 - 1)
+  if (Kernel::vram_cursor >= SCREEN_SIZE - 1)
     return;
 
   restore_cursor();
@@ -123,17 +131,17 @@ inline static void move_right() {
 }
 
 inline static void move_up() {
-  if (Kernel::vram_cursor >= 80) {
+  if (Kernel::vram_cursor >= COLUMNS) {
     restore_cursor();
-    Kernel::vram_cursor -= 80;
+    Kernel::vram_cursor -= COLUMNS;
     update_cursor();
   }
 }
 
 inline static void move_down() {
-  if (Kernel::vram_cursor + 80 < 80 * 25) {
+  if (Kernel::vram_cursor + COLUMNS < SCREEN_SIZE) {
     restore_cursor();
-    Kernel::vram_cursor += 80;
+    Kernel::vram_cursor += COLUMNS;
     update_cursor();
   }
 }
@@ -141,6 +149,7 @@ inline static void move_down() {
 inline static void print(const char *str) {
   if (!str)
     return;
+
   for (int i = 0; str[i] != '\0'; i++) {
     putchar(str[i]);
   }

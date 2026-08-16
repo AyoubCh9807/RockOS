@@ -52,9 +52,8 @@ public:
     TerminalUtils::print(StringUtils::format("\n[%s@%s %s]$ ", USER, OS,
                                              terminal.get_current_path()));
 
-    // terminal.draw_random_ascii();
+    terminal.draw_random_ascii();
     while (1) {
-      //      TerminalUtils::print("1234567890");
 
       KeyEvent ev = Keyboard::read();
       if (ev.scancode == 0 || ev.keytype == KeyType::None) {

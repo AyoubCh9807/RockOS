@@ -1,6 +1,6 @@
 #pragma once
 
-const char* command_not_found_phrases[] = {
+const char *command_not_found_phrases[] = {
     "That riff doesn't exist.\n",
     "Unknown command. Try something that actually rocks.\n",
     "Damian: What the hell is that supposed to be?\n",
@@ -19,7 +19,7 @@ const char* command_not_found_phrases[] = {
     "The shell stares at you in complete silence.\n",
 };
 
-const char* ls_phrases[] = {
+const char *ls_phrases[] = {
     "Let's see what you've got.\n",
     "Scanning the riff chamber...\n",
     "Directory loaded. Don't lose the beat.\n",
@@ -42,7 +42,7 @@ const char* ls_phrases[] = {
     "The filesystem has laid everything on the table:\n",
 };
 
-const char* ls_failure_phrases[] = {
+const char *ls_failure_phrases[] = {
     "Couldn't read the directory.\n",
     "The filesystem refused to reveal its contents.\n",
     "Directory scan failed.\n",
@@ -55,7 +55,7 @@ const char* ls_failure_phrases[] = {
     "RockOS couldn't make sense of that location.\n",
 };
 
-const char* cd_phrases[] = {
+const char *cd_phrases[] = {
     "Moving through the filesystem...\n",
     "New territory. Don't get lost.\n",
     "Damian knows the way.\n",
@@ -78,7 +78,7 @@ const char* cd_phrases[] = {
     "Location changed. The noise continues.\n",
 };
 
-const char* cd_failure_phrases[] = {
+const char *cd_failure_phrases[] = {
     "That path goes nowhere.\n",
     "Directory not found.\n",
     "RockOS couldn't find that territory.\n",
@@ -93,7 +93,7 @@ const char* cd_failure_phrases[] = {
     "That location remains beyond the machine's reach.\n",
 };
 
-const char* pwd_phrases[] = {
+const char *pwd_phrases[] = {
     "You are standing here:\n",
     "Current position:\n",
     "RockOS knows where you are:\n",
@@ -116,7 +116,7 @@ const char* pwd_phrases[] = {
     "You haven't escaped the machine yet:\n",
 };
 
-const char* pwd_failure_phrases[] = {
+const char *pwd_failure_phrases[] = {
     "RockOS can't determine your location.\n",
     "The filesystem lost your coordinates.\n",
     "Current path unavailable.\n",
@@ -129,7 +129,7 @@ const char* pwd_failure_phrases[] = {
     "The filesystem refuses to tell you where you stand.\n",
 };
 
-const char* mkdir_phrases[] = {
+const char *mkdir_phrases[] = {
     "New territory forged.\n",
     "Directory forged in iron.\n",
     "A new chamber has been built.\n",
@@ -152,7 +152,7 @@ const char* mkdir_phrases[] = {
     "RockOS just gained more territory.\n",
 };
 
-const char* mkdir_failure_phrases[] = {
+const char *mkdir_failure_phrases[] = {
     "Directory creation failed.\n",
     "The forge refused to build it.\n",
     "RockOS couldn't create that territory.\n",
@@ -167,7 +167,7 @@ const char* mkdir_failure_phrases[] = {
     "Directory creation hit a filesystem wall.\n",
 };
 
-const char* touch_phrases[] = {
+const char *touch_phrases[] = {
     "File forged.\n",
     "Fresh file. Still warm from the forge.\n",
     "A new riff has been written to disk.\n",
@@ -190,7 +190,7 @@ const char* touch_phrases[] = {
     "RockOS has forged another piece of the filesystem.\n",
 };
 
-const char* touch_failure_phrases[] = {
+const char *touch_failure_phrases[] = {
     "File creation failed.\n",
     "The forge refused the artifact.\n",
     "RockOS couldn't create the file.\n",
@@ -205,7 +205,7 @@ const char* touch_failure_phrases[] = {
     "Something broke before the file could exist.\n",
 };
 
-const char* rm_phrases[] = {
+const char *rm_phrases[] = {
     "File obliterated.\n",
     "That file has left the building.\n",
     "Deleted. No encore.\n",
@@ -228,7 +228,7 @@ const char* rm_phrases[] = {
     "RockOS has made room for something better.\n",
 };
 
-const char* rm_failure_phrases[] = {
+const char *rm_failure_phrases[] = {
     "File deletion failed.\n",
     "RockOS refused to destroy that file.\n",
     "The file survived the attack.\n",
@@ -243,7 +243,7 @@ const char* rm_failure_phrases[] = {
     "The target remains standing.\n",
 };
 
-const char* rmdir_phrases[] = {
+const char *rmdir_phrases[] = {
     "Directory demolished.\n",
     "The fortress has fallen.\n",
     "Another chamber reduced to rubble.\n",
@@ -266,7 +266,7 @@ const char* rmdir_phrases[] = {
     "RockOS has flattened the territory.\n",
 };
 
-const char* rmdir_failure_phrases[] = {
+const char *rmdir_failure_phrases[] = {
     "Directory removal failed.\n",
     "The fortress refuses to fall.\n",
     "RockOS couldn't demolish that chamber.\n",
@@ -281,7 +281,7 @@ const char* rmdir_failure_phrases[] = {
     "The walls are stronger than expected.\n",
 };
 
-const char* cat_phrases[] = {
+const char *cat_phrases[] = {
     "Reading the artifact...\n",
     "Let's hear what this file has to say:\n",
     "Damian is reading the inscription:\n",
@@ -304,7 +304,7 @@ const char* cat_phrases[] = {
     "RockOS retrieves the words from the vault:\n",
 };
 
-const char* cat_failure_phrases[] = {
+const char *cat_failure_phrases[] = {
     "Couldn't read the file.\n",
     "The artifact refused to speak.\n",
     "RockOS couldn't retrieve those contents.\n",
@@ -319,7 +319,7 @@ const char* cat_failure_phrases[] = {
     "The machine remembers nothing from that path.\n",
 };
 
-const char* echo_phrases[] = {
+const char *echo_phrases[] = {
     "RockOS heard you:\n",
     "Echo from the void:\n",
     "The machine answers:\n",
@@ -342,7 +342,7 @@ const char* echo_phrases[] = {
     "RockOS throws your words back at you:\n",
 };
 
-const char* echo_failure_phrases[] = {
+const char *echo_failure_phrases[] = {
     "The echo failed.\n",
     "RockOS couldn't transmit that signal.\n",
     "Your words disappeared into the static.\n",
@@ -355,7 +355,7 @@ const char* echo_failure_phrases[] = {
     "Your words never reached the speakers.\n",
 };
 
-const char* clear_phrases[] = {
+const char *clear_phrases[] = {
     "Clearing the stage...\n",
     "Wiping the noise...\n",
     "Damian cleared the board.\n",
@@ -378,7 +378,7 @@ const char* clear_phrases[] = {
     "RockOS has swept away the static.\n",
 };
 
-const char* clear_failure_phrases[] = {
+const char *clear_failure_phrases[] = {
     "The terminal refused to clear.\n",
     "RockOS couldn't clean the stage.\n",
     "The static remains.\n",
@@ -391,7 +391,7 @@ const char* clear_failure_phrases[] = {
     "The battlefield remains covered in static.\n",
 };
 
-const char* reboot_phrases[] = {
+const char *reboot_phrases[] = {
     "Rebooting. See you on the other side.\n",
     "Damian is restarting the machine.\n",
     "Tyrant pulled the emergency lever.\n",
@@ -414,7 +414,7 @@ const char* reboot_phrases[] = {
     "Another boot. Another chance to break something.\n",
 };
 
-const char* reboot_failure_phrases[] = {
+const char *reboot_failure_phrases[] = {
     "Reboot failed.\n",
     "RockOS tried to restart and refused.\n",
     "The machine won't go down.\n",
@@ -427,7 +427,7 @@ const char* reboot_failure_phrases[] = {
     "The restart mechanism failed.\n",
 };
 
-const char* uptime_phrases[] = {
+const char *uptime_phrases[] = {
     "The machine has been raging for:\n",
     "RockOS has been alive for:\n",
     "Time since the last breakdown:\n",
@@ -450,7 +450,7 @@ const char* uptime_phrases[] = {
     "The machine continues screaming after:\n",
 };
 
-const char* uptime_failure_phrases[] = {
+const char *uptime_failure_phrases[] = {
     "Couldn't determine uptime.\n",
     "RockOS lost track of time.\n",
     "The machine doesn't know how long it's been alive.\n",
@@ -463,86 +463,245 @@ const char* uptime_failure_phrases[] = {
     "Uptime remains unknown.\n",
 };
 
-const char* help_phrases[] = {
-    "RockOS doesn't need a manual. It needs a damn volume knob.\n"
-    "Available commands: ls, cd, pwd, mkdir, rmdir, touch, rm, cat, echo,\n"
-    "clear, uptime, reboot, help, and tyrant.\n",
+const char *help_phrases[] = {
 
-    "Welcome to the RockOS command deck.\n"
-    "ls shows what's here. cd moves you through the filesystem. pwd tells you where you stand.\n"
-    "mkdir builds directories. rmdir tears down empty ones. touch creates files.\n"
-    "cat reads them. rm destroys them. echo spits text into the terminal.\n"
-    "clear cleans the stage. uptime tells you how long the machine has been screaming.\n"
-    "reboot restarts the show. And tyrant... well, you'll figure that one out.\n",
+    "ROCKOS // COMMAND DECK\n"
+    "Damian says the machine is yours. Tyrant says that's a privilege.\n"
+    "\n"
+    "FILESYSTEM\n"
+    "  ls        - List the contents of the current directory.\n"
+    "  cd        - Move through the filesystem.\n"
+    "  pwd       - Show where the hell you are.\n"
+    "  mkdir     - Forge a new directory.\n"
+    "  rmdir     - Destroy an empty directory.\n"
+    "  touch     - Create a new file.\n"
+    "  rm        - Remove a file. Permanently. Don't cry afterward.\n"
+    "  cat       - Read the contents of a file.\n"
+    "  write     - Hammer new content into a file.\n"
+    "\n"
+    "SHELL\n"
+    "  echo      - Throw text into the terminal.\n"
+    "  env       - Manage environment variables.\n"
+    "  clear     - Clear the terminal stage.\n"
+    "  fortune   - Ask the forge what fate has in store.\n"
+    "  mood      - Find out how the machine is feeling.\n"
+    "  ascii      - Make the terminal look metal as hell.\n"
+    "\n"
+    "SYSTEM\n"
+    "  date      - Ask the machine what time it is.\n"
+    "  uptime    - See how long RockOS has survived.\n"
+    "  stats     - Inspect the machine's activity.\n"
+    "  diagnose  - Check whether the machine is falling apart.\n"
+    "  rockfetch - Show the system profile.\n"
+    "  motd      - Display the message from the forge.\n"
+    "  whoami    - Find out who is behind the keyboard.\n"
+    "  reboot    - Kick the machine back into the boot sequence.\n"
+    "\n"
+    "CHARACTERS\n"
+    "  damian    - Speak with Damian.\n"
+    "  tyrant    - Enter Tyrant's domain.\n"
+    "  lore      - Discover the stories behind RockOS.\n"
+    "  void      - Stare into something you probably shouldn't.\n"
+    "\n"
+    "HELP\n"
+    "  help      - You somehow needed help with help.\n"
+    "\n"
+    "Damian says: 'Now stop reading and make some damn noise.'\n",
 
-    "You have entered the RockOS shell.\n"
-    "Filesystem commands: ls, cd, pwd, mkdir, rmdir, touch, rm, cat.\n"
-    "Terminal commands: clear, echo, uptime, reboot.\n"
-    "System commands: help, tyrant.\n"
-    "If a command fails, don't blame the kernel. Check your damn syntax first.\n",
+    "DAMIAN'S FIELD GUIDE\n"
+    "\n"
+    "Need to move?        cd\n"
+    "Need to see?         ls\n"
+    "Lost?                pwd\n"
+    "Need a directory?    mkdir\n"
+    "Need a file?         touch\n"
+    "Need to read?        cat\n"
+    "Need to write?       write\n"
+    "Need to destroy?     rm / rmdir\n"
+    "Need to talk?        echo\n"
+    "Need variables?      env\n"
+    "Need silence?        clear\n"
+    "\n"
+    "Need to know the machine?\n"
+    "  date, uptime, stats, diagnose, rockfetch\n"
+    "\n"
+    "Need entertainment?\n"
+    "  fortune, mood, ascii, motd\n"
+    "\n"
+    "Need answers about yourself?\n"
+    "  whoami\n"
+    "\n"
+    "Need to meet the monsters?\n"
+    "  damian, tyrant, lore, void\n"
+    "\n"
+    "Damian says: 'If you break something, at least break it spectacularly.'\n",
 
-    "Damian's command board:\n"
-    "  ls       - List the contents of the current directory.\n"
-    "  cd       - Move into another directory.\n"
-    "  pwd      - Show your current path.\n"
-    "  mkdir    - Forge a new directory.\n"
-    "  rmdir    - Remove an empty directory.\n"
-    "  touch    - Create a new file.\n"
-    "  rm       - Delete a file.\n"
-    "  cat      - Read a file's contents.\n"
-    "  echo     - Throw text into the terminal.\n"
-    "  clear    - Wipe the terminal clean.\n"
-    "  uptime   - See how long RockOS has been alive.\n"
-    "  reboot   - Restart the machine.\n"
-    "  help     - You already know what this does.\n"
-    "  tyrant   - ...you sure about that?\n",
+    "TYRANT'S COMMAND DOCTRINE\n"
+    "\n"
+    "OBSERVE.\n"
+    "  ls, pwd, cat, stats, rockfetch, diagnose\n"
+    "\n"
+    "CREATE.\n"
+    "  mkdir, touch, write, env\n"
+    "\n"
+    "DESTROY.\n"
+    "  rm, rmdir, clear\n"
+    "\n"
+    "SPEAK.\n"
+    "  echo, fortune, mood, motd\n"
+    "\n"
+    "TRAVEL.\n"
+    "  cd\n"
+    "\n"
+    "QUESTION THE MACHINE.\n"
+    "  date, uptime, whoami, lore, void\n"
+    "\n"
+    "RESET THE MACHINE.\n"
+    "  reboot\n"
+    "\n"
+    "Tyrant says: 'Inspect before you destroy. I will not tolerate stupid "
+    "mistakes.'\n",
 
-    "The shell is simple. The attitude isn't.\n"
-    "Navigate with cd. Inspect with ls. Locate yourself with pwd.\n"
-    "Create with mkdir and touch. Destroy with rm and rmdir.\n"
-    "Read files with cat. Speak through echo. Clear the stage with clear.\n"
-    "Check uptime when you want to know how long the kernel has survived.\n"
-    "Use reboot when you're ready to kick the machine back into the pit.\n",
+    "THE FORGE IS OPEN.\n"
+    "\n"
+    "RockOS gives you tools. What you do with them is your problem.\n"
+    "\n"
+    "Filesystem:\n"
+    "  ls cd pwd mkdir rmdir touch rm cat write\n"
+    "\n"
+    "Environment & shell:\n"
+    "  env echo clear fortune mood ascii\n"
+    "\n"
+    "System:\n"
+    "  date uptime stats diagnose rockfetch motd whoami reboot\n"
+    "\n"
+    "RockOS:\n"
+    "  damian tyrant lore void help\n"
+    "\n"
+    "Damian says: 'That's the whole damn arsenal. Go build something.'\n",
 
-    "RockOS commands are loaded and waiting.\n"
-    "Treat the filesystem like a backstage area: know where you're going before you start tearing things down.\n"
-    "Use 'ls' to inspect. 'cd' to travel. 'pwd' to orient yourself.\n"
-    "Use 'mkdir' and 'touch' to create. Use 'rm' and 'rmdir' to destroy.\n"
-    "Use 'cat' to read and 'echo' to write your voice into the terminal.\n"
-    "The rest of the commands keep the machine itself alive.\n",
+    "YOU WANT COMMANDS? FINE.\n"
+    "\n"
+    "ls          Look around.\n"
+    "cd          Go somewhere.\n"
+    "pwd         Remember where you are.\n"
+    "mkdir       Build territory.\n"
+    "rmdir       Remove territory.\n"
+    "touch       Make a file.\n"
+    "rm          Kill a file.\n"
+    "cat         Read a file.\n"
+    "write       Feed a file.\n"
+    "echo        Make noise.\n"
+    "env         Control your environment.\n"
+    "clear       Clean the stage.\n"
+    "date        Check the clock.\n"
+    "uptime      Check the machine's age.\n"
+    "stats       Check the numbers.\n"
+    "diagnose    Check for problems.\n"
+    "rockfetch   Inspect the hardware.\n"
+    "motd        Hear from the machine.\n"
+    "fortune     Receive questionable wisdom.\n"
+    "mood        Ask how the machine feels.\n"
+    "ascii       Make pretty terminal garbage.\n"
+    "whoami      Identify yourself.\n"
+    "damian      Talk to Damian.\n"
+    "tyrant      Face Tyrant.\n"
+    "lore        Learn the history.\n"
+    "void        Enter the void.\n"
+    "reboot      Start over.\n"
+    "help        Apparently, this.\n"
+    "\n"
+    "Tyrant says: 'You have the tools. Now prove you deserve them.'\n",
 
-    "Tyrant's command doctrine:\n"
-    "Inspect before destroying.\n"
-    "Create before complaining.\n"
-    "Read what you wrote.\n"
-    "Know your path.\n"
-    "And never trust a pointer you didn't initialize.\n",
+    "ROCKOS // QUICK REFERENCE\n"
+    "\n"
+    "[ FILES ]\n"
+    "ls      cd      pwd      mkdir\n"
+    "rmdir   touch    rm       cat\n"
+    "write\n"
+    "\n"
+    "[ SHELL ]\n"
+    "echo    env      clear     fortune\n"
+    "mood    ascii\n"
+    "\n"
+    "[ SYSTEM ]\n"
+    "date    uptime   stats     diagnose\n"
+    "rockfetch  motd  whoami    reboot\n"
+    "\n"
+    "[ ROCKOS ]\n"
+    "damian  tyrant   lore      void\n"
+    "\n"
+    "Damian says: 'Pick a command and hit the damn filesystem.'\n",
 
-    "Damian's rule of RockOS:\n"
-    "If you don't know what a command does, use help.\n"
-    "If you know what it does, use it carefully.\n"
-    "If it breaks, debug it.\n"
-    "If it breaks the kernel, reboot and pretend it was intentional.\n",
+    "DAMIAN HERE.\n"
+    "\n"
+    "You have access to the filesystem.\n"
+    "You have access to the shell.\n"
+    "You have access to the machine itself.\n"
+    "\n"
+    "You can create.\n"
+    "You can read.\n"
+    "You can write.\n"
+    "You can destroy.\n"
+    "You can inspect.\n"
+    "You can reboot the whole damn thing.\n"
+    "\n"
+    "Commands are not toys, operator.\n"
+    "Well... they're kind of toys.\n"
+    "\n"
+    "Damian says: 'Just don't rm the wrong damn thing.'\n",
+
+    "TYRANT HAS SPOKEN.\n"
+    "\n"
+    "The filesystem obeys:\n"
+    "  ls cd pwd mkdir rmdir touch rm cat write\n"
+    "\n"
+    "The shell obeys:\n"
+    "  echo env clear fortune mood ascii\n"
+    "\n"
+    "The machine reports:\n"
+    "  date uptime stats diagnose rockfetch motd whoami\n"
+    "\n"
+    "The machine's personalities remain available:\n"
+    "  damian tyrant lore void\n"
+    "\n"
+    "And if the machine refuses to cooperate?\n"
+    "  reboot\n"
+    "\n"
+    "Tyrant says: 'There is no mysterious command. There is only a command you "
+    "failed to understand.'\n",
+
+    "ROCKOS DOESN'T NEED A BORING MANUAL.\n"
+    "\n"
+    "It has commands.\n"
+    "It has a filesystem.\n"
+    "It has a kernel.\n"
+    "It has Damian.\n"
+    "Unfortunately, it also has you.\n"
+    "\n"
+    "Use help to see the arsenal.\n"
+    "Use lore to learn why the machine exists.\n"
+    "Use damian when you need questionable advice.\n"
+    "Use tyrant when you're feeling brave.\n"
+    "Use void if you have absolutely no survival instinct.\n"
+    "\n"
+    "Damian says: 'Now quit staring at the help screen and ROCK.'\n",
 };
 
 constexpr int COMMAND_NOT_FOUND_PHRASE_COUNT =
-    sizeof(command_not_found_phrases) /
-    sizeof(command_not_found_phrases[0]);
+    sizeof(command_not_found_phrases) / sizeof(command_not_found_phrases[0]);
 
-constexpr int LS_PHRASE_COUNT =
-    sizeof(ls_phrases) / sizeof(ls_phrases[0]);
+constexpr int LS_PHRASE_COUNT = sizeof(ls_phrases) / sizeof(ls_phrases[0]);
 
 constexpr int LS_FAILURE_PHRASE_COUNT =
     sizeof(ls_failure_phrases) / sizeof(ls_failure_phrases[0]);
 
-constexpr int CD_PHRASE_COUNT =
-    sizeof(cd_phrases) / sizeof(cd_phrases[0]);
+constexpr int CD_PHRASE_COUNT = sizeof(cd_phrases) / sizeof(cd_phrases[0]);
 
 constexpr int CD_FAILURE_PHRASE_COUNT =
     sizeof(cd_failure_phrases) / sizeof(cd_failure_phrases[0]);
 
-constexpr int PWD_PHRASE_COUNT =
-    sizeof(pwd_phrases) / sizeof(pwd_phrases[0]);
+constexpr int PWD_PHRASE_COUNT = sizeof(pwd_phrases) / sizeof(pwd_phrases[0]);
 
 constexpr int PWD_FAILURE_PHRASE_COUNT =
     sizeof(pwd_failure_phrases) / sizeof(pwd_failure_phrases[0]);
@@ -559,8 +718,7 @@ constexpr int TOUCH_PHRASE_COUNT =
 constexpr int TOUCH_FAILURE_PHRASE_COUNT =
     sizeof(touch_failure_phrases) / sizeof(touch_failure_phrases[0]);
 
-constexpr int RM_PHRASE_COUNT =
-    sizeof(rm_phrases) / sizeof(rm_phrases[0]);
+constexpr int RM_PHRASE_COUNT = sizeof(rm_phrases) / sizeof(rm_phrases[0]);
 
 constexpr int RM_FAILURE_PHRASE_COUNT =
     sizeof(rm_failure_phrases) / sizeof(rm_failure_phrases[0]);
@@ -571,8 +729,7 @@ constexpr int RMDIR_PHRASE_COUNT =
 constexpr int RMDIR_FAILURE_PHRASE_COUNT =
     sizeof(rmdir_failure_phrases) / sizeof(rmdir_failure_phrases[0]);
 
-constexpr int CAT_PHRASE_COUNT =
-    sizeof(cat_phrases) / sizeof(cat_phrases[0]);
+constexpr int CAT_PHRASE_COUNT = sizeof(cat_phrases) / sizeof(cat_phrases[0]);
 
 constexpr int CAT_FAILURE_PHRASE_COUNT =
     sizeof(cat_failure_phrases) / sizeof(cat_failure_phrases[0]);
