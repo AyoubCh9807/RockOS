@@ -518,3 +518,24 @@ const char *date_success_phrases[] = {
 
 constexpr int DATE_SUCCESS_PHRASE_COUNT =
     sizeof(date_success_phrases) / sizeof(date_success_phrases[0]);
+
+    const char *echo_env_failure_phrases[] = {
+    "Damian says that variable doesn't exist.\n",
+    "Tyrant says the variable was never forged.\n",
+    "RockOS couldn't find that environment variable.\n",
+    "Damian searched the environment. Nothing there.\n",
+    "Tyrant says: unknown variable.\n",
+    "That variable has vanished into the void.\n",
+    "The forge contains no such variable.\n",
+    "Damian couldn't find what you were looking for.\n",
+    "Tyrant checked the environment. Empty.\n",
+    "Unknown environment variable. Damian is confused.\n",
+    "RockOS searched everywhere. The variable isn't here.\n",
+    "The machine has no memory of that variable.\n",
+    "Damian says you should set it first.\n",
+    "Tyrant says: define your variables properly.\n",
+    "No such variable exists in the environment.\n",
+};
+
+constexpr int ECHO_ENV_FAILURE_PHRASE_COUNT =
+  sizeof(echo_env_failure_phrases) / sizeof(echo_env_failure_phrases[0]);

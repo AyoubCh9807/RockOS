@@ -76,7 +76,7 @@ public:
   u32 &current_dir;
 
   TerminalRegistry(FileSystem &fs, u32 &current_dir, Environment& environment)
-      : current_dir(current_dir), reboot(), clear(), echo(), uptime(), help(),
+      : current_dir(current_dir), reboot(), clear(), echo(environment), uptime(), help(),
         ls(fs, current_dir), mkdir(fs, current_dir), pwd(fs, current_dir),
         tyrant(), damian(), cd(fs, current_dir), touch(fs, current_dir),
         rm(fs, current_dir), rmdir(fs, current_dir), cat(fs, current_dir),

@@ -277,12 +277,12 @@ public:
 
     out = table[index];
 
-//    TerminalUtils::print("INODE SIZE = ");
-//    TerminalUtils::print_number(sizeof(Inode));
-//    TerminalUtils::print("\n");
-//    TerminalUtils::print("IS DIR = ");
-    TerminalUtils::print_number(out.is_directory);
- //   TerminalUtils::print("\n");
+    //    TerminalUtils::print("INODE SIZE = ");
+    //    TerminalUtils::print_number(sizeof(Inode));
+    //    TerminalUtils::print("\n");
+    //    TerminalUtils::print("IS DIR = ");
+    //   TerminalUtils::print_number(out.is_directory);
+    //   TerminalUtils::print("\n");
 
     return true;
   }
