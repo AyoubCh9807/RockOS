@@ -228,29 +228,6 @@ public:
     ev.scancode = scancode;
     ev.keytype = ktype;
 
-    if (ktype == KeyType::ArrowLeft) {
-      TerminalUtils::move_left();
-      return;
-    }
-
-    if (ktype == KeyType::ArrowRight) {
-      TerminalUtils::move_right();
-      return;
-    }
-
-    /* THESE SHOULD NOT BE ON THE SHELL RIGHT NOW 
-     * because arrows are used for history navigation
-     *
-     * if (ktype == KeyType::ArrowUp) {
-      TerminalUtils::move_up();
-      return;
-    }
-
-    if (ktype == KeyType::ArrowDown) {
-      TerminalUtils::move_down();
-      return;
-    } */
-
     // PUSH EVENT
 
     if (ascii != 0) {

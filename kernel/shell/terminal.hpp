@@ -11,14 +11,16 @@
 #include "terminal_registry.hpp"
 
 class Terminal {
-private:
+public:
+  // private:
+
   FileSystem &fs;
   TerminalRegistry &reg;
-  Environment& env;
+  Environment &env;
 
-public:
-  Terminal(FileSystem &fs, TerminalRegistry &reg, Environment& env) : fs(fs), reg(reg), env(env) {}
-
+  // public:
+  Terminal(FileSystem &fs, TerminalRegistry &reg, Environment &env)
+      : fs(fs), reg(reg), env(env) {}
 
   void draw_random_ascii() {
     TerminalUtils::print(Generator::random_phrase(ascii_art));
@@ -45,12 +47,12 @@ public:
 
     ICommand *cmd = reg.find(args[0]);
     if (cmd == nullptr)
-      return Generator::random_phrase(command_not_found_phrases); 
+      return Generator::random_phrase(command_not_found_phrases);
 
     return cmd->execute(argc, args);
   }
 
-  Environment& get_env() { return env; }
+  Environment &get_env() { return env; }
 
   const char *get_current_path() { return fs.get_path(reg.current_dir); }
 

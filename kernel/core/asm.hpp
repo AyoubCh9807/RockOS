@@ -38,17 +38,15 @@ static inline void outw(u16 port, u16 value) {
 static inline void halt() { __asm__("hlt"); }
 
 static inline void sti() { __asm__ volatile("sti"); }
+static inline void cli() { __asm__ volatile("cli"); }
 
 static inline u64 rdtsc() {
-    u32 lo;
-    u32 hi;
+  u32 lo;
+  u32 hi;
 
-    asm volatile (
-        "rdtsc"
-        : "=a"(lo), "=d"(hi)
-    );
+  asm volatile("rdtsc" : "=a"(lo), "=d"(hi));
 
-    return ((u64)hi << 32) | lo;
+  return ((u64)hi << 32) | lo;
 }
 
 } // namespace Asm

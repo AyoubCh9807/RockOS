@@ -12,7 +12,8 @@
 #include "path_resolver.hpp"
 
 class FileSystem {
-private:
+  // private:
+public:
   Disk &disk;
 
   BlockManager block_manager;
@@ -38,7 +39,7 @@ private:
     dst[len + i] = '\0';
   }
 
-public:
+  // public:
   FileSystem(Disk &disk)
       : disk(disk), block_manager(disk), inode_manager(disk),
         directory_manager(inode_manager, block_manager),
@@ -447,7 +448,6 @@ public:
       return false;
 
     DirectoryEntry entry{};
-
     if (!directory_manager.find_entry(parent, name, entry))
       return false;
 
@@ -456,24 +456,18 @@ public:
     Debugger::log("\n");
 
     Inode inode{};
-
     if (!inode_manager.read_inode(entry.inode_number, inode))
       return false;
 
     Debugger::log("REMOVE INODE:\n");
-
     Debugger::log("id=");
     Debugger::log_number(inode.id);
-
     Debugger::log(" used=");
     Debugger::log_number(inode.used);
-
     Debugger::log(" dir=");
     Debugger::log_number(inode.is_directory);
-
     Debugger::log(" size=");
     Debugger::log_number(inode.size);
-
     Debugger::log("\n");
 
     for (u32 i = 0; i < DIRECT_BLOCKS; i++) {
@@ -491,21 +485,17 @@ public:
       return false;
 
     /*
-     * IMPORTANT:
+     * IMPORTANT (reordered):
      *
-     * Remove the directory entry FIRST.
+     * Free the inode's data blocks and the inode itself FIRST,
+     * while the directory entry still exists. This means a
+     * partial failure here leaves the entry intact — the file
+     * is still "there" (possibly with some blocks already freed,
+     * which is logged, but never silently vanished from the
+     * directory while reporting failure to the caller).
      *
-     * We don't want to free the inode or its blocks while
-     * the directory still points at it.
-     */
-    if (!directory_manager.remove_entry(parent, name)) {
-      Debugger::log("FAILED REMOVING DIRECTORY ENTRY\n");
-      return false;
-    }
-
-    /*
-     * Now that the directory no longer references the inode,
-     * free its data blocks.
+     * Only remove the directory entry once we're sure everything
+     * else succeeded, since that's the point of no return.
      */
     for (u32 i = 0; i < DIRECT_BLOCKS; i++) {
       if (inode.direct_blocks[i] != INVALID_BLOCK) {
@@ -513,16 +503,21 @@ public:
           Debugger::log("FAILED FREEING BLOCK\n");
           return false;
         }
-
         inode.direct_blocks[i] = INVALID_BLOCK;
       }
     }
 
-    /*
-     * Finally mark the inode as free.
-     */
     if (!inode_manager.free_inode(entry.inode_number)) {
       Debugger::log("FAILED FREEING INODE\n");
+      return false;
+    }
+
+    if (!directory_manager.remove_entry(parent, name)) {
+      // Inode/blocks are already freed at this point. This is now an
+      // orphaned-but-freed situation rather than a corrupt one: the
+      // inode is correctly marked free, but the entry still points at
+      // it. Logged for visibility since this shouldn't normally happen.
+      Debugger::log("FAILED REMOVING DIRECTORY ENTRY (inode already freed)\n");
       return false;
     }
 
@@ -612,7 +607,6 @@ public:
       DirectoryEntry *entries = (DirectoryEntry *)buffer;
 
       for (u32 j = 0; j < DIRECTORY_ENTRIES_PER_BLOCK; j++) {
-
         if (entries[j].is_used) {
           Debugger::log("DIRECTORY NOT EMPTY\n");
           return false;
@@ -621,20 +615,15 @@ public:
     }
 
     /*
-     * IMPORTANT:
+     * IMPORTANT (reordered):
      *
-     * Remove the parent directory entry FIRST.
+     * Free the directory's data blocks and the inode itself FIRST,
+     * while the parent's entry still points at it. A failure here
+     * leaves the parent entry intact instead of silently orphaning
+     * it while reporting failure.
      *
-     * Do not free the inode or its blocks while the parent
-     * directory still points at it.
-     */
-    if (!directory_manager.remove_entry(parent, name)) {
-      Debugger::log("FAILED REMOVING DIRECTORY ENTRY\n");
-      return false;
-    }
-
-    /*
-     * Now free the directory's data blocks.
+     * Only remove the parent directory entry once everything else
+     * has actually succeeded.
      */
     for (u32 i = 0; i < DIRECT_BLOCKS; i++) {
 
@@ -649,11 +638,15 @@ public:
       }
     }
 
-    /*
-     * Finally free the inode.
-     */
     if (!inode_manager.free_inode(entry.inode_number)) {
       Debugger::log("FAILED FREEING DIRECTORY INODE\n");
+      return false;
+    }
+
+    if (!directory_manager.remove_entry(parent, name)) {
+      // Inode/blocks already freed. Orphaned entry, logged for
+      // visibility; shouldn't normally happen.
+      Debugger::log("FAILED REMOVING DIRECTORY ENTRY (inode already freed)\n");
       return false;
     }
 
@@ -661,7 +654,6 @@ public:
 
     return true;
   }
-
   bool write_file(char *path, const u8 *buffer, size_t size, u32 base_dir) {
     if (!path || !buffer)
       return false;

@@ -65,6 +65,7 @@ public:
     Asm::outb(ATA_IO_BASE + ATA_REG_LBA_HIGH, (u8)(lba >> 16));
     Asm::outb(ATA_IO_BASE + ATA_REG_COMMAND, 0x20); // READ SECTORS
 
+    Asm::cli();
     if (!wait_drq())
       return false;
 
@@ -72,6 +73,7 @@ public:
     for (int i = 0; i < 256; i++)
       target_ptr[i] = Asm::inw(ATA_IO_BASE + ATA_REG_DATA);
 
+    Asm::sti();
     return true;
   }
   bool write_sector(u32 lba, const u8 *buffer) {
@@ -92,6 +94,7 @@ public:
 
     Asm::outb(ATA_IO_BASE + ATA_REG_COMMAND, 0x30);
 
+    Asm::cli();
     if (!wait_drq())
       return false;
 
@@ -125,6 +128,7 @@ public:
             break;
         }
     */
+    Asm::sti();
     return true;
   }
 

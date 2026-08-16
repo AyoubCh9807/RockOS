@@ -296,4 +296,14 @@ public:
 
     return inode.used;
   }
+  inline Inode make_empty_inode() {
+    Inode inode{};
+    inode.used = false;
+    inode.is_directory = false;
+    inode.size = 0;
+    for (int i = 0; i < DIRECT_BLOCKS; i++)
+      inode.direct_blocks[i] = INVALID_BLOCK;
+    inode.indirect_block = INVALID_BLOCK;
+    return inode;
+  }
 };

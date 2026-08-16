@@ -60,7 +60,8 @@ extern "C" void kernel_main(/*u32 *mb_info*/) {
 
   TerminalUtils::print(Generator::random_phrase(reboot_phrases));
 
-  Shell shell(terminal);
+  ShellHistory sh;
+  Shell shell(terminal, sh);
   shell.run();
 
   while (1) {

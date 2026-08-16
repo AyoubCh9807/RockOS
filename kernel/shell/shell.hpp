@@ -5,128 +5,177 @@
 #include "../data/user_info.hpp"
 #include "../drivers/keyboard.hpp"
 #include "../shared/key_event.hpp"
-#include "../utils/fs_utils.hpp"
 #include "../utils/string_utils.hpp"
 #include "../utils/terminal_utils.hpp"
 #include "environment.hpp"
+#include "shell_history.hpp"
 #include "terminal.hpp"
 
-constexpr static int SHELL_MAX_AGRGS = 16;
+constexpr static int SHELL_MAX_ARGS = 16;
 
 class Shell {
 private:
   Terminal &terminal;
   Environment &env;
+  ShellHistory &history;
+
   String buffer;
 
-  static constexpr int MAX_HISTORY = 32;
-  String history[MAX_HISTORY];
+  int command_start;
+  int command_end;
 
-  int total_history_items = 0;
-  int history_wrapper_index = 0;
+void dump_root_sanity(FileSystem &fs) {
+  Inode root{};
+  terminal.fs.inode_manager.read_inode(ROOT_INODE, root);   // you'll need to expose this or add a debug method
+  Debugger::log("ROOT CHECK: used="); Debugger::log_number(root.used);
+  Debugger::log(" dir="); Debugger::log_number(root.is_directory);
+  Debugger::log(" block0="); Debugger::log_number(root.direct_blocks[0]);
+  Debugger::log("\n");
 
-  String draft;
-  int currently_selected_history_item = 0;
-
-public:
-  Shell(Terminal &t) : terminal(t), env(t.get_env()), buffer("") {
-    for (int i = 0; i < MAX_HISTORY; i++)
-      history[i] = "";
-  }
-
-  void add_to_history(String &text) {
-    if (text.length() <= 0)
-      return;
-
-    if (history_wrapper_index >= 0 && history_wrapper_index < MAX_HISTORY) {
-      history[history_wrapper_index] = text;
-      history_wrapper_index = (history_wrapper_index + 1) % MAX_HISTORY;
-      if (total_history_items < MAX_HISTORY)
-        total_history_items++;
+  u8 buf[BLOCK_SIZE];
+  terminal.fs.block_manager.read_block(root.direct_blocks[0], buf);
+  DirectoryEntry *entries = (DirectoryEntry*)buf;
+  for (int i = 0; i < DIRECTORY_ENTRIES_PER_BLOCK; i++) {
+    if (entries[i].is_used) {
+      Debugger::log("  entry: "); Debugger::log(entries[i].name);
+      Debugger::log(" inode="); Debugger::log_number(entries[i].inode_number);
+      Debugger::log("\n");
     }
-
-    currently_selected_history_item = total_history_items;
   }
+}
 
-  void run() {
+  void print_prompt() {
     TerminalUtils::print(StringUtils::format("\n[%s@%s %s]$ ", USER, OS,
                                              terminal.get_current_path()));
 
-    terminal.draw_random_ascii();
-    while (1) {
+    command_start = Kernel::vram_cursor;
+    command_end = command_start;
+  }
+  void execute_command() {
+    history.add(buffer);
 
+    TerminalUtils::putchar('\n');
+
+    char *args[SHELL_MAX_ARGS];
+    int max_args = SHELL_MAX_ARGS;
+
+    char cmd_copy[256];
+
+    int i = 0;
+    while (buffer.c_str()[i] != '\0' && i < 255) {
+      cmd_copy[i] = buffer.c_str()[i];
+      i++;
+    }
+
+    cmd_copy[i] = '\0';
+
+    TerminalUtils::print(terminal.parse(cmd_copy, args, max_args).c_str());
+
+    buffer = String("");
+
+    print_prompt();
+    dump_root_sanity(terminal.fs);
+  }
+
+  void handle_cursor(const KeyEvent &ev) {
+    if (ev.keytype == KeyType::ArrowLeft) {
+      if (Kernel::vram_cursor > command_start)
+        TerminalUtils::move_left();
+    }
+
+    else if (ev.keytype == KeyType::ArrowRight) {
+      if (Kernel::vram_cursor < command_end)
+        TerminalUtils::move_right();
+    }
+  }
+
+  void handle_backspace() {
+    if (buffer.length() <= 0)
+      return;
+
+    buffer.pop_back();
+    TerminalUtils::putchar('\b');
+
+    command_end = Kernel::vram_cursor;
+  }
+
+  void handle_history_up() {
+    int old_length = buffer.length();
+
+    if (!history.up(buffer))
+      return;
+
+    for (int i = 0; i < old_length; i++)
+      TerminalUtils::putchar('\b');
+
+    TerminalUtils::print(buffer.c_str());
+  }
+
+  void handle_history_down() {
+    int old_length = buffer.length();
+
+    if (!history.down(buffer))
+      return;
+
+    for (int i = 0; i < old_length; i++)
+      TerminalUtils::putchar('\b');
+
+    TerminalUtils::print(buffer.c_str());
+  }
+
+  void handle_character(char c) {
+    buffer = buffer + c;
+    history.reset_navigation();
+
+    TerminalUtils::putchar(c);
+    command_end = Kernel::vram_cursor;
+  }
+
+  void handle_key(const KeyEvent &ev) {
+    if (ev.keytype == KeyType::BackSpace && ev.scancode == '\b') {
+      handle_backspace();
+    }
+
+    else if (ev.keytype == KeyType::Enter && ev.scancode == '\n') {
+      execute_command();
+    }
+
+    else if (ev.keytype == KeyType::ArrowUp) {
+      handle_history_up();
+    }
+
+    else if (ev.keytype == KeyType::ArrowDown) {
+      handle_history_down();
+    }
+
+    else if (ev.keytype == KeyType::ArrowLeft ||
+             ev.keytype == KeyType::ArrowRight) {
+      handle_cursor(ev);
+    }
+
+    else {
+      handle_character(ev.scancode);
+    }
+  }
+
+public:
+  Shell(Terminal &t, ShellHistory &sh)
+      : terminal(t), env(t.get_env()), history(sh), buffer("") {}
+
+  void run() {
+    terminal.draw_random_ascii();
+
+    print_prompt();
+
+    while (1) {
       KeyEvent ev = Keyboard::read();
+
       if (ev.scancode == 0 || ev.keytype == KeyType::None) {
         Kernel::halt();
         continue;
       }
 
-      if (ev.keytype == KeyType::BackSpace && ev.scancode == '\b') {
-        if (buffer.length() > 0) {
-          buffer.pop_back();
-          TerminalUtils::putchar('\b');
-        }
-      } else if (ev.keytype == KeyType::Enter && ev.scancode == '\n') {
-        add_to_history(buffer);
-        TerminalUtils::putchar('\n');
-
-        char *args[SHELL_MAX_AGRGS];
-        int max_args = SHELL_MAX_AGRGS;
-
-        char cmd_copy[256];
-        int i = 0;
-        while (buffer.c_str()[i] != '\0' && i < 255) {
-          cmd_copy[i] = buffer.c_str()[i];
-          i++;
-        }
-        cmd_copy[i] = '\0';
-
-        TerminalUtils::print(terminal.parse(cmd_copy, args, max_args).c_str());
-
-        buffer = String("");
-
-        TerminalUtils::print(StringUtils::format("\n[%s@%s %s]$ ", USER, OS,
-                                                 terminal.get_current_path()));
-
-      } else if (ev.keytype == KeyType::ArrowUp) {
-        if (currently_selected_history_item == total_history_items) {
-          draft = buffer;
-        }
-
-        if (currently_selected_history_item > 0) {
-          currently_selected_history_item--;
-
-          for (int j = 0; j < buffer.length(); j++) {
-            TerminalUtils::putchar('\b');
-          }
-
-          buffer = history[currently_selected_history_item];
-          TerminalUtils::print(buffer.c_str());
-        }
-      } else if (ev.keytype == KeyType::ArrowDown) {
-        if (currently_selected_history_item < total_history_items) {
-          currently_selected_history_item++;
-
-          for (int j = 0; j < buffer.length(); j++) {
-            TerminalUtils::putchar('\b');
-          }
-
-          if (currently_selected_history_item == total_history_items)
-            buffer = draft;
-          else
-            buffer = history[currently_selected_history_item];
-
-          TerminalUtils::print(buffer.c_str());
-        }
-      } else if (ev.keytype == KeyType::ArrowLeft ||
-                 ev.keytype == KeyType::ArrowRight) {
-        // no-op
-      } else {
-        currently_selected_history_item = total_history_items;
-        buffer = buffer + ev.scancode;
-        draft = buffer;
-        TerminalUtils::putchar(ev.scancode);
-      }
+      handle_key(ev);
     }
   }
 };
