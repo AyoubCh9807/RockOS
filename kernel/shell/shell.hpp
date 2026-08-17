@@ -24,37 +24,49 @@ private:
   int command_start;
   int command_end;
 
-void dump_root_sanity(FileSystem &fs) {
-  Inode root{};
-  terminal.fs.inode_manager.read_inode(ROOT_INODE, root);   // you'll need to expose this or add a debug method
-  Debugger::log("ROOT CHECK: used="); Debugger::log_number(root.used);
-  Debugger::log(" dir="); Debugger::log_number(root.is_directory);
-  Debugger::log(" block0="); Debugger::log_number(root.direct_blocks[0]);
-  Debugger::log("\n");
+  // FS IS STILL PUBLIC AND SO IS ITS MEMBERS
+  void dump_root_sanity(FileSystem &fs) {
+    Inode root{};
+    terminal.fs.inode_manager.read_inode(ROOT_INODE, root);
+    Debugger::log("ROOT CHECK: used=");
+    Debugger::log_number(root.used);
+    Debugger::log(" dir=");
+    Debugger::log_number(root.is_directory);
+    Debugger::log(" block0=");
+    Debugger::log_number(root.direct_blocks[0]);
+    Debugger::log("\n");
 
-  u8 buf[BLOCK_SIZE];
-  terminal.fs.block_manager.read_block(root.direct_blocks[0], buf);
-  DirectoryEntry *entries = (DirectoryEntry*)buf;
-  for (int i = 0; i < DIRECTORY_ENTRIES_PER_BLOCK; i++) {
-    if (entries[i].is_used) {
-      Debugger::log("  entry: "); Debugger::log(entries[i].name);
-      Debugger::log(" inode="); Debugger::log_number(entries[i].inode_number);
-      Debugger::log("\n");
+    u8 buf[BLOCK_SIZE];
+    terminal.fs.block_manager.read_block(root.direct_blocks[0], buf);
+    DirectoryEntry *entries = (DirectoryEntry *)buf;
+    for (int i = 0; i < DIRECTORY_ENTRIES_PER_BLOCK; i++) {
+      if (entries[i].is_used) {
+        Debugger::log("  entry: ");
+        Debugger::log(entries[i].name);
+        Debugger::log(" inode=");
+        Debugger::log_number(entries[i].inode_number);
+        Debugger::log("\n");
+      }
     }
   }
-}
+
+  const int get_cursor() const {
+    return terminal.terminal_utils.get_cursor_position();
+  }
 
   void print_prompt() {
-    TerminalUtils::print(StringUtils::format("\n[%s@%s %s]$ ", USER, OS,
-                                             terminal.get_current_path()));
+    terminal.terminal_utils.print(
+        StringUtils::format("\n[%s@%s %s]$ ", USER, OS,
+                            terminal.get_current_path()),
+        0xFFFFFF);
 
-    command_start = Kernel::vram_cursor;
+    command_start = get_cursor();
     command_end = command_start;
   }
   void execute_command() {
     history.add(buffer);
 
-    TerminalUtils::putchar('\n');
+    terminal.terminal_utils.putchar('\n');
 
     char *args[SHELL_MAX_ARGS];
     int max_args = SHELL_MAX_ARGS;
@@ -69,7 +81,9 @@ void dump_root_sanity(FileSystem &fs) {
 
     cmd_copy[i] = '\0';
 
-    TerminalUtils::print(terminal.parse(cmd_copy, args, max_args).c_str());
+    CommandResult res = terminal.parse(cmd_copy, args, max_args);
+
+    terminal.terminal_utils.print(res.output.c_str(), res.color);
 
     buffer = String("");
 
@@ -79,13 +93,13 @@ void dump_root_sanity(FileSystem &fs) {
 
   void handle_cursor(const KeyEvent &ev) {
     if (ev.keytype == KeyType::ArrowLeft) {
-      if (Kernel::vram_cursor > command_start)
-        TerminalUtils::move_left();
+      if (get_cursor() > command_start)
+        terminal.terminal_utils.move_left();
     }
 
     else if (ev.keytype == KeyType::ArrowRight) {
-      if (Kernel::vram_cursor < command_end)
-        TerminalUtils::move_right();
+      if (get_cursor() < command_end)
+        terminal.terminal_utils.move_right();
     }
   }
 
@@ -94,9 +108,9 @@ void dump_root_sanity(FileSystem &fs) {
       return;
 
     buffer.pop_back();
-    TerminalUtils::putchar('\b');
+    terminal.terminal_utils.putchar('\b');
 
-    command_end = Kernel::vram_cursor;
+    command_end = get_cursor();
   }
 
   void handle_history_up() {
@@ -106,9 +120,9 @@ void dump_root_sanity(FileSystem &fs) {
       return;
 
     for (int i = 0; i < old_length; i++)
-      TerminalUtils::putchar('\b');
+      terminal.terminal_utils.putchar('\b');
 
-    TerminalUtils::print(buffer.c_str());
+    terminal.terminal_utils.print(buffer.c_str(), 0xFFFFFF);
   }
 
   void handle_history_down() {
@@ -118,17 +132,17 @@ void dump_root_sanity(FileSystem &fs) {
       return;
 
     for (int i = 0; i < old_length; i++)
-      TerminalUtils::putchar('\b');
+      terminal.terminal_utils.putchar('\b');
 
-    TerminalUtils::print(buffer.c_str());
+    terminal.terminal_utils.print(buffer.c_str(), 0xFFFFFF);
   }
 
   void handle_character(char c) {
     buffer = buffer + c;
     history.reset_navigation();
 
-    TerminalUtils::putchar(c);
-    command_end = Kernel::vram_cursor;
+    terminal.terminal_utils.putchar(c);
+    command_end = get_cursor();
   }
 
   void handle_key(const KeyEvent &ev) {

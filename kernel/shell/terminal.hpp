@@ -14,16 +14,17 @@ class Terminal {
 public:
   // private:
 
+  TerminalUtils& terminal_utils;
   FileSystem &fs;
   TerminalRegistry &reg;
   Environment &env;
 
   // public:
-  Terminal(FileSystem &fs, TerminalRegistry &reg, Environment &env)
-      : fs(fs), reg(reg), env(env) {}
+  Terminal(TerminalUtils& t_utils, FileSystem &fs, TerminalRegistry &reg, Environment &env)
+      : fs(fs), reg(reg), env(env), terminal_utils(t_utils) {}
 
   void draw_random_ascii() {
-    TerminalUtils::print(Generator::random_phrase(ascii_art));
+    terminal_utils.print(Generator::random_phrase(ascii_art), 0xFFFFFF);
   }
 
   void cd(char *path) {
@@ -31,23 +32,23 @@ public:
       return;
     u32 inode = fs.resolve_path(path);
     if (inode == INVALID_INODE) {
-      TerminalUtils::print("directory not found");
+      terminal_utils.print("directory not found", 0xFFFFFF);
       return;
     }
     reg.current_dir = inode;
   }
 
-  inline String parse(char *str, char **args, int max_args) {
+  inline CommandResult parse(char *str, char **args, int max_args) {
     if (!str || !args || max_args <= 0)
-      return "\n";
+      return CommandResult("\n");
 
     int argc = StringUtils::split_by(str, ' ', args, max_args);
     if (argc <= 0)
-      return "\n";
+      return CommandResult("\n");
 
     ICommand *cmd = reg.find(args[0]);
     if (cmd == nullptr)
-      return Generator::random_phrase(command_not_found_phrases);
+      return CommandResult(Generator::random_phrase(command_not_found_phrases), Colors::RED);
 
     return cmd->execute(argc, args);
   }

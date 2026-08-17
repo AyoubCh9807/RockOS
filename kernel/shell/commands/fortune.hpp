@@ -11,9 +11,9 @@ class FortuneCommand : public ICommand {
 public:
   const char *name() const { return "fortune"; }
 
-  String execute(int argc, char **argv) {
+  CommandResult execute(int argc, char **argv) {
 
-    TerminalUtils::print(Generator::random_phrase(fortune_phrases));
-    return "";
+    return CommandResult(Generator::random_phrase(fortune_phrases),
+                         Colors::pick_random_color());
   }
 };

@@ -9,13 +9,15 @@ class EchoCommand : public ICommand {
 
 private:
   Environment &env;
+  TerminalUtils &terminal_utils;
 
 public:
-  EchoCommand(Environment &env) : env(env) {};
+  EchoCommand(Environment &env, TerminalUtils &utils)
+      : env(env), terminal_utils(utils) {};
 
   const char *name() const { return "echo"; }
 
-  String execute(int argc, char **argv) {
+  CommandResult execute(int argc, char **argv) {
 
     for (int i = 1; i < argc; i++) {
 
@@ -26,22 +28,22 @@ public:
         int index = env.exists(name);
 
         if (index == -1) {
-          TerminalUtils::print(
-              Generator::random_phrase(echo_env_failure_phrases));
+          terminal_utils.print(
+              Generator::random_phrase(echo_env_failure_phrases), 0xFFFFFF);
         } else {
-          TerminalUtils::print(env.get(name));
+          terminal_utils.print(env.get(name), 0xFFFFFF);
         }
 
       } else {
-        TerminalUtils::print(argv[i]);
+        terminal_utils.print(argv[i], 0xFFFFFF);
       }
 
       if (i != argc - 1)
-        TerminalUtils::print(" ");
+        terminal_utils.print(" ", 0xFFFFFF);
     }
 
-    TerminalUtils::print("\n");
+    terminal_utils.print("\n", 0xFFFFFF);
 
-    return "";
+    return CommandResult("");
   }
 };

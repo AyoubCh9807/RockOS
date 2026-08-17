@@ -1,6 +1,7 @@
 #pragma once
 #include "../../data/lore.hpp"
 
+#include "../../utils/list_utils.hpp"
 #include "../../utils/terminal_utils.hpp"
 #include "icommand.hpp"
 
@@ -9,12 +10,10 @@ class LoreCommand : public ICommand {
 public:
   const char *name() const { return "lore"; }
 
-  String execute(int argc, char **argv) {
+  CommandResult execute(int argc, char **argv) {
 
-    //void_character_names
-    TerminalUtils::print(Generator::random_phrase(damian_lore));
-    return "";
+    return CommandResult(
+        ListUtils::get_random_string(damian_lore, tyrant_lore, rockfs_lore),
+        Colors::pick_random_color());
   }
 };
-
-

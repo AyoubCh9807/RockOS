@@ -6,11 +6,14 @@ echo "Compiling OS..."
 # Compile assembly loader from boot/
 nasm -f elf32 boot/loader.s -o loader.o
 
+# Add these later fr
+#
+# -Wall \
+# -Wextra \
+
 CPPFLAGS="-Ikernel \
 -ffreestanding \
 -O2 \
--Wall \
--Wextra \
 -fno-exceptions \
 -fno-rtti \
 -fno-use-cxa-atexit \

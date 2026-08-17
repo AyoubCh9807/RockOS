@@ -10,12 +10,11 @@ class MoodCommand : public ICommand {
 public:
   const char *name() const { return "mood"; }
 
-  String execute(int argc, char **argv) {
+  CommandResult execute(int argc, char **argv) {
 
-    TerminalUtils::print(ListUtils::get_random_string(
-        mood_damian_reactions, mood_tyrant_reactions, mood_descriptions,
-        mood_names));
+    return CommandResult(ListUtils::get_random_string(mood_damian_reactions,
+                                         mood_tyrant_reactions,
+                                         mood_descriptions, mood_names), Colors::RED);
 
-    return "";
   }
 };

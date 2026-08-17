@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "../../utils/terminal_utils.hpp"
 #include "icommand.hpp"
 
 class DateCommand : public ICommand {
@@ -12,11 +11,12 @@ class DateCommand : public ICommand {
 public:
   const char *name() const { return "date"; }
 
-  String execute(int argc, char **argv) {
+  CommandResult execute(int argc, char **argv) {
 
-    TerminalUtils::print(StringUtils::format(
-        "%s %s", Generator::random_phrase(date_success_phrases),
-        RTC::get_full_time().c_str()));
-    return "";
+    return CommandResult(
+        StringUtils::format("%s %s",
+                            Generator::random_phrase(date_success_phrases),
+                            RTC::get_full_time().c_str()),
+        Colors::pick_random_color());
   }
 };

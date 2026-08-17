@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../kernel/core/kernel.hpp"
-#include "../kernel/utils/terminal_utils.hpp"
 
 struct Framebuffer {
   u8 *address;
@@ -15,15 +14,7 @@ struct Framebuffer {
 
 namespace Multiboot2 {
 
-inline Framebuffer framebuffer = {
-    nullptr,
-    0,
-    0,
-    0,
-    0,
-    0,
-    false
-};
+inline Framebuffer framebuffer = {nullptr, 0, 0, 0, 0, 0, false};
 
 constexpr u32 BOOTLOADER_MAGIC = 0x36D76289;
 
@@ -62,7 +53,7 @@ struct __attribute__((packed)) FramebufferTag {
   u16 reserved;
 };
 
-inline static void print_tags(u32 multiboot_addr) {
+inline static void fill_tags(u32 multiboot_addr) {
   Info *info = reinterpret_cast<Info *>(multiboot_addr);
 
   u32 offset = 8;
@@ -70,20 +61,11 @@ inline static void print_tags(u32 multiboot_addr) {
   while (offset < info->total_size) {
     Tag *tag = reinterpret_cast<Tag *>(multiboot_addr + offset);
 
-    TerminalUtils::print("Tag type: ");
-    TerminalUtils::print_number(tag->type);
-    TerminalUtils::print(" size: ");
-    TerminalUtils::print_number(tag->size);
-    TerminalUtils::putchar('\n');
-
     if (tag->type == FRAMEBUFFER) {
-      FramebufferTag *fb =
-          reinterpret_cast<FramebufferTag *>(tag);
+      FramebufferTag *fb = reinterpret_cast<FramebufferTag *>(tag);
 
       framebuffer.address =
-          reinterpret_cast<u8 *>(
-              static_cast<u32>(fb->framebuffer_addr)
-          );
+          reinterpret_cast<u8 *>(static_cast<u32>(fb->framebuffer_addr));
 
       framebuffer.pitch = fb->framebuffer_pitch;
       framebuffer.width = fb->framebuffer_width;
@@ -91,34 +73,6 @@ inline static void print_tags(u32 multiboot_addr) {
       framebuffer.bpp = fb->framebuffer_bpp;
       framebuffer.type = fb->framebuffer_type;
       framebuffer.valid = true;
-
-      TerminalUtils::print("FRAMEBUFFER FOUND!\n");
-
-      TerminalUtils::print("Address: ");
-      TerminalUtils::print_number(
-          static_cast<u32>(fb->framebuffer_addr)
-      );
-      TerminalUtils::putchar('\n');
-
-      TerminalUtils::print("Pitch: ");
-      TerminalUtils::print_number(fb->framebuffer_pitch);
-      TerminalUtils::putchar('\n');
-
-      TerminalUtils::print("Width: ");
-      TerminalUtils::print_number(fb->framebuffer_width);
-      TerminalUtils::putchar('\n');
-
-      TerminalUtils::print("Height: ");
-      TerminalUtils::print_number(fb->framebuffer_height);
-      TerminalUtils::putchar('\n');
-
-      TerminalUtils::print("BPP: ");
-      TerminalUtils::print_number(fb->framebuffer_bpp);
-      TerminalUtils::putchar('\n');
-
-      TerminalUtils::print("Type: ");
-      TerminalUtils::print_number(fb->framebuffer_type);
-      TerminalUtils::putchar('\n');
     }
 
     if (tag->type == END) {

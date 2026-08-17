@@ -20,6 +20,8 @@ extern "C" void kernel_main(u32 mb_addr) {
   Timer::init();
   Random::init();
 
+  Multiboot2::fill_tags(mb_addr);
+
   Disk disk;
   FileSystem fs(disk);
 
@@ -36,20 +38,27 @@ extern "C" void kernel_main(u32 mb_addr) {
   }
   u32 current_dir = ROOT_INODE;
 
-  Environment env;
-  TerminalRegistry reg(fs, current_dir, env);
-  Terminal terminal(fs, reg, env);
+  TerminalUtils terminal_utils;
+
+  Environment env(terminal_utils);
+  /*
+   *  TerminalRegistry(TerminalUtils &terminal_utils, FileSystem &fs,
+                   u32 &current_dir, Environment &environment)
+
+   * */
+  TerminalRegistry reg(terminal_utils, fs, current_dir, env);
+  Terminal terminal(terminal_utils, fs, reg, env);
   terminal.fill_registry();
 
-  Multiboot2::print_tags(mb_addr);
   Graphics::clear(0x000000);
 
-  Graphics::draw_rect(100, 100, 300, 100, 0xFF0000);
+//  Graphics::draw_rect(100, 100, 300, 100, 0xFF0000);
 
-  Graphics::draw_line(100, 250, 400, 0x00FF00);
+//  Graphics::draw_line(100, 250, 400, 0x00FF00);
 
-  Graphics::draw_string("ROCK OS", 100, 300, 0xFFFFFF);
-  TerminalUtils::print(Generator::random_phrase(reboot_phrases));
+//  Graphics::draw_string("ROCK OS", 100, 300, 0xFFFFFF);
+  
+  terminal_utils.print(Generator::random_phrase(reboot_phrases), 0xFFFFFF);
 
   ShellHistory sh;
   Shell shell(terminal, sh);

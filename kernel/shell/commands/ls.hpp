@@ -20,18 +20,17 @@ public:
   const char *name() const override { return "ls"; }
 
 
-  String execute (int argc, char **argv) override {
+  CommandResult execute (int argc, char **argv) override {
 
     if (argc == 1) {
-      return fs.list_directory(current_dir);
+      return CommandResult(String(fs.list_directory(current_dir)), Colors::WHITE);
     }
 
     u32 inode = fs.resolve_path(argv[1], current_dir);
 
     if (inode == INVALID_INODE) {
-      TerminalUtils::print(Generator::random_phrase(command_not_found_phrases));
-      return "";
+      return CommandResult(Generator::random_phrase(command_not_found_phrases), Colors::RED);
     }
-    return fs.list_directory(inode);
+    return CommandResult(fs.list_directory(inode), Colors::WHITE);
   }
 };

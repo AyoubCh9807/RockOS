@@ -2,6 +2,7 @@
 
 #include "../kernel/data/font.hpp"
 #include "../kernel/shared/types.hpp"
+#include "../kernel/utils/bit_utils.hpp"
 #include "multiboot2.hpp"
 
 namespace Graphics {
@@ -62,6 +63,21 @@ inline void draw_line(u32 x, u32 y, u32 w, u32 color) {
 constexpr int CHARACTER_WIDTH = 8;
 constexpr int CHARACTER_HEIGHT = 8;
 
+static constexpr int FONT_BITMAP_ROWS = 8;
+static constexpr int FONT_BITMAP_COLS = 8;
+
+inline void draw_bitmap(const u8 *bitmap, int x, int y, u32 color) {
+  for (int i = 0; i < FONT_BITMAP_ROWS; i++) {
+
+    const u8 bm = bitmap[i];
+
+    for (int j = 0; j < FONT_BITMAP_COLS; j++) {
+      if (bm & (1 << (FONT_BITMAP_COLS - 1 - j)))
+        put_pixel(x + j, y + i, color);
+    }
+  }
+}
+
 inline void draw_char(char c, u32 x, u32 y, u32 color) {
   if (!Multiboot2::framebuffer.valid)
     return;
@@ -71,15 +87,7 @@ inline void draw_char(char c, u32 x, u32 y, u32 color) {
 
   const u8 *glyph = FONT[(u8)c];
 
-  for (u32 row = 0; row < 8; row++) {
-    u8 bits = glyph[row];
-
-    for (u32 col = 0; col < 8; col++) {
-      if (bits & (1 << (7 - col))) {
-        put_pixel(x + col, y + row, color);
-      }
-    }
-  }
+  draw_bitmap(glyph, x, y, color);
 }
 
 inline void draw_string(const char *str, u32 x, u32 y, u32 color) {

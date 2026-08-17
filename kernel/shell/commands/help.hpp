@@ -7,7 +7,7 @@ class HelpCommand : public ICommand {
 public:
   const char *name() const { return "help"; }
 
-  String execute(int argc, char **argv) {
-    return Generator::random_phrase(help_phrases);
+  CommandResult execute(int argc, char **argv) {
+    return CommandResult(Generator::random_phrase(help_phrases), Colors::pick_random_color());
   }
 };

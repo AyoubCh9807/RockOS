@@ -8,14 +8,17 @@
 
 class AsciiCommand : public ICommand {
 
+private:
+  TerminalUtils &terminal_utils;
+
 public:
+  AsciiCommand(TerminalUtils &utils) : terminal_utils(utils) {}
+
   const char *name() const { return "ascii"; }
 
-  String execute(int argc, char **argv) {
+  CommandResult execute(int argc, char **argv) {
 
-    TerminalUtils::print(Generator::random_phrase(ascii_art));
-    return "";
+    return CommandResult(Generator::random_phrase(ascii_art),
+                         Colors::pick_random_color());
   }
 };
-
-

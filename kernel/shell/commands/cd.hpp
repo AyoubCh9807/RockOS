@@ -16,15 +16,17 @@ public:
 
   const char *name() const override { return "cd"; }
 
-  String execute(int argc, char **argv) override {
+  CommandResult execute(int argc, char **argv) override {
 
     if (argc < 2)
-      return "usage: cd <path>";
+      return CommandResult(Generator::random_phrase(cd_failure_phrases),
+                           Colors::RED);
 
     u32 inode = fs.resolve_path(argv[1], current_dir);
 
     if (inode == INVALID_INODE)
-      return "path not found";
+      return CommandResult(Generator::random_phrase(cd_failure_phrases),
+                           Colors::RED);
 
     // *** ONE BIG BUG FIX: resolve_path() only rejects non-directories for
     // intermediate path components (it has to allow resolving to a file
@@ -32,10 +34,11 @@ public:
     // specifically requires the final target to be a directory, so check
     // it here instead. ***
     if (!fs.is_directory(inode))
-      return "not a directory";
+      return CommandResult("Damian says this is not a directory, OBEY!",
+                           Colors::RED);
 
     current_dir = inode;
 
-    return "";
+    return CommandResult("");
   }
 };

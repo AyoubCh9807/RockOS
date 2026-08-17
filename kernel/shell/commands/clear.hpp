@@ -4,13 +4,17 @@
 #include "icommand.hpp"
 
 class ClearCommand : public ICommand {
+private:
+  TerminalUtils &terminal_utils;
 
 public:
+  ClearCommand(TerminalUtils &utils) : terminal_utils(utils) {};
+
   const char *name() const { return "clear"; }
 
-  String execute(int argc, char **argv) {
+  CommandResult execute(int argc, char **argv) {
 
-    TerminalUtils::clear();
-    return "";
+    terminal_utils.clear();
+    return CommandResult("", Colors::WHITE);
   }
 };

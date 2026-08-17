@@ -8,10 +8,10 @@ class UptimeCommand : public ICommand {
 public:
   const char *name() const override { return "uptime"; }
 
- String execute(int argc, char **argv) override {
+ CommandResult execute(int argc, char **argv) override {
 
     static char buffer[64];
 
-    return Timer::get_formatted_time();
+    return CommandResult(Timer::get_formatted_time(), Colors::WHITE);
   }
 };

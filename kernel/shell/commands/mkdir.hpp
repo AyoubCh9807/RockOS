@@ -14,15 +14,14 @@ public:
 
   const char *name() const override { return "mkdir"; }
 
-  String execute(int argc, char **argv) override {
+  CommandResult execute(int argc, char **argv) override {
 
     if (argc < 2) {
-      return Generator::random_phrase(command_not_found_phrases);
+      return CommandResult(Generator::random_phrase(command_not_found_phrases), Colors::RED);
     }
     if (fs.mkdir(argv[1], current_dir)) {
-      return Generator::random_phrase(mkdir_phrases);
+      return CommandResult(Generator::random_phrase(mkdir_phrases), Colors::GREEN);
     }
-
-    return "failed creating directory\n\0";
+    return CommandResult("failed creating \n\0", Colors::RED);
   }
 };

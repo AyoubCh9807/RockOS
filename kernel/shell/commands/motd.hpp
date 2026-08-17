@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "../../utils/terminal_utils.hpp"
 #include "icommand.hpp"
 
 class MotdCommand : public ICommand {
@@ -10,10 +9,9 @@ class MotdCommand : public ICommand {
 public:
   const char *name() const { return "motd"; }
 
-  String execute(int argc, char **argv) {
+  CommandResult execute(int argc, char **argv) {
 
-    TerminalUtils::print(Generator::random_phrase(motd_messages));
-    return "";
+    return CommandResult(Generator::random_phrase(motd_messages),
+                         Colors::pick_random_color());
   }
 };
-

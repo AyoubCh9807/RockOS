@@ -13,11 +13,13 @@ public:
 
   const char *name() const override { return "rm"; }
 
-  String execute(int argc, char **argv) override {
+  CommandResult execute(int argc, char **argv) override {
     if (argc < 2)
-      return "usage: rm <name>\n\0";
+      return CommandResult(Generator::random_phrase(rm_failure_phrases),
+                           Colors::RED);
     if (fs.delete_file(argv[1], current_dir))
-      return "file removed\n\0";
-    return "failed removing file\n\0";
+      return CommandResult(Generator::random_phrase(rm_phrases), Colors::GREEN);
+    return CommandResult(Generator::random_phrase(rm_failure_phrases),
+                         Colors::RED);
   }
 };

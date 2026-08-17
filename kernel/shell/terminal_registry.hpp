@@ -7,7 +7,9 @@
 #include "commands/cd.hpp"
 #include "commands/clear.hpp"
 #include "commands/damian.hpp"
+#include "commands/date.hpp"
 #include "commands/echo.hpp"
+#include "commands/env.hpp"
 #include "commands/help.hpp"
 #include "commands/icommand.hpp"
 #include "commands/ls.hpp"
@@ -20,8 +22,6 @@
 #include "commands/tyrant.hpp"
 #include "commands/uptime.hpp"
 #include "commands/write.hpp"
-#include "commands/env.hpp"
-#include "commands/date.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -75,13 +75,15 @@ private:
 public:
   u32 &current_dir;
 
-  TerminalRegistry(FileSystem &fs, u32 &current_dir, Environment& environment)
-      : current_dir(current_dir), reboot(), clear(), echo(environment), uptime(), help(),
-        ls(fs, current_dir), mkdir(fs, current_dir), pwd(fs, current_dir),
-        tyrant(), damian(), cd(fs, current_dir), touch(fs, current_dir),
-        rm(fs, current_dir), rmdir(fs, current_dir), cat(fs, current_dir),
-        write(fs, current_dir), env(environment), date(), fortune(), whoami(), motd(), rockfetch(), ascii(), stats(), mood(),
-        void_cmd(), lore(), diagnose() {}
+  TerminalRegistry(TerminalUtils &terminal_utils, FileSystem &fs,
+                   u32 &current_dir, Environment &environment)
+      : current_dir(current_dir), reboot(), clear(terminal_utils), echo(environment, terminal_utils),
+        uptime(), help(), ls(fs, current_dir), mkdir(fs, current_dir),
+        pwd(fs, current_dir), tyrant(), damian(), cd(fs, current_dir),
+        touch(fs, current_dir), rm(fs, current_dir), rmdir(fs, current_dir),
+        cat(fs, current_dir), write(fs, current_dir), env(environment), date(),
+        fortune(), whoami(terminal_utils), motd(), rockfetch(terminal_utils), ascii(terminal_utils),
+        stats(terminal_utils), mood(), void_cmd(terminal_utils), lore(), diagnose(terminal_utils) {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 

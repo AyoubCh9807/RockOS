@@ -1,164 +1,185 @@
 #pragma once
 
-#include "../core/kernel.hpp"
+#include "../../boot/graphics.hpp"
+#include "../../boot/multiboot2.hpp"
 #include "string_utils.hpp"
 
-namespace TerminalUtils {
+class TerminalUtils {
 
-constexpr static int COLUMNS = 80;
-constexpr static int ROWS = 25;
-constexpr static int SCREEN_SIZE = COLUMNS * ROWS;
+private:
+  const int ROWS = Multiboot2::framebuffer.height / Graphics::CHARACTER_HEIGHT;
+  const int COLUMNS = Multiboot2::framebuffer.width / Graphics::CHARACTER_WIDTH;
+  const int SCREEN_SIZE = COLUMNS * ROWS;
 
-inline static void save_char() {
-  Kernel::saved_char = Kernel::video_memory[Kernel::vram_cursor * 2];
-  Kernel::saved_attr = Kernel::video_memory[Kernel::vram_cursor * 2 + 1];
-}
+  struct Cell {
+    char c;
+    u32 color;
 
-inline static void restore_cursor() {
-  Kernel::video_memory[Kernel::vram_index] = Kernel::saved_char;
-  Kernel::video_memory[Kernel::vram_index + 1] = Kernel::saved_attr;
-}
+    Cell(char c, u32 color) : c(c), color(color) {};
+    Cell(char c) : c(c), color(0xFFFFFF) {};
+  };
 
-inline static void update_cursor() {
-  Kernel::vram_index = Kernel::vram_cursor * 2;
+  int cursor_position = 0;
+  Cell *cells;
 
-  // Save what's underneath the new cursor.
-  Kernel::saved_char = Kernel::video_memory[Kernel::vram_index];
-  Kernel::saved_attr = Kernel::video_memory[Kernel::vram_index + 1];
+  static constexpr u8 CURSOR_CHAR[8] = {
+      0b00011000, 0b00011000, 0b00011000, 0b00011000,
+      0b00011000, 0b00011000, 0b00011000, 0b00011000,
+  };
 
-  // Draw cursor.
-  Kernel::video_memory[Kernel::vram_index] = 0xB3;
-  Kernel::video_memory[Kernel::vram_index + 1] = 0x0F;
-}
+  inline static TerminalUtils *global_terminal = nullptr;
 
-inline static void clear() {
-  for (int i = 0; i < SCREEN_SIZE * 2; i += 2) {
-    Kernel::video_memory[i] = ' ';
-    Kernel::video_memory[i + 1] = 0x0F;
+public:
+  TerminalUtils() {
+    cells = (Cell *)kmalloc(SCREEN_SIZE * sizeof(Cell));
+    for (int i = 0; i < SCREEN_SIZE; i++) {
+      cells[i] = Cell(' ', 0xFFFFFF);
+    }
+    global_terminal = this;
   }
 
-  Kernel::vram_cursor = 0;
-  update_cursor();
-}
+  void clear_cell(Cell &cell) {
+    cell.c = ' ';
+    cell.color = 0xFFFFFF;
+  }
 
-inline static void scroll() {
-  for (int row = 1; row < ROWS; row++) {
-    for (int col = 0; col < COLUMNS; col++) {
-      int src = (row * COLUMNS + col) * 2;
-      int dst = ((row - 1) * COLUMNS + col) * 2;
+  void clear() {
+    for (int i = 0; i < SCREEN_SIZE; i++) {
+      clear_cell(cells[i]);
+    }
+    cursor_position = 0;
+  }
 
-      Kernel::video_memory[dst] =
-          Kernel::video_memory[src];
+  void scroll() {
+    // Shift all rows up by one row
+    for (int i = COLUMNS; i < SCREEN_SIZE; i++) {
+      cells[i - COLUMNS] = cells[i];
+    }
 
-      Kernel::video_memory[dst + 1] =
-          Kernel::video_memory[src + 1];
+    // Clear last row
+    for (int i = SCREEN_SIZE - COLUMNS; i < SCREEN_SIZE; i++) {
+      clear_cell(cells[i]);
+    }
+
+    // Put cursor on bottom left
+    cursor_position = SCREEN_SIZE - COLUMNS;
+  }
+
+  void putchar(Cell cell) {
+    if (cursor_position < 0)
+      return;
+    if (cursor_position > SCREEN_SIZE - 1)
+      scroll();
+
+    if (cell.c == '\n') {
+      // Calculate the position where the cursor would be if the newline happens
+      // (beginning of the next row)
+      const int newline_pos =
+          cursor_position + COLUMNS - (cursor_position % COLUMNS);
+      if (newline_pos > SCREEN_SIZE - 1)
+        scroll();
+      else
+        cursor_position = newline_pos;
+      render();
+    } else if (cell.c == '\b') {
+      if (cursor_position == 0)
+        return;
+      cursor_position--;
+      clear_cell(cells[cursor_position]);
+      render_cell(cursor_position);
+      render_cursor();
+    } else {
+
+      cells[cursor_position] = cell;
+      render_cell(cursor_position);
+      cursor_position++;
+      render_cursor();
     }
   }
 
-  // Clear the new bottom row.
-  for (int col = 0; col < COLUMNS; col++) {
-    int index = ((ROWS - 1) * COLUMNS + col) * 2;
-
-    Kernel::video_memory[index] = ' ';
-    Kernel::video_memory[index + 1] = 0x0F;
-  }
-}
-
-inline static void putchar(char c) {
-  // Remove the visual cursor before touching the screen.
-  restore_cursor();
-
-  if (c == '\n') {
-    // Jump to the beginning of the next line.
-    Kernel::vram_cursor =
-        ((Kernel::vram_cursor / COLUMNS) + 1) * COLUMNS;
+  void move_left() {
+    if (cursor_position % COLUMNS > 0) {
+      cursor_position--;
+      render_cell(cursor_position + 1);
+      render_cursor();
+    };
   }
 
-  else if (c == '\b') {
-    if (Kernel::vram_cursor > 0) {
-      Kernel::vram_cursor--;
-
-      Kernel::vram_index = Kernel::vram_cursor * 2;
-
-      Kernel::video_memory[Kernel::vram_index] = ' ';
-      Kernel::video_memory[Kernel::vram_index + 1] = 0x0F;
+  void move_right() {
+    if (cursor_position < SCREEN_SIZE - 1) {
+      cursor_position++;
+      render_cell(cursor_position - 1);
+      render_cursor();
     }
   }
 
-  else {
-    // If we're already at the beginning of a new line, we're good.
-    // Write the character normally.
-    Kernel::vram_index = Kernel::vram_cursor * 2;
+  // the shell implements the up and down arrows for history navigation so i
+  // dont see a point in implementing these void move_up() {} void move_down()
+  // {}
 
-    Kernel::video_memory[Kernel::vram_index] = c;
-    Kernel::video_memory[Kernel::vram_index + 1] = 0x0F;
+  void print(const char *str, const u32 color) {
+    if (!str)
+      return;
 
-    Kernel::vram_cursor++;
-
-    // Reached the end of the column line.
-    if (Kernel::vram_cursor % COLUMNS == 0) {
-      // vram_cursor is already exactly at the next line.
-      // Nothing else is needed.
+    for (int i = 0; str[i] != '\0'; i++) {
+      putchar(Cell(str[i], color));
     }
   }
 
-  // If we've moved beyond the screen, scroll upward.
-  if (Kernel::vram_cursor >= SCREEN_SIZE) {
-    scroll();
-    Kernel::vram_cursor = (ROWS - 1) * COLUMNS;
+  static void static_print(const char *str, const u32 color) {
+    global_terminal->print(str, color);
   }
 
-  // Put the visual cursor back.
-  update_cursor();
-}
-
-inline static void move_left() {
-  if (Kernel::vram_cursor == 0)
-    return;
-
-  restore_cursor();
-  Kernel::vram_cursor--;
-  update_cursor();
-}
-
-inline static void move_right() {
-  if (Kernel::vram_cursor >= SCREEN_SIZE - 1)
-    return;
-
-  restore_cursor();
-  Kernel::vram_cursor++;
-  update_cursor();
-}
-
-inline static void move_up() {
-  if (Kernel::vram_cursor >= COLUMNS) {
-    restore_cursor();
-    Kernel::vram_cursor -= COLUMNS;
-    update_cursor();
+  void print_number(int n) {
+    char buf[16];
+    StringUtils::print_number_into(buf, sizeof(buf), n);
+    print(buf, 0xFFFFFF);
   }
-}
 
-inline static void move_down() {
-  if (Kernel::vram_cursor + COLUMNS < SCREEN_SIZE) {
-    restore_cursor();
-    Kernel::vram_cursor += COLUMNS;
-    update_cursor();
+  void clear_cell_screen(int index) {
+    int x = (index % COLUMNS) * Graphics::CHARACTER_WIDTH;
+    int y = (index / COLUMNS) * Graphics::CHARACTER_HEIGHT;
+
+    Graphics::draw_rect(x, y, Graphics::CHARACTER_WIDTH,
+                        Graphics::CHARACTER_HEIGHT, 0x000000);
   }
-}
 
-inline static void print(const char *str) {
-  if (!str)
-    return;
+  void render_cell(int index) {
+    int x = (index % COLUMNS) * Graphics::CHARACTER_WIDTH;
+    int y = (index / COLUMNS) * Graphics::CHARACTER_HEIGHT;
 
-  for (int i = 0; str[i] != '\0'; i++) {
-    putchar(str[i]);
+    // Erase the physical cell first
+    Graphics::draw_rect(x, y, Graphics::CHARACTER_WIDTH,
+                        Graphics::CHARACTER_HEIGHT, 0x000000);
+
+    // Draw its actual contents
+    Graphics::draw_char(cells[index].c, x, y, cells[index].color);
   }
-}
 
-inline static void print_number(int n) {
-  char buf[16];
-  StringUtils::print_number_into(buf, sizeof(buf), n);
-  print(buf);
-}
+  void render() {
 
-} // namespace TerminalUtils
+    Graphics::clear(0x000000);
+
+    if (cursor_position > SCREEN_SIZE - 1)
+      scroll();
+
+    for (int i = 0; i < SCREEN_SIZE; i++) {
+      Graphics::draw_char(cells[i].c, (i % COLUMNS) * Graphics::CHARACTER_WIDTH,
+                          (i / COLUMNS) * Graphics::CHARACTER_HEIGHT,
+                          cells[i].color);
+    }
+
+    render_cursor();
+  }
+
+  void render_cursor() {
+
+    const int cursor_x =
+        (cursor_position % COLUMNS) * Graphics::CHARACTER_WIDTH;
+    const int cursor_y =
+        (cursor_position / COLUMNS) * Graphics::CHARACTER_HEIGHT;
+    Graphics::draw_bitmap(CURSOR_CHAR, cursor_x, cursor_y, 0xFFFFFF);
+  }
+
+  const int get_cursor_position() const { return cursor_position; }
+};

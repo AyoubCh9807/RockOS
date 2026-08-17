@@ -13,13 +13,13 @@ public:
 
   const char *name() const override { return "touch"; }
 
-  String execute(int argc, char **argv) override {
+  CommandResult execute(int argc, char **argv) override {
     if (argc < 2)
-      return "usage: touch <name>\n\0";
+      return CommandResult(Generator::random_phrase(touch_failure_phrases), Colors::RED);
 
     if (fs.touch(argv[1], current_dir))
-      return "file created\n\0";
+      return CommandResult(Generator::random_phrase(touch_phrases), Colors::GREEN);
 
-    return "failed creating file\n\0";
+    return CommandResult(Generator::random_phrase(touch_failure_phrases), Colors::RED);
   }
 };

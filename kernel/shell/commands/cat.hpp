@@ -5,26 +5,29 @@
 #include "icommand.hpp"
 
 class CatCommand : public ICommand {
-	FileSystem &fs;
-	u32 &current_dir;
+  FileSystem &fs;
+  u32 &current_dir;
 
 public:
-	CatCommand(FileSystem &fs, u32 &current_dir) : fs(fs), current_dir(current_dir) {}
+  CatCommand(FileSystem &fs, u32 &current_dir)
+      : fs(fs), current_dir(current_dir) {}
 
-	const char *name() const override { return "cat"; }
+  const char *name() const override { return "cat"; }
 
-	String execute(int argc, char **argv) override {
-		if (argc < 2) {
-     String msg = "usage: cat <file>\n\0";
-      return msg;
+  CommandResult execute(int argc, char **argv) override {
+    if (argc < 2) {
+      return CommandResult(Generator::random_phrase(cat_failure_phrases),
+                           Colors::RED);
     }
-		static u8 buffer[DIRECT_BLOCKS * BLOCK_SIZE + 1];
-		size_t bytes_read = 0;
+    static u8 buffer[DIRECT_BLOCKS * BLOCK_SIZE + 1];
+    size_t bytes_read = 0;
 
-		if (!fs.read_file(argv[1], buffer, sizeof(buffer) - 1, bytes_read, current_dir))
-			return "failed reading file\n\0";
+    if (!fs.read_file(argv[1], buffer, sizeof(buffer) - 1, bytes_read,
+                      current_dir))
+      return CommandResult(Generator::random_phrase(cat_failure_phrases),
+                           Colors::RED);
 
-		buffer[bytes_read] = '\0';
-		return (const char *)buffer;
-	}
+    buffer[bytes_read] = '\0';
+    return CommandResult((const char *)buffer);
+  }
 };

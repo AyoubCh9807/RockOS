@@ -8,8 +8,8 @@ class DamianCommand : public ICommand {
 public:
   const char *name() const override { return "damian"; }
 
-  String execute(int argc, char **argv) override {
+  CommandResult execute(int argc, char **argv) override {
 
-    return Generator::generate_words();
+    return CommandResult(Generator::generate_words(), Colors::RED);
   }
 };

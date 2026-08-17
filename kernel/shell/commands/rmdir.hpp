@@ -13,12 +13,13 @@ public:
 
   const char *name() const override { return "rmdir"; }
 
-  String execute(int argc, char **argv) override {
+  CommandResult execute(int argc, char **argv) override {
 
     Debugger::log("RMDIR START\n");
 
     if (argc < 2)
-      return Generator::random_phrase(command_not_found_phrases);
+      return CommandResult(Generator::random_phrase(command_not_found_phrases),
+                           Colors::RED);
 
     Debugger::log("REMOVING: ");
     Debugger::log(argv[1]);
@@ -28,8 +29,10 @@ public:
     Debugger::log("RMDIR END\n");
 
     if (result)
-      return Generator::random_phrase(rmdir_phrases);
+      return CommandResult(Generator::random_phrase(rmdir_phrases),
+                           Colors::GREEN);
 
-    return Generator::random_phrase(command_not_found_phrases);
+    return CommandResult(Generator::random_phrase(command_not_found_phrases),
+                         Colors::RED);
   }
 };

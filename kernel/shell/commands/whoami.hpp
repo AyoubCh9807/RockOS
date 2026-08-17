@@ -6,14 +6,16 @@
 #include "icommand.hpp"
 
 class WhoamiCommand : public ICommand {
+private:
+  TerminalUtils &terminal_utils;
 
 public:
+  WhoamiCommand(TerminalUtils &utils) : terminal_utils(utils) {};
+
   const char *name() const { return "whoami"; }
 
-  String execute(int argc, char **argv) {
+  CommandResult execute(int argc, char **argv) {
 
-    TerminalUtils::print(Generator::random_phrase(whoami_phrases));
-    return "";
+    return CommandResult(Generator::random_phrase(whoami_phrases), Colors::pick_random_color());
   }
 };
-

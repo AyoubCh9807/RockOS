@@ -1,32 +1,32 @@
 #pragma once
 #include "../storage/layout.hpp"
-
 #include "terminal_utils.hpp"
 
-namespace Debugger {
+class Debugger {
 
-static void log(const char *str) {
-  if (FS_DEBUG)
-    TerminalUtils::print(str);
-}
+public:
+  static void log(const char *str) {
+    if (FS_DEBUG)
+      TerminalUtils::static_print(str, 0xFFFFFF);
+  }
 
-static void log_number(int n) {
-  if (FS_DEBUG)
-    TerminalUtils::print_number(n);
-}
+  static void log_number(int n) {
+    if (FS_DEBUG)
+      TerminalUtils::static_print(StringUtils::iota(n), 0xFFFFFF);
+  }
 
-/*
- static void log_number(int n) {
-    if (FS_DEBUG) {
-        volatile int x = 0;
-        x++;
-    }
-}
-static void log(const char *str) {
-    if (FS_DEBUG) {
-        volatile int x = 0;
-        x++;
-    }
-}
-*/
-} // namespace Debugger
+  /*
+   static void log_number(int n) {
+      if (FS_DEBUG) {
+          volatile int x = 0;
+          x++;
+      }
+  }
+  static void log(const char *str) {
+      if (FS_DEBUG) {
+          volatile int x = 0;
+          x++;
+      }
+  }
+  */
+};

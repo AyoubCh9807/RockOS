@@ -15,10 +15,14 @@ class Environment {
 private:
   static constexpr u32 MAX_VARS = 32;
 
+  TerminalUtils &terminal_utils;
+
   Vector<EnvVar> vars;
   u32 count = 0;
 
 public:
+  Environment(TerminalUtils &utils) : terminal_utils(utils) {};
+
   int exists(const char *name) {
     int index = -1;
     for (int i = 0; i < vars.size(); i++) {
@@ -63,8 +67,8 @@ public:
   };
   void print() const {
     for (int i = 0; i < vars.size(); i++) {
-      TerminalUtils::print(StringUtils::format("%s: %s\n", vars[i].name.c_str(),
-                                               vars[i].value.c_str()));
+      terminal_utils.print(StringUtils::format("%s: %s\n", vars[i].name.c_str(),
+                                               vars[i].value.c_str()), 0xFFFFFF);
     }
   };
 
