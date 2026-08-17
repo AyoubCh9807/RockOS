@@ -108,6 +108,7 @@ private:
       return;
 
     buffer.pop_back();
+    terminal.terminal_utils.set_input_end(command_end);
     terminal.terminal_utils.putchar('\b');
 
     command_end = get_cursor();
@@ -132,7 +133,7 @@ private:
       return;
 
     for (int i = 0; i < old_length; i++)
-      terminal.terminal_utils.putchar('\b');
+      terminal.terminal_utils.backspace();
 
     terminal.terminal_utils.print(buffer.c_str(), 0xFFFFFF);
   }
@@ -177,6 +178,7 @@ public:
       : terminal(t), env(t.get_env()), history(sh), buffer("") {}
 
   void run() {
+      
     terminal.draw_random_ascii();
 
     print_prompt();

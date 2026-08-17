@@ -11,6 +11,8 @@ private:
   const int COLUMNS = Multiboot2::framebuffer.width / Graphics::CHARACTER_WIDTH;
   const int SCREEN_SIZE = COLUMNS * ROWS;
 
+  int input_end = 0;
+
   struct Cell {
     char c;
     u32 color;
@@ -37,6 +39,8 @@ public:
     }
     global_terminal = this;
   }
+
+  void set_input_end(int val) { input_end = val; }
 
   void clear_cell(Cell &cell) {
     cell.c = ' ';
@@ -65,6 +69,25 @@ public:
     cursor_position = SCREEN_SIZE - COLUMNS;
   }
 
+  void backspace() {
+    if (cursor_position == 0 || cursor_position > input_end)
+      return;
+
+    cursor_position--;
+
+    for (int i = cursor_position; i < input_end; i++) {
+      cells[i] = cells[i + 1];
+    }
+
+    clear_cell(cells[input_end]);
+
+    for (int i = cursor_position; i <= input_end; i++) {
+      render_cell(i);
+    }
+
+    render_cursor();
+  }
+
   void putchar(Cell cell) {
     if (cursor_position < 0)
       return;
@@ -82,12 +105,7 @@ public:
         cursor_position = newline_pos;
       render();
     } else if (cell.c == '\b') {
-      if (cursor_position == 0)
-        return;
-      cursor_position--;
-      clear_cell(cells[cursor_position]);
-      render_cell(cursor_position);
-      render_cursor();
+      backspace();
     } else {
 
       cells[cursor_position] = cell;
