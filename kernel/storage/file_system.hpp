@@ -12,14 +12,17 @@
 #include "path_resolver.hpp"
 
 class FileSystem {
-  // private:
-public:
+private:
   Disk &disk;
 
   BlockManager block_manager;
   InodeManager inode_manager;
   DirectoryManager directory_manager;
   PathResolver path_resolver;
+
+public:
+  BlockManager &get_block_manager()  { return block_manager; }
+  InodeManager &get_inode_manager()  { return inode_manager; }
 
   static void append_bounded(char *dst, u32 cap, const char *src) {
     if (!dst || cap == 0)

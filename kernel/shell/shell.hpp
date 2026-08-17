@@ -27,7 +27,7 @@ private:
   // FS IS STILL PUBLIC AND SO IS ITS MEMBERS
   void dump_root_sanity(FileSystem &fs) {
     Inode root{};
-    terminal.fs.inode_manager.read_inode(ROOT_INODE, root);
+    terminal.fs.get_inode_manager().read_inode(ROOT_INODE, root);
     Debugger::log("ROOT CHECK: used=");
     Debugger::log_number(root.used);
     Debugger::log(" dir=");
@@ -37,7 +37,7 @@ private:
     Debugger::log("\n");
 
     u8 buf[BLOCK_SIZE];
-    terminal.fs.block_manager.read_block(root.direct_blocks[0], buf);
+    terminal.fs.get_block_manager().read_block(root.direct_blocks[0], buf);
     DirectoryEntry *entries = (DirectoryEntry *)buf;
     for (int i = 0; i < DIRECTORY_ENTRIES_PER_BLOCK; i++) {
       if (entries[i].is_used) {
