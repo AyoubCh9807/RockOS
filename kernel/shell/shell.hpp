@@ -107,6 +107,9 @@ private:
     if (buffer.length() <= 0)
       return;
 
+    if (get_cursor() <= command_start)
+      return;
+
     buffer.pop_back();
     terminal.terminal_utils.set_input_end(command_end);
     terminal.terminal_utils.putchar('\b');
@@ -178,12 +181,26 @@ public:
       : terminal(t), env(t.get_env()), history(sh), buffer("") {}
 
   void run() {
-      
+
+    bool is_status_bar_updated = false;
+
     terminal.draw_random_ascii();
 
     print_prompt();
 
     while (1) {
+
+      if (heap.get_event_stream().is_event_pending()) {
+        while (heap.get_event_stream().is_event_pending()) {
+          heap.get_event_stream().consume_next_event();
+        }
+        is_status_bar_updated = false;
+      }
+      if (!is_status_bar_updated) {
+        terminal.terminal_utils.update_status_bar();
+        is_status_bar_updated = true;
+      }
+
       KeyEvent ev = Keyboard::read();
 
       if (ev.scancode == 0 || ev.keytype == KeyType::None) {

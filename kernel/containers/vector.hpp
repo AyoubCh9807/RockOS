@@ -1,5 +1,5 @@
 #pragma once
-#include "../memory/memory.hpp"
+#include "../memory/heap.hpp"
 #include "../shared/types.hpp"
 
 constexpr int DEFAULT_VECTOR_REALLOCATION_INCREMENT = 24;

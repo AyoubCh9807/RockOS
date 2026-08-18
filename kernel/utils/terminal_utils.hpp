@@ -2,6 +2,7 @@
 
 #include "../../boot/graphics.hpp"
 #include "../../boot/multiboot2.hpp"
+#include "../memory/heap.hpp"
 #include "string_utils.hpp"
 
 class TerminalUtils {
@@ -10,6 +11,10 @@ private:
   const int ROWS = Multiboot2::framebuffer.height / Graphics::CHARACTER_HEIGHT;
   const int COLUMNS = Multiboot2::framebuffer.width / Graphics::CHARACTER_WIDTH;
   const int SCREEN_SIZE = COLUMNS * ROWS;
+
+  constexpr static int STATUS_BAR_ROWS = 3;
+  const int TERMINAL_ROWS = ROWS - STATUS_BAR_ROWS;
+  const int TERMINAL_SIZE = COLUMNS * TERMINAL_ROWS;
 
   int input_end = 0;
 
@@ -48,7 +53,7 @@ public:
   }
 
   void clear() {
-    for (int i = 0; i < SCREEN_SIZE; i++) {
+    for (int i = 0; i < TERMINAL_SIZE; i++) {
       clear_cell(cells[i]);
     }
     cursor_position = 0;
@@ -56,17 +61,17 @@ public:
 
   void scroll() {
     // Shift all rows up by one row
-    for (int i = COLUMNS; i < SCREEN_SIZE; i++) {
+    for (int i = COLUMNS; i < TERMINAL_SIZE; i++) {
       cells[i - COLUMNS] = cells[i];
     }
 
     // Clear last row
-    for (int i = SCREEN_SIZE - COLUMNS; i < SCREEN_SIZE; i++) {
+    for (int i = TERMINAL_SIZE - COLUMNS; i < TERMINAL_SIZE; i++) {
       clear_cell(cells[i]);
     }
 
     // Put cursor on bottom left
-    cursor_position = SCREEN_SIZE - COLUMNS;
+    cursor_position = TERMINAL_SIZE - COLUMNS;
   }
 
   void backspace() {
@@ -91,7 +96,7 @@ public:
   void putchar(Cell cell) {
     if (cursor_position < 0)
       return;
-    if (cursor_position > SCREEN_SIZE - 1)
+    if (cursor_position > TERMINAL_SIZE - 1)
       scroll();
 
     if (cell.c == '\n') {
@@ -99,7 +104,7 @@ public:
       // (beginning of the next row)
       const int newline_pos =
           cursor_position + COLUMNS - (cursor_position % COLUMNS);
-      if (newline_pos > SCREEN_SIZE - 1)
+      if (newline_pos > TERMINAL_SIZE - 1)
         scroll();
       else
         cursor_position = newline_pos;
@@ -124,7 +129,7 @@ public:
   }
 
   void move_right() {
-    if (cursor_position < SCREEN_SIZE - 1) {
+    if (cursor_position < TERMINAL_SIZE - 1) {
       cursor_position++;
       render_cell(cursor_position - 1);
       render_cursor();
@@ -156,7 +161,7 @@ public:
 
   void clear_cell_screen(int index) {
     int x = (index % COLUMNS) * Graphics::CHARACTER_WIDTH;
-    int y = (index / COLUMNS) * Graphics::CHARACTER_HEIGHT;
+    int y = (index / COLUMNS + STATUS_BAR_ROWS) * Graphics::CHARACTER_HEIGHT;
 
     Graphics::draw_rect(x, y, Graphics::CHARACTER_WIDTH,
                         Graphics::CHARACTER_HEIGHT, 0x000000);
@@ -164,7 +169,7 @@ public:
 
   void render_cell(int index) {
     int x = (index % COLUMNS) * Graphics::CHARACTER_WIDTH;
-    int y = (index / COLUMNS) * Graphics::CHARACTER_HEIGHT;
+    int y = (index / COLUMNS + STATUS_BAR_ROWS) * Graphics::CHARACTER_HEIGHT;
 
     // Erase the physical cell first
     Graphics::draw_rect(x, y, Graphics::CHARACTER_WIDTH,
@@ -178,12 +183,13 @@ public:
 
     Graphics::clear(0x000000);
 
-    if (cursor_position > SCREEN_SIZE - 1)
+    if (cursor_position > TERMINAL_SIZE - 1)
       scroll();
 
-    for (int i = 0; i < SCREEN_SIZE; i++) {
+    for (int i = 0; i < TERMINAL_SIZE; i++) {
       Graphics::draw_char(cells[i].c, (i % COLUMNS) * Graphics::CHARACTER_WIDTH,
-                          (i / COLUMNS) * Graphics::CHARACTER_HEIGHT,
+                          (i / COLUMNS + STATUS_BAR_ROWS) *
+                              Graphics::CHARACTER_HEIGHT,
                           cells[i].color);
     }
 
@@ -194,9 +200,44 @@ public:
 
     const int cursor_x =
         (cursor_position % COLUMNS) * Graphics::CHARACTER_WIDTH;
-    const int cursor_y =
-        (cursor_position / COLUMNS) * Graphics::CHARACTER_HEIGHT;
+    const int cursor_y = (cursor_position / COLUMNS + STATUS_BAR_ROWS) *
+                         Graphics::CHARACTER_HEIGHT;
     Graphics::draw_bitmap(CURSOR_CHAR, cursor_x, cursor_y, 0xFFFFFF);
+  }
+
+  void draw_bar() {
+    size_t used = heap.get_used();
+
+    size_t whole = used / (1024 * 1024);
+    size_t fraction = ((used % (1024 * 1024)) * 10) / (1024 * 1024);
+
+    String text =
+        StringUtils::format("Used: %d.%d MiB / 4 MiB", whole, fraction);
+
+    int i = 0;
+
+    while (text[i] != '\0') {
+      Graphics::draw_char(text[i], i * Graphics::CHARACTER_WIDTH,
+                          Graphics::CHARACTER_HEIGHT * 2, 0xFFFFFF);
+      i++;
+    }
+
+    size_t percentage = (used * 100) / (4 * 1024 * 1024);
+
+    int bar_width = 400;
+    int filled_width = (bar_width * percentage) / 100;
+
+    Graphics::draw_rect(10, Graphics::CHARACTER_HEIGHT, filled_width,
+                        Graphics::CHARACTER_HEIGHT, 0xFFFFFF);
+
+    Graphics::draw_rect(10 + filled_width, Graphics::CHARACTER_HEIGHT,
+                        bar_width - filled_width, Graphics::CHARACTER_HEIGHT,
+                        0x333333);
+  }
+
+  static void update_status_bar() {
+    if (global_terminal)
+      global_terminal->draw_bar();
   }
 
   const int get_cursor_position() const { return cursor_position; }

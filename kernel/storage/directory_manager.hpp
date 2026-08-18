@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../memory/memory.hpp"
+#include "../memory/heap.hpp"
 #include "../shared/types.hpp"
 #include "../utils/string_utils.hpp"
 #include "block_manager.hpp"

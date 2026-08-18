@@ -22,6 +22,7 @@
 #include "commands/tyrant.hpp"
 #include "commands/uptime.hpp"
 #include "commands/write.hpp"
+#include "commands/heaptest.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -58,6 +59,7 @@ private:
   WriteCommand write;
   EnvCommand env;
   DateCommand date;
+  HeaptestCommand heaptest;
 
   FortuneCommand fortune;
   WhoamiCommand whoami;
@@ -82,7 +84,7 @@ public:
         pwd(fs, current_dir), tyrant(), damian(), cd(fs, current_dir),
         touch(fs, current_dir), rm(fs, current_dir), rmdir(fs, current_dir),
         cat(fs, current_dir), write(fs, current_dir), env(environment), date(),
-        fortune(), whoami(terminal_utils), motd(), rockfetch(terminal_utils), ascii(terminal_utils),
+        heaptest(), fortune(), whoami(terminal_utils), motd(), rockfetch(terminal_utils), ascii(terminal_utils),
         stats(terminal_utils), mood(), void_cmd(terminal_utils), lore(), diagnose(terminal_utils) {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
@@ -106,6 +108,7 @@ public:
     register_command(&write);
     register_command(&env);
     register_command(&date);
+    register_command(&heaptest);
 
     register_command(&fortune);
     register_command(&whoami);

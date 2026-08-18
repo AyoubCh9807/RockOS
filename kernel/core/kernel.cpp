@@ -1,5 +1,5 @@
 #include "kernel.hpp"
-#include "../memory/memory.hpp"
+#include "../memory/heap.hpp"
 // #include "../multiboot/multiboot_info.hpp"
 #include "../../boot/graphics.hpp"
 #include "../../boot/multiboot2.hpp"
@@ -15,8 +15,10 @@
 //   MultibootInfo(const MultibootInfoRaw* info) {
 
 extern "C" void kernel_main(u32 mb_addr) {
-  init_heap();
+
   call_constructors();
+  heap.init_heap();
+
   Timer::init();
   Random::init();
 
@@ -52,12 +54,12 @@ extern "C" void kernel_main(u32 mb_addr) {
 
   Graphics::clear(0x000000);
 
-//  Graphics::draw_rect(100, 100, 300, 100, 0xFF0000);
+  //  Graphics::draw_rect(100, 100, 300, 100, 0xFF0000);
 
-//  Graphics::draw_line(100, 250, 400, 0x00FF00);
+  //  Graphics::draw_line(100, 250, 400, 0x00FF00);
 
-//  Graphics::draw_string("ROCK OS", 100, 300, 0xFFFFFF);
-  
+  //  Graphics::draw_string("ROCK OS", 100, 300, 0xFFFFFF);
+
   terminal_utils.print(Generator::random_phrase(reboot_phrases), 0xFFFFFF);
 
   ShellHistory sh;

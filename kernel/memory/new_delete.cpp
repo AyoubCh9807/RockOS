@@ -1,4 +1,4 @@
-#include "../memory/memory.hpp"
+#include "../memory/heap.hpp"
 #include "../shared/types.hpp"
 
 extern "C" void *memset(void *dest, int value, size_t count) {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../memory/memory.hpp"
+#include "../memory/heap.hpp"
 #include <stdarg.h>
 
 constexpr int DEFAULT_BUFFER_ALLOCATION_SIZE = 16;
