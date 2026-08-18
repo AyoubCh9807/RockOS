@@ -11,6 +11,11 @@ inline void reboot() {
   Asm::outb(keyboard_command_port, reboot_data);
 }
 
-inline void halt() { Asm::halt(); }
+inline void halt() {
+  Timer::set_idle(false);
+  Asm::halt();
+  Timer::set_idle(true);
+
+}
 
 } // namespace Kernel

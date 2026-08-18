@@ -1,15 +1,17 @@
 #pragma once
 
+#include "../containers/string.hpp"
 #include "asm.hpp"
 #include "idt.hpp"
-#include "../containers/string.hpp"
 
 constexpr int DIVISOR = 11932;
 constexpr int TIMER_HZ = 100;
 
 namespace Timer {
 
-inline unsigned int ticks = 0;
+volatile inline unsigned int ticks = 0;
+volatile inline unsigned int idle_ticks = 0;
+inline bool cpu_idle;
 
 inline void remap_pic() {
   // Save masks (not necessary but good)
@@ -67,7 +69,11 @@ inline void init() {
   Asm::sti();
 }
 
-inline void handler() { ticks++; }
+inline void handler() {
+  ticks++;
+  if (idle_ticks)
+    idle_ticks++;
+}
 
 inline int get_ticks() { return ticks; }
 
@@ -77,7 +83,7 @@ inline int get_minutes() { return (ticks / TIMER_HZ) / 60; }
 
 inline int get_hours() { return (ticks / TIMER_HZ) / 3600; }
 
-inline char *get_formatted_time() {
+inline String get_formatted_time() {
   int seconds = get_seconds();
   int minutes = get_minutes();
   int hours = get_hours();
@@ -87,27 +93,34 @@ inline char *get_formatted_time() {
     hours %= 24;
   }
 
-  char *str;
   seconds %= 60;
   minutes %= 60;
   hours %= 24;
 
   if (minutes == 0) {
-    str = StringUtils::format("Uptime: %d seconds\n\0", seconds);
+    return String::format("Uptime: %d seconds\n\0", seconds);
 
   } else if (hours == 0) {
-    str = StringUtils::format("Uptime: %d minutes and %d seconds\n\0", minutes,
-                         seconds);
+    return String::format("Uptime: %d minutes and %d seconds\n\0", minutes,
+                               seconds);
   } else if (days == 0) {
-    str = StringUtils::format("Uptime: %d hours, %d minutes and %d seconds\n\0",
-                         hours, minutes, seconds);
+    return String::format(
+        "Uptime: %d hours, %d minutes and %d seconds\n\0", hours, minutes,
+        seconds);
   } else {
-    str = StringUtils::format(
+    return String::format(
         "Uptime: %d days, %d hours, %d minutes and %d seconds\n\0", days, hours,
         minutes, seconds);
   }
+}
 
-  return str;
+inline void set_idle(bool val) { cpu_idle = val; }
+
+inline int get_cpu_usage() {
+  if (ticks == 0)
+    return 0;
+
+  return 100 - ((idle_ticks * 100) / ticks);
 }
 
 extern "C" void c_timer_handler() { Timer::handler(); }

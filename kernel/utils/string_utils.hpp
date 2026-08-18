@@ -92,41 +92,40 @@ public:
     return dest;
   }
 
-  inline static const char *iota(int val) {
-    // Allocate numeric string. Caller owns result if it isn't a static literal.
-    // Implemented via long long so INT_MIN works.
+  inline static char *iota(int val) {
     long long v = (long long)val;
-    if (v == 0)
-      return "0";
 
     bool neg = false;
+
     if (v < 0) {
       neg = true;
       v = -v;
     }
 
-    char map[10] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-
     int len = 0;
     long long tmp = v;
-    while (tmp != 0) {
+
+    do {
       tmp /= 10;
       len++;
-    }
+    } while (tmp != 0);
+
     if (neg)
       len++;
 
     char *str = (char *)kmalloc((size_t)len + 1);
     if (!str)
-      return "";
+      return nullptr;
 
     str[len] = '\0';
 
     int i = len - 1;
-    while (v != 0 && i >= 0) {
-      str[i--] = map[v % 10];
+
+    do {
+      str[i--] = '0' + (v % 10);
       v /= 10;
-    }
+    } while (v != 0);
+
     if (neg)
       str[0] = '-';
 
@@ -154,7 +153,7 @@ public:
     dest[dest_len + i] = '\0';
   }
 
-  // Legacy unbounded append (btw dest MUST Have room): 
+  // Legacy unbounded append (btw dest MUST Have room):
   inline static void append(char *dest, const char *src) {
     if (!dest || !src)
       return;
@@ -230,15 +229,28 @@ public:
           }
         } else if (fmt[i] == 'd') {
           int v = va_arg(args, int);
-          const char *num = iota(v);
-          while (*num) {
+
+          char *num = iota(v);
+
+          if (!num) {
+            va_end(args);
+            kfree(buf);
+            return nullptr;
+          }
+
+          for (int j = 0; num[j] != '\0'; j++) {
             buf = grow_buffer(buf, capacity, out, (size_t)out + 2);
+
             if (!buf) {
+              kfree(num);
               va_end(args);
               return nullptr;
             }
-            buf[out++] = *num++;
+
+            buf[out++] = num[j];
           }
+
+          kfree(num);
         } else if (fmt[i] == 'c') {
           char c = (char)va_arg(args, int);
           buf = grow_buffer(buf, capacity, out, (size_t)out + 2);

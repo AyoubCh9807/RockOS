@@ -62,6 +62,7 @@ extern "C" void kernel_main(u32 mb_addr) {
 
   terminal_utils.print(Generator::random_phrase(reboot_phrases), 0xFFFFFF);
 
+
   ShellHistory sh;
   Shell shell(terminal, sh);
   shell.run();

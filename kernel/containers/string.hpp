@@ -117,6 +117,32 @@ public:
     return *this;
   }
 
+  String(String &&other)
+      : size_(other.size_), capacity_(other.capacity_), data_(other.data_) {
+
+    other.size_ = 0;
+    other.capacity_ = 0;
+    other.data_ = nullptr;
+  }
+
+  String &operator=(String &&other) {
+    if (this == &other)
+      return *this;
+
+    if (data_)
+      kfree(data_);
+
+    size_ = other.size_;
+    capacity_ = other.capacity_;
+    data_ = other.data_;
+
+    other.size_ = 0;
+    other.capacity_ = 0;
+    other.data_ = nullptr;
+
+    return *this;
+  }
+
   String &operator+=(const char *other) {
     if (!other)
       return *this;

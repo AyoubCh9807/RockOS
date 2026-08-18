@@ -2,6 +2,8 @@
 
 #include "../../boot/graphics.hpp"
 #include "../../boot/multiboot2.hpp"
+#include "../core/rtc.hpp"
+#include "../data/colors.hpp"
 #include "../memory/heap.hpp"
 #include "string_utils.hpp"
 
@@ -20,7 +22,7 @@ private:
   const int COLUMNS = Multiboot2::framebuffer.width / Graphics::CHARACTER_WIDTH;
   const int SCREEN_SIZE = COLUMNS * ROWS;
 
-  constexpr static int STATUS_BAR_ROWS = 3;
+  constexpr static int STATUS_BAR_ROWS = 5;
   const int TERMINAL_ROWS = ROWS - STATUS_BAR_ROWS;
   const int TERMINAL_SIZE = COLUMNS * TERMINAL_ROWS;
 
@@ -74,16 +76,16 @@ public:
     cursor_position = TERMINAL_SIZE - COLUMNS;
   }
 
-void backspace() {
+  void backspace() {
     if (cursor_position == 0 || cursor_position > input_end)
-        return;
+      return;
 
     int old_cursor = cursor_position;
 
     cursor_position--;
 
     for (int i = cursor_position; i < input_end - 1; i++) {
-        cells[i] = cells[i + 1];
+      cells[i] = cells[i + 1];
     }
 
     input_end--;
@@ -91,16 +93,17 @@ void backspace() {
     clear_cell(cells[input_end]);
 
     for (int i = cursor_position; i <= input_end; i++) {
-        render_cell(i);
+      render_cell(i);
     }
 
-    // Explicitly redraw the old cursor location (because if we dont, the framebuffer 
-    // still has the pixels of the cursor in the old cursor position, we need to update
-    // whats being displayed by clearing the old cell too)
+    // Explicitly redraw the old cursor location (because if we dont, the
+    // framebuffer still has the pixels of the cursor in the old cursor
+    // position, we need to update whats being displayed by clearing the old
+    // cell too)
     render_cell(old_cursor);
 
     render_cursor();
-}
+  }
 
   void putchar(Cell cell) {
     if (cursor_position < 0)
@@ -234,34 +237,66 @@ void backspace() {
     Graphics::draw_bitmap(CURSOR_CHAR, cursor_x, cursor_y, 0xFFFFFF);
   }
 
+  void draw_status_char(char c, int x, int y, u32 color) {
+    Graphics::draw_rect(x, y, Graphics::CHARACTER_WIDTH,
+                        Graphics::CHARACTER_HEIGHT, 0x000000);
+
+    Graphics::draw_char(c, x, y, 0xFFFFFF);
+  }
+
   void draw_bar() {
     size_t used = heap.get_used();
 
     size_t whole = used / (1024 * 1024);
     size_t fraction = ((used % (1024 * 1024)) * 10) / (1024 * 1024);
 
-    String text =
-        StringUtils::format("Used: %d.%d MiB / 4 MiB", whole, fraction);
+    String heap_text =
+        StringUtils::format("HEAP: %d.%d / 4 MiB", whole, fraction);
 
-    int i = 0;
+    int cpu = (int)Timer::get_cpu_usage();
+    String uptime = Timer::get_formatted_time();
+    String full_date = RTC::get_full_time();
 
-    while (text[i] != '\0') {
-      Graphics::draw_char(text[i], i * Graphics::CHARACTER_WIDTH,
-                          Graphics::CHARACTER_HEIGHT * 2, 0xFFFFFF);
-      i++;
+    String system_text = String::format("CPU: %d | %s | date: %s", cpu,
+                                        uptime.c_str(), full_date.c_str());
+
+    // Row 0
+    int x = 0;
+    for (int i = 0; system_text[i] != '\0'; i++) {
+      draw_status_char(system_text[i], x, 0, 0xFFFFFF);
+
+      x += Graphics::CHARACTER_WIDTH;
     }
 
+    // Row 2
+    x = 0;
+    for (int i = 0; heap_text[i] != '\0'; i++) {
+      draw_status_char(heap_text[i], x, Graphics::CHARACTER_HEIGHT * 2,
+                       0xFFFFFF);
+
+      x += Graphics::CHARACTER_WIDTH;
+    }
+
+    // Row 1
     size_t percentage = (used * 100) / (4 * 1024 * 1024);
 
     int bar_width = 400;
     int filled_width = (bar_width * percentage) / 100;
 
     Graphics::draw_rect(10, Graphics::CHARACTER_HEIGHT, filled_width,
-                        Graphics::CHARACTER_HEIGHT, 0xFFFFFF);
+                        Graphics::CHARACTER_HEIGHT, Colors::DARK_RED);
 
     Graphics::draw_rect(10 + filled_width, Graphics::CHARACTER_HEIGHT,
                         bar_width - filled_width, Graphics::CHARACTER_HEIGHT,
-                        0x333333);
+                        Colors::GRAY);
+
+    // Row 3
+    x = 0;
+    for (int i = 0; i < COLUMNS; i++) {
+      draw_status_char('_', i * Graphics::CHARACTER_WIDTH,
+                       Graphics::CHARACTER_HEIGHT * (STATUS_BAR_ROWS - 2),
+                       Colors::GOLD);
+    }
   }
 
   static void update_status_bar() {
