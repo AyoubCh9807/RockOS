@@ -295,17 +295,41 @@ public:
   const char *cend() const { return data_ + size_; }
 
   void remove(size_t index) {
-    if(index >= size_) return;
+    if (index >= size_)
+      return;
     // Hello world becomes:
     // Hell world
-    // everything on the right of the deleted o gets shifted one spot to the left
-    for(int i = index; i < size_; i++) {
+    // everything on the right of the deleted o gets shifted one spot to the
+    // left
+    for (size_t i = index; i < size_; i++) {
       data_[i] = data_[i + 1];
     }
 
     size_--;
 
-    data_[size_ - 1] = '\0';
+    data_[size_] = '\0';
+  }
+
+  void insert(size_t index, char c) {
+    if (index > size_)
+      return;
+
+    if (!data_)
+      return;
+
+    ensure_capacity(size_ + 2);
+
+    // hello world becomes:
+    // hellow world
+    // everything on the right of the new character gets shifted by one spot to
+    // the right
+
+    for (size_t i = index; i < size_; i++) {
+      data_[i + 1] = data_[i];
+    }
+    data_[index] = c;
+    size_++;
+    data_[size_] = '\0';
   }
 
   static String format(const char *fmt, ...) {

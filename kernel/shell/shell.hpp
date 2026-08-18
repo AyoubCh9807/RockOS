@@ -24,7 +24,6 @@ private:
   int command_start;
   int command_end;
 
-  // FS IS STILL PUBLIC AND SO IS ITS MEMBERS
   void dump_root_sanity(FileSystem &fs) {
     Inode root{};
     terminal.fs.get_inode_manager().read_inode(ROOT_INODE, root);
@@ -147,11 +146,13 @@ private:
   }
 
   void handle_character(char c) {
-    buffer = buffer + c;
+    int buffer_index = get_cursor() - command_start;
+    buffer.insert(buffer_index, c);
     history.reset_navigation();
 
-    terminal.terminal_utils.putchar(c);
-    command_end = get_cursor();
+    terminal.terminal_utils.insert_char(TerminalUtils::Cell(c, 0xFFFFFF),
+                                        command_end);
+    command_end++; 
   }
 
   void handle_key(const KeyEvent &ev) {

@@ -6,6 +6,14 @@
 #include "string_utils.hpp"
 
 class TerminalUtils {
+public:
+  struct Cell {
+    char c;
+    u32 color;
+
+    Cell(char c, u32 color) : c(c), color(color) {};
+    Cell(char c) : c(c), color(0xFFFFFF) {};
+  };
 
 private:
   const int ROWS = Multiboot2::framebuffer.height / Graphics::CHARACTER_HEIGHT;
@@ -17,14 +25,6 @@ private:
   const int TERMINAL_SIZE = COLUMNS * TERMINAL_ROWS;
 
   int input_end = 0;
-
-  struct Cell {
-    char c;
-    u32 color;
-
-    Cell(char c, u32 color) : c(c), color(color) {};
-    Cell(char c) : c(c), color(0xFFFFFF) {};
-  };
 
   int cursor_position = 0;
   Cell *cells;
@@ -74,31 +74,33 @@ public:
     cursor_position = TERMINAL_SIZE - COLUMNS;
   }
 
-  void backspace() {
+void backspace() {
     if (cursor_position == 0 || cursor_position > input_end)
-      return;
+        return;
 
-    // Delete the character immediately before the cursor.
+    int old_cursor = cursor_position;
+
     cursor_position--;
 
-    // Shift everything after it one position to the left.
     for (int i = cursor_position; i < input_end - 1; i++) {
-      cells[i] = cells[i + 1];
+        cells[i] = cells[i + 1];
     }
 
-    // The input is now one character less.
     input_end--;
 
-    // Clear the unused last cell.
     clear_cell(cells[input_end]);
 
-    // Redraw everything from the deletion to old end.
     for (int i = cursor_position; i <= input_end; i++) {
-      render_cell(i);
+        render_cell(i);
     }
 
+    // Explicitly redraw the old cursor location (because if we dont, the framebuffer 
+    // still has the pixels of the cursor in the old cursor position, we need to update
+    // whats being displayed by clearing the old cell too)
+    render_cell(old_cursor);
+
     render_cursor();
-  }
+}
 
   void putchar(Cell cell) {
     if (cursor_position < 0)
@@ -125,6 +127,26 @@ public:
       cursor_position++;
       render_cursor();
     }
+  }
+
+  void insert_char(Cell cell, int end) {
+    if (cursor_position > end)
+      return;
+
+    for (int i = end; i > cursor_position; i--) {
+      cells[i] = cells[i - 1];
+    }
+
+    cells[cursor_position] = cell;
+
+    // Redraw everything from the insertion point to the end.
+    for (int i = cursor_position; i <= end; i++) {
+      render_cell(i);
+    }
+
+    cursor_position++;
+
+    render_cursor();
   }
 
   void move_left() {
