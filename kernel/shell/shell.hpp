@@ -107,14 +107,19 @@ private:
     if (buffer.length() <= 0)
       return;
 
-    if (get_cursor() <= command_start)
+    int cursor = get_cursor();
+
+    if (cursor <= command_start)
       return;
 
-    buffer.pop_back();
+    int buffer_index = cursor - command_start - 1;
+
+    buffer.remove(buffer_index);
+
     terminal.terminal_utils.set_input_end(command_end);
     terminal.terminal_utils.putchar('\b');
 
-    command_end = get_cursor();
+    command_end--;
   }
 
   void handle_history_up() {

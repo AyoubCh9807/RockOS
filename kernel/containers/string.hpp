@@ -294,6 +294,19 @@ public:
   const char *cbegin() const { return data_; }
   const char *cend() const { return data_ + size_; }
 
+  void remove(size_t index) {
+    if(index >= size_) return;
+    // Hello world becomes:
+    // Hell world
+    // everything on the right of the deleted o gets shifted one spot to the left
+    for(int i = index; i < size_; i++) {
+      data_[i] = data_[i + 1];
+    }
+
+    size_--;
+
+    data_[size_ - 1] = '\0';
+  }
 
   static String format(const char *fmt, ...) {
     if (!fmt)

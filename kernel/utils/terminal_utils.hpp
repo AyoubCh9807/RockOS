@@ -78,14 +78,21 @@ public:
     if (cursor_position == 0 || cursor_position > input_end)
       return;
 
+    // Delete the character immediately before the cursor.
     cursor_position--;
 
-    for (int i = cursor_position; i < input_end; i++) {
+    // Shift everything after it one position to the left.
+    for (int i = cursor_position; i < input_end - 1; i++) {
       cells[i] = cells[i + 1];
     }
 
+    // The input is now one character less.
+    input_end--;
+
+    // Clear the unused last cell.
     clear_cell(cells[input_end]);
 
+    // Redraw everything from the deletion to old end.
     for (int i = cursor_position; i <= input_end; i++) {
       render_cell(i);
     }

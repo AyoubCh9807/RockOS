@@ -80,7 +80,6 @@ public:
 
   int size() const { return total_history_items; }
 
-private:
   String get(int index) const {
     // If the buffer hasn't wrapped, history is already
     // stored chronologically from index 0.
