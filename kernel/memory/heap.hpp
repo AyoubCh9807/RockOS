@@ -34,7 +34,7 @@ public:
     if (size == 0)
       return 0;
 
-    AllocationEvent ev;
+    HeapAllocationEvent ev;
     size_t total_needed = size + sizeof(Header);
 
     ev.size = total_needed;
@@ -82,7 +82,7 @@ public:
 
     heap_used -= header->size + sizeof(Header);
 
-    AllocationEvent ev;
+    HeapAllocationEvent ev;
     ev.size = header->size + sizeof(Header);
     ev.type = ev.FREED;
 
