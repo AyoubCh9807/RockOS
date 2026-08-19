@@ -14,7 +14,25 @@
 // kernel/core/kernel.cpp
 //   MultibootInfo(const MultibootInfoRaw* info) {
 
-extern "C" void kernel_main(u32 mb_addr) {
+/* extern "C" void kernel_main(u64 multiboot_addr) {
+  call_constructors();
+  heap.init_heap();
+
+
+  Timer::init();
+  Random::init();
+
+  Multiboot2::fill_tags(multiboot_addr);
+
+  Graphics::clear(0xFFFFFF);
+
+  while (true) {
+    asm volatile("hlt");
+  }
+} */
+
+
+extern "C" void kernel_main(u64 mb_addr) {
 
   call_constructors();
   heap.init_heap();
@@ -43,16 +61,15 @@ extern "C" void kernel_main(u32 mb_addr) {
   TerminalUtils terminal_utils;
 
   Environment env(terminal_utils);
-  /*
-   *  TerminalRegistry(TerminalUtils &terminal_utils, FileSystem &fs,
-                   u32 &current_dir, Environment &environment)
 
-   * */
+  //  TerminalRegistry(TerminalUtils &terminal_utils, FileSystem &fs,
+  //               u32 &current_dir, Environment &environment)
+
   TerminalRegistry reg(terminal_utils, fs, current_dir, env);
   Terminal terminal(terminal_utils, fs, reg, env);
   terminal.fill_registry();
 
-  Graphics::clear(0x000000);
+  Graphics::clear(0xFFFFFF);
 
   //  Graphics::draw_rect(100, 100, 300, 100, 0xFF0000);
 
@@ -61,7 +78,6 @@ extern "C" void kernel_main(u32 mb_addr) {
   //  Graphics::draw_string("ROCK OS", 100, 300, 0xFFFFFF);
 
   terminal_utils.print(Generator::random_phrase(reboot_phrases), 0xFFFFFF);
-
 
   ShellHistory sh;
   Shell shell(terminal, sh);

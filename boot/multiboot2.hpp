@@ -53,19 +53,21 @@ struct __attribute__((packed)) FramebufferTag {
   u16 reserved;
 };
 
-inline static void fill_tags(u32 multiboot_addr) {
+inline static void fill_tags(u64 multiboot_addr) {
   Info *info = reinterpret_cast<Info *>(multiboot_addr);
 
-  u32 offset = 8;
+  u64 offset = 8;
 
   while (offset < info->total_size) {
-    Tag *tag = reinterpret_cast<Tag *>(multiboot_addr + offset);
+    Tag *tag =
+        reinterpret_cast<Tag *>(multiboot_addr + offset);
 
     if (tag->type == FRAMEBUFFER) {
-      FramebufferTag *fb = reinterpret_cast<FramebufferTag *>(tag);
+      FramebufferTag *fb =
+          reinterpret_cast<FramebufferTag *>(tag);
 
       framebuffer.address =
-          reinterpret_cast<u8 *>(static_cast<u32>(fb->framebuffer_addr));
+          reinterpret_cast<u8 *>(fb->framebuffer_addr);
 
       framebuffer.pitch = fb->framebuffer_pitch;
       framebuffer.width = fb->framebuffer_width;
