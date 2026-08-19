@@ -122,27 +122,37 @@ private:
   }
 
   void handle_history_up() {
-    int old_length = buffer.length();
-
     if (!history.up(buffer))
       return;
 
-    for (int i = 0; i < old_length; i++)
-      terminal.terminal_utils.putchar('\b');
+    int old_length = command_end - command_start;
 
-    terminal.terminal_utils.print(buffer.c_str(), 0xFFFFFF);
-  }
-
-  void handle_history_down() {
-    int old_length = buffer.length();
-
-    if (!history.down(buffer))
-      return;
-
+    // Erase the currently displayed command.
     for (int i = 0; i < old_length; i++)
       terminal.terminal_utils.backspace();
 
+    // Put the new command on screen.
     terminal.terminal_utils.print(buffer.c_str(), 0xFFFFFF);
+
+    command_end = command_start + buffer.length();
+    terminal.terminal_utils.set_input_end(command_end);
+  }
+
+  void handle_history_down() {
+    if (!history.down(buffer))
+      return;
+
+    int old_length = command_end - command_start;
+
+    // Erase the currently displayed command.
+    for (int i = 0; i < old_length; i++)
+      terminal.terminal_utils.backspace();
+
+    // Put the new command on screen.
+    terminal.terminal_utils.print(buffer.c_str(), 0xFFFFFF);
+
+    command_end = command_start + buffer.length();
+    terminal.terminal_utils.set_input_end(command_end);
   }
 
   void handle_character(char c) {
@@ -152,7 +162,7 @@ private:
 
     terminal.terminal_utils.insert_char(TerminalUtils::Cell(c, 0xFFFFFF),
                                         command_end);
-    command_end++; 
+    command_end++;
   }
 
   void handle_key(const KeyEvent &ev) {
