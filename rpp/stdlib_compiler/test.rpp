@@ -1,9 +1,0 @@
-rock() {
-  i32 x = 10;
-  f64 pi = 3.14;
-  str name = "Rock";
-  bool alive = true;
-
-  Damian::print("Hello from Damian!");
-  Damian::print("Damian says x + y = z");
-}

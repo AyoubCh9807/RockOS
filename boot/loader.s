@@ -208,6 +208,8 @@ timer_stub:
     push r14
     push r15
 
+    
+    mov rdi, rsp ; context switch
     call c_timer_handler
 
     ; Tell the PIC that IRQ0 has been handled.

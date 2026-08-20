@@ -3,6 +3,7 @@
 #include "../containers/string.hpp"
 #include "asm.hpp"
 #include "idt.hpp"
+#include "../process/scheduler.hpp"
 
 constexpr int DIVISOR = 11932;
 constexpr int TIMER_HZ = 100;
@@ -123,6 +124,9 @@ inline int get_cpu_usage() {
   return 100 - ((idle_ticks * 100) / ticks);
 }
 
-extern "C" void c_timer_handler() { Timer::handler(); }
+extern "C" void c_timer_handler(CpuContext* ctx) {
+  Timer::handler(); 
+  Scheduler::on_timer(ctx);
+}
 
 } // namespace Timer
