@@ -11,7 +11,10 @@ static constexpr size_t STACK_SIZE = 64 * 1024;
 static constexpr size_t STACK_PAGES = (STACK_SIZE + PAGE_SIZE - 1) / PAGE_SIZE;
 static constexpr u64 STACK_TOP = STACK_BOTTOM + STACK_PAGES * PAGE_SIZE;
 
+using ProcessEntry = void (*)();
+
 class Process {
+
 private:
   u32 pid = INVALID_PID;
 
@@ -20,6 +23,7 @@ private:
   CpuContext ctx{};
 
   size_t size = 0;
+  ProcessEntry entry = nullptr;
 
   Priority priority = Priority::LOW;
   ProcessState state = ProcessState::BLOCKED;
@@ -33,6 +37,9 @@ public:
   Process(PageTable *pt) : page_table(pt) {}
 
   Process(PageTable *pt, size_t size) : page_table(pt), size(size) {}
+
+  Process(PageTable *pt, size_t size, ProcessEntry e)
+      : page_table(pt), size(size), entry(e) {}
 
   ~Process() { clean_up(); }
 
@@ -78,6 +85,9 @@ public:
     if (!page_table)
       return false;
 
+    if (!entry)
+      return false;
+
     const size_t pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
 
     if (!pages)
@@ -119,6 +129,8 @@ public:
 
     state = ProcessState::READY;
     is_init = true;
+
+    ctx.rip = reinterpret_cast<u64>(entry);
 
     return true;
   }

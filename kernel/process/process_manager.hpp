@@ -1,3 +1,4 @@
+#pragma once
 #include "page_table.hpp"
 #include "process.hpp"
 #include "ps_types.hpp"
