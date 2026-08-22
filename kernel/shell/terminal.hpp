@@ -24,7 +24,7 @@ public:
       : fs(fs), reg(reg), env(env), terminal_utils(t_utils) {}
 
   void draw_random_ascii() {
-    terminal_utils.print(Generator::random_phrase(ascii_art), 0xFFFFFF);
+    terminal_utils.print(Generator::random_phrase(ascii_art), Colors::pick_random_color());
   }
 
   void cd(char *path) {

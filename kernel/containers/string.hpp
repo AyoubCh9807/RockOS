@@ -7,6 +7,9 @@
 constexpr int DEFAULT_STRING_INCREMENT = 16;
 
 class String {
+  // Allow StringUtils::format to use private members for efficiency
+  friend String StringUtils::format(const char *fmt, ...);
+
 private:
   size_t size_;
   size_t capacity_;
@@ -15,7 +18,6 @@ private:
   static inline char err_char_ = '\0';
 
   void ensure_capacity(size_t needed) {
-    // needed includes space for '\0'
     if (needed <= capacity_)
       return;
 
@@ -27,9 +29,8 @@ private:
 
     char *new_data = (char *)kmalloc(new_cap);
     if (!new_data)
-      return; // keep old buffer if allocation fails
+      return;
 
-    // copy old
     for (size_t i = 0; i < size_; i++)
       new_data[i] = data_[i];
     new_data[size_] = '\0';
@@ -67,7 +68,6 @@ public:
     data_[size_] = '\0';
   }
 
-  // Copy ctor (deep copy)
   String(const String &other) : size_(0), capacity_(0), data_(nullptr) {
     size_ = other.size_;
     capacity_ = other.capacity_;
@@ -86,13 +86,11 @@ public:
     data_[size_] = '\0';
   }
 
-  // Copy assignment (deep copy, handles self-assign)
   String &operator=(const String &other) {
     if (this == &other)
       return *this;
 
     if (other.capacity_ == 0) {
-      // free current
       if (data_)
         kfree(data_);
       data_ = nullptr;
@@ -103,7 +101,7 @@ public:
 
     char *new_data = (char *)kmalloc(other.capacity_);
     if (!new_data)
-      return *this; // leave unchanged on alloc failure
+      return *this;
 
     for (size_t i = 0; i < other.size_; i++)
       new_data[i] = other.data_[i];
@@ -119,7 +117,6 @@ public:
 
   String(String &&other)
       : size_(other.size_), capacity_(other.capacity_), data_(other.data_) {
-
     other.size_ = 0;
     other.capacity_ = 0;
     other.data_ = nullptr;
@@ -198,45 +195,36 @@ public:
     data_[size_] = '\0';
   }
 
-  // operator==
   bool operator==(String &other) const {
     return StringUtils::strcmp(c_str(), other.c_str()) == 0;
   }
 
-  // operator== for const string
   bool operator==(const String &other) const {
     return StringUtils::strcmp(c_str(), other.c_str()) == 0;
   }
 
-  // operator!=
   bool operator!=(String &other) const { return !(*this == other); }
 
-  // operator!= for const string
   bool operator!=(const String &other) const { return !(*this == other); }
 
-  // operator[] (safe-ish)
   char &operator[](size_t index) {
     if (!data_ || index >= size_)
       return err_char_;
     return data_[index];
   }
 
-  // operator[] const (safe-ish)
   char &operator[](size_t index) const {
     if (!data_ || index >= size_)
       return err_char_;
     return data_[index];
   }
 
-  // Clear the string contents
   void clear() {
     size_ = 0;
-
     if (data_)
       data_[0] = '\0';
   }
 
-  // Append a C-string (returns new String)
   String operator+(const char *other) const {
     if (!other)
       other = "";
@@ -244,13 +232,10 @@ public:
     size_t other_len = (size_t)StringUtils::strlen(other);
     size_t new_len = size_ + other_len;
 
-    // allocate exact-ish
     size_t cap = new_len + 1 + DEFAULT_STRING_INCREMENT;
     char *new_data = (char *)kmalloc(cap);
-    if (!new_data) {
-      // allocation failed: return a copy of *this (safe fallback)
+    if (!new_data)
       return String(*this);
-    }
 
     for (size_t i = 0; i < size_; i++)
       new_data[i] = data_ ? data_[i] : '\0';
@@ -259,7 +244,6 @@ public:
     new_data[new_len] = '\0';
 
     String result;
-    // replace result's buffer with ours
     if (result.data_)
       kfree(result.data_);
     result.data_ = new_data;
@@ -273,15 +257,13 @@ public:
     return (*this) + other.c_str();
   }
 
-  // The one your warning references
   String operator+(char c) const {
     size_t new_len = size_ + 1;
 
     size_t cap = new_len + 1 + DEFAULT_STRING_INCREMENT;
     char *new_data = (char *)kmalloc(cap);
-    if (!new_data) {
-      return String(*this); // avoid writing through nullptr
-    }
+    if (!new_data)
+      return String(*this);
 
     for (size_t i = 0; i < size_; i++)
       new_data[i] = data_ ? data_[i] : '\0';
@@ -306,14 +288,11 @@ public:
   bool empty() const { return size_ == 0; }
 
   void append(const String &str) { *this += str; }
-
   void append(const char *cstr) { *this += cstr; }
 
-  // Non-const iterators
   char *begin() { return data_; }
   char *end() { return data_ + size_; }
 
-  // Const iterators for range-based for loops on const Strings
   const char *begin() const { return data_; }
   const char *end() const { return data_ + size_; }
 
@@ -323,96 +302,75 @@ public:
   void remove(size_t index) {
     if (index >= size_)
       return;
-    // Hello world becomes:
-    // Hell world
-    // everything on the right of the deleted o gets shifted one spot to the
-    // left
-    for (size_t i = index; i < size_; i++) {
+    for (size_t i = index; i < size_; i++)
       data_[i] = data_[i + 1];
-    }
-
     size_--;
-
     data_[size_] = '\0';
   }
 
   void insert(size_t index, char c) {
     if (index > size_)
       return;
-
     if (!data_)
       return;
 
     ensure_capacity(size_ + 2);
 
-    // hello world becomes:
-    // hellow world
-    // everything on the right of the new character gets shifted by one spot to
-    // the right
-
-    for (size_t i = index; i < size_; i++) {
+    for (size_t i = index; i < size_; i++)
       data_[i + 1] = data_[i];
-    }
     data_[index] = c;
     size_++;
     data_[size_] = '\0';
   }
 
-  static String format(const char *fmt, ...) {
+  int to_int() const {
+    if (!data_ || size_ == 0)
+      return 0;
+
+    int result = 0;
+    int sign = 1;
+    size_t i = 0;
+
+    if (data_[0] == '-') {
+      sign = -1;
+      i++;
+    }
+
+    for (; i < size_; i++) {
+      char c = data_[i];
+      if (c < '0' || c > '9')
+        break;
+      result = result * 10 + (c - '0');
+    }
+
+    return result * sign;
+  }
+};
+
+namespace StringUtils {
+  inline String format(const char *fmt, ...) {
     if (!fmt)
       return String("");
 
+    char stack_buf[256];
     va_list args;
     va_start(args, fmt);
+    int len = vsnprintf(stack_buf, sizeof(stack_buf), fmt, args);
+    va_end(args);
+
+    if (len > 0 && (size_t)len < sizeof(stack_buf))
+      return String(stack_buf);
 
     String result;
+    result.ensure_capacity(len + 1);
+    if (!result.data_)
+      return String("");
 
-    for (int i = 0; fmt[i] != '\0'; i++) {
-      if (fmt[i] != '%' || fmt[i + 1] == '\0') {
-        result += fmt[i];
-        continue;
-      }
-
-      i++;
-
-      switch (fmt[i]) {
-      case '%':
-        result += '%';
-        break;
-
-      case 's': {
-        const char *s = va_arg(args, const char *);
-        if (s)
-          result += s;
-        break;
-      }
-
-      case 'd': {
-        int n = va_arg(args, int);
-        const char *num = StringUtils::iota(n);
-
-        result += num;
-
-        // iota() allocates!
-        if (num && num[0] != '\0')
-          kfree((void *)num);
-
-        break;
-      }
-
-      case 'c': {
-        char c = (char)va_arg(args, int);
-        result += c;
-        break;
-      }
-
-      default:
-        result += fmt[i];
-        break;
-      }
-    }
-
+    va_start(args, fmt);
+    vsnprintf(result.data_, len + 1, fmt, args);
     va_end(args);
+
+    result.size_ = len;
     return result;
   }
-};
+}

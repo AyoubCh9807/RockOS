@@ -67,8 +67,8 @@ public:
   };
   void print() const {
     for (int i = 0; i < vars.size(); i++) {
-      terminal_utils.print(StringUtils::format("%s: %s\n", vars[i].name.c_str(),
-                                               vars[i].value.c_str()), 0xFFFFFF);
+      terminal_utils.print_formatted(Colors::WHITE, "%s: %s\n", vars[i].name.c_str(),
+                                               vars[i].value.c_str());
     }
   };
 

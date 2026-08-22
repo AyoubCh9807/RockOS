@@ -1,12 +1,15 @@
 #pragma once
-#include "ps_types.hpp"
+#include "../core/asm.hpp"
+#include "../utils/debugger.hpp"
 #include "frame_allocator.hpp"
+#include "ps_types.hpp"
 
 class PageTable {
 private:
   static constexpr u64 ENTRY_PRESENT = 0x1;
   static constexpr u64 ENTRY_WRITABLE = 0x2;
   static constexpr u64 PAGE_MASK = ~0xFFFULL;
+  static constexpr u64 ENTRY_USER = 0x4; 
 
   FrameAllocator &frame_allocator;
 
@@ -70,11 +73,16 @@ private:
 
     physical_address = ev.physical_address;
 
+    u64 kernel_pml4 = Asm::read_cr3() & PAGE_MASK;
+
+    if (physical_address == kernel_pml4) {
+      Debugger::log("W ALLOCATED KERNEL PML4!\n");
+    }
+
     clear_table(physical_address);
 
     return true;
   }
-
   // Get an existing child table or create one if it doesn't exist.
   bool get_or_create_table(u64 *parent_table, u16 index, u64 &child_address) {
 
@@ -100,8 +108,25 @@ public:
   // Initialization
 
   bool init() {
-    if (!allocate_table(pml4))
+    Debugger::log("PT: allocating PML4\n");
+
+    if (!allocate_table(pml4)) {
+      Debugger::log("PT: PML4 ALLOCATION FAILED\n");
       return false;
+    }
+
+    Debugger::log("PT: PML4 ALLOCATED\n");
+
+    u64 kernel_pml4 = Asm::read_cr3() & PAGE_MASK;
+
+    Debugger::log("PT: checking kernel PML4\n");
+
+    if (!inherit_kernel_mappings(kernel_pml4)) {
+      Debugger::log("PT: INHERIT FAILED\n");
+      return false;
+    }
+
+    Debugger::log("PT: INIT SUCCESS\n");
 
     return true;
   }
@@ -316,5 +341,29 @@ public:
 
     return physical_frame + get_page_offset(virtual_addr);
   }
-};
 
+  bool inherit_kernel_mappings(u64 kernel_pml4) {
+    if (!kernel_pml4)
+      return false;
+
+    u64 *new_pml4 = get_table(pml4);
+    u64 *kernel_table = get_table(kernel_pml4);
+
+    static constexpr u16 KERNEL_SHARED_SLOT =
+        511; // reserved, never used by user space
+    new_pml4[KERNEL_SHARED_SLOT] = kernel_table[KERNEL_SHARED_SLOT];
+
+    return true;
+  }
+
+  static void debug_kernel_pml4() {
+    u64 kernel_pml4 = Asm::read_cr3() & PAGE_MASK;
+    u64 *table = reinterpret_cast<u64 *>(kernel_pml4);
+
+    for (int i = 0; i < 512; i++) {
+      if (table[i] & ENTRY_PRESENT) {
+        Debugger::logf("PML4[%d] PRESENT\n", i);
+      }
+    }
+  }
+};

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../containers/string.hpp"
+// #include "../process/scheduler.hpp"
 #include "asm.hpp"
 #include "idt.hpp"
-#include "../process/scheduler.hpp"
 
 constexpr int DIVISOR = 11932;
 constexpr int TIMER_HZ = 100;
@@ -13,6 +13,9 @@ namespace Timer {
 volatile inline unsigned int ticks = 0;
 volatile inline unsigned int idle_ticks = 0;
 inline bool cpu_idle;
+
+volatile inline bool bar_dirty = false;
+volatile inline int last_bar_second = -1;
 
 inline void remap_pic() {
   // Save masks (not necessary but good)
@@ -72,7 +75,7 @@ inline void init() {
 
 inline void handler() {
   ticks++;
-  if (idle_ticks)
+  if (cpu_idle)
     idle_ticks++;
 }
 
@@ -84,37 +87,6 @@ inline int get_minutes() { return (ticks / TIMER_HZ) / 60; }
 
 inline int get_hours() { return (ticks / TIMER_HZ) / 3600; }
 
-inline String get_formatted_time() {
-  int seconds = get_seconds();
-  int minutes = get_minutes();
-  int hours = get_hours();
-  int days = 0;
-  if (hours > 24) {
-    days = hours / 24;
-    hours %= 24;
-  }
-
-  seconds %= 60;
-  minutes %= 60;
-  hours %= 24;
-
-  if (minutes == 0) {
-    return String::format("Uptime: %d seconds\n\0", seconds);
-
-  } else if (hours == 0) {
-    return String::format("Uptime: %d minutes and %d seconds\n\0", minutes,
-                               seconds);
-  } else if (days == 0) {
-    return String::format(
-        "Uptime: %d hours, %d minutes and %d seconds\n\0", hours, minutes,
-        seconds);
-  } else {
-    return String::format(
-        "Uptime: %d days, %d hours, %d minutes and %d seconds\n\0", days, hours,
-        minutes, seconds);
-  }
-}
-
 inline void set_idle(bool val) { cpu_idle = val; }
 
 inline int get_cpu_usage() {
@@ -124,9 +96,51 @@ inline int get_cpu_usage() {
   return 100 - ((idle_ticks * 100) / ticks);
 }
 
-extern "C" void c_timer_handler(CpuContext* ctx) {
-  Timer::handler(); 
-  Scheduler::on_timer(ctx);
+inline void get_formatted_time_into(char *buf, size_t max_len) {
+  int seconds = get_seconds();
+  int minutes = get_minutes();
+  int hours = get_hours();
+  int days = 0;
+  if (hours > 24) {
+    days = hours / 24;
+    hours %= 24;
+  }
+  seconds %= 60;
+  minutes %= 60;
+  hours %= 24;
+
+  if (minutes == 0) {
+    StringUtils::snprintf(buf, max_len, "Uptime: %d seconds\n", seconds);
+  } else if (hours == 0) {
+    StringUtils::snprintf(buf, max_len, "Uptime: %d minutes and %d seconds\n",
+                          minutes, seconds);
+  } else if (days == 0) {
+    StringUtils::snprintf(buf, max_len,
+                          "Uptime: %d hours, %d minutes and %d seconds\n",
+                          hours, minutes, seconds);
+  } else {
+    StringUtils::snprintf(
+        buf, max_len, "Uptime: %d days, %d hours, %d minutes and %d seconds\n",
+        days, hours, minutes, seconds);
+  }
 }
 
 } // namespace Timer
+#include "../process/scheduler.hpp"
+
+extern "C" void c_timer_handler(CpuContext *ctx) {
+  Timer::handler();
+
+  // Refresh status bar once per second
+  static int last_second = -1;
+  int now = Timer::get_seconds();
+  if (now != last_second) {
+    TerminalUtils::update_status_bar();
+
+    Timer::last_bar_second = now;
+    Timer::bar_dirty = true;
+  }
+
+  if (Scheduler::get_scheduler())
+    Scheduler::get_scheduler()->on_timer(ctx);
+}

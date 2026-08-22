@@ -49,4 +49,14 @@ static inline u64 rdtsc() {
   return ((u64)hi << 32) | lo;
 }
 
+static inline u64 read_cr3() {
+  u64 value;
+  asm volatile("mov %%cr3, %0" : "=r"(value));
+  return value;
+}
+
+static inline void write_cr3(u64 value) {
+  asm volatile("mov %0, %%cr3" : : "r"(value) : "memory");
+}
+
 } // namespace Asm

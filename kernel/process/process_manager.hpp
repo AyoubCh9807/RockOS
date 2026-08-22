@@ -45,9 +45,8 @@ public:
     }
   }
 
-  ProcessCreationEvent create_process(size_t size) {
+  ProcessCreationEvent create_process(size_t size, ProcessEntry entry) {
 
-    // (Process *p, u32 pid, bool s)
     PageTable *pt = new PageTable(frame_allocator);
 
     if (!pt->init()) {
@@ -55,7 +54,7 @@ public:
       return ProcessCreationEvent();
     }
 
-    Process *p = new Process(pt, size);
+    Process *p = new Process(pt, size, entry);
 
     u32 pid = get_free_id();
 
@@ -119,8 +118,9 @@ public:
     return true;
   }
 
-  void set_process_state(Process* p, ProcessState s) {
-    if(p) p->set_state(s);
+  void set_process_state(Process *p, ProcessState s) {
+    if (p)
+      p->set_state(s);
   }
 
   Vector<Process *> &get_process_train() { return process_train; }

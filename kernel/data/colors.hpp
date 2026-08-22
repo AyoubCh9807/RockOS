@@ -110,6 +110,7 @@ constexpr int PALETTE_SIZE = sizeof(PALETTE) / sizeof(PALETTE[0]);
 
 static const u32 pick_random_color() {
   int random_index = Random::next();
+  while(PALETTE[random_index % PALETTE_SIZE] == BLACK) random_index = Random::next();
   return PALETTE[random_index % PALETTE_SIZE];
 }
 

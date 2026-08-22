@@ -13,10 +13,13 @@ public:
 
   CommandResult execute(int argc, char **argv) {
 
-    return CommandResult(
-        StringUtils::format("%s %s",
-                            Generator::random_phrase(date_success_phrases),
-                            RTC::get_full_time().c_str()),
-        Colors::pick_random_color());
+    char buf[64];
+    RTC::get_full_time_into(buf, sizeof(buf));
+
+    TerminalUtils::get_global_terminal_instance()->print_formatted(
+        Colors::pick_random_color(),
+        Generator::random_phrase(date_success_phrases), buf);
+
+    return CommandResult("");
   }
 };

@@ -1,9 +1,5 @@
 #pragma once
 #include "../../data/fortune.hpp"
-
-#pragma once
-
-#include "../../utils/terminal_utils.hpp"
 #include "icommand.hpp"
 
 class FortuneCommand : public ICommand {

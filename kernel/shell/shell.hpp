@@ -11,7 +11,7 @@
 #include "shell_history.hpp"
 #include "terminal.hpp"
 
-constexpr static int SHELL_MAX_ARGS = 16;
+constexpr static int SHELL_MAX_ARGS = 64;
 
 class Shell {
 private:
@@ -53,13 +53,20 @@ private:
     return terminal.terminal_utils.get_cursor_position();
   }
 
-  void print_prompt() {
-    terminal.terminal_utils.print(
-        StringUtils::format("\n[%s@%s %s]$ ", USER, OS,
-                            terminal.get_current_path()),
-        0xFFFFFF);
+  inline void print_formatted(unsigned color, const char *fmt, ...) {
+    char buf[256];
+    va_list args;
+    va_start(args, fmt);
+    StringUtils::vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    terminal.terminal_utils.print(buf, color);
+  }
 
-    command_start = get_cursor();
+  void print_prompt() {
+    terminal.terminal_utils.print_formatted(0xFFFFFF, "\n[%s@%s %s]$ ", USER,
+                                            OS, terminal.get_current_path()),
+
+        command_start = get_cursor();
     command_end = command_start;
   }
   void execute_command() {
@@ -212,9 +219,9 @@ public:
         }
         is_status_bar_updated = false;
       }
-      if (!is_status_bar_updated) {
-        terminal.terminal_utils.update_status_bar();
-        is_status_bar_updated = true;
+      if (Timer::bar_dirty) {
+        Timer::bar_dirty = false;
+        TerminalUtils::update_status_bar();
       }
 
       KeyEvent ev = Keyboard::read();

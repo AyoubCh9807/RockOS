@@ -49,6 +49,12 @@ public:
 
   void set_input_end(int val) { input_end = val; }
 
+  const int get_columns() const { return COLUMNS; }
+
+  static TerminalUtils *get_global_terminal_instance() {
+    return global_terminal;
+  }
+
   void clear_cell(Cell &cell) {
     cell.c = ' ';
     cell.color = 0xFFFFFF;
@@ -181,6 +187,15 @@ public:
     }
   }
 
+  void print(unsigned color, const char *fmt, ...) {
+    char buf[256];
+    va_list args;
+    va_start(args, fmt);
+    StringUtils::vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    print(buf, color);  // calls the existing print(const char*, unsigned)
+}
+
   static void static_print(const char *str, const u32 color) {
     global_terminal->print(str, color);
   }
@@ -224,7 +239,6 @@ public:
                               Graphics::CHARACTER_HEIGHT,
                           cells[i].color);
     }
-
     render_cursor();
   }
 
@@ -244,40 +258,63 @@ public:
     Graphics::draw_char(c, x, y, 0xFFFFFF);
   }
 
-  void draw_bar() {
+  void draw_status_text(const char *text, int row) {
+    if (!text)
+      text = "";
+
+    for (int i = 0; i < COLUMNS; i++) {
+      char c = text[i];
+
+      if (c == '\0') {
+        // Clear the remainder of the row.
+        for (int j = i; j < COLUMNS; j++) {
+          draw_status_char(' ', j * Graphics::CHARACTER_WIDTH,
+                           row * Graphics::CHARACTER_HEIGHT, 0xFFFFFF);
+        }
+        return;
+      }
+
+      draw_status_char(c, i * Graphics::CHARACTER_WIDTH,
+                       row * Graphics::CHARACTER_HEIGHT, 0xFFFFFF);
+    }
+  }
+
+   void draw_bar() {
     size_t used = heap.get_used();
 
     size_t whole = used / (1024 * 1024);
     size_t fraction = ((used % (1024 * 1024)) * 10) / (1024 * 1024);
 
-    String heap_text =
-        StringUtils::format("HEAP: %d.%d / 4 MiB", whole, fraction);
+    char heap_buf[64];
+    StringUtils::snprintf(heap_buf, sizeof(heap_buf), "HEAP: %u.%u / 4 MiB",
+                          (unsigned)whole, (unsigned)fraction);
 
     int cpu = (int)Timer::get_cpu_usage();
-    String uptime = Timer::get_formatted_time();
-    String full_date = RTC::get_full_time();
 
-    String system_text = String::format("CPU: %d | %s | date: %s", cpu,
-                                        uptime.c_str(), full_date.c_str());
+    char uptime_buf[64];
+    Timer::get_formatted_time_into(uptime_buf, sizeof(uptime_buf));
 
-    // Row 0
-    int x = 0;
-    for (int i = 0; system_text[i] != '\0'; i++) {
-      draw_status_char(system_text[i], x, 0, 0xFFFFFF);
+    char date_buf[64];
+    RTC::get_full_time_into(date_buf, sizeof(date_buf));
 
-      x += Graphics::CHARACTER_WIDTH;
+    char system_buf[128];
+    StringUtils::snprintf(system_buf, sizeof(system_buf),
+                          "CPU: %d | %s | date: %s", cpu, uptime_buf, date_buf);
+
+    draw_status_text(system_buf, 0);
+    draw_status_text(heap_buf, 2);
+
+    // Row 3 separator
+    for (int i = 0; i < COLUMNS; i++) {
+      draw_status_char('_', i * Graphics::CHARACTER_WIDTH,
+                       Graphics::CHARACTER_HEIGHT * 3, Colors::GOLD);
     }
 
-    // Row 2
-    x = 0;
-    for (int i = 0; heap_text[i] != '\0'; i++) {
-      draw_status_char(heap_text[i], x, Graphics::CHARACTER_HEIGHT * 2,
-                       0xFFFFFF);
+    // Row 1 — clear the entire bar first.
+    Graphics::draw_rect(0, Graphics::CHARACTER_HEIGHT,
+                        COLUMNS * Graphics::CHARACTER_WIDTH,
+                        Graphics::CHARACTER_HEIGHT, Colors::GRAY);
 
-      x += Graphics::CHARACTER_WIDTH;
-    }
-
-    // Row 1
     size_t percentage = (used * 100) / (4 * 1024 * 1024);
 
     int bar_width = 400;
@@ -285,23 +322,20 @@ public:
 
     Graphics::draw_rect(10, Graphics::CHARACTER_HEIGHT, filled_width,
                         Graphics::CHARACTER_HEIGHT, Colors::DARK_RED);
-
-    Graphics::draw_rect(10 + filled_width, Graphics::CHARACTER_HEIGHT,
-                        bar_width - filled_width, Graphics::CHARACTER_HEIGHT,
-                        Colors::GRAY);
-
-    // Row 3
-    x = 0;
-    for (int i = 0; i < COLUMNS; i++) {
-      draw_status_char('_', i * Graphics::CHARACTER_WIDTH,
-                       Graphics::CHARACTER_HEIGHT * (STATUS_BAR_ROWS - 2),
-                       Colors::GOLD);
-    }
   }
 
   static void update_status_bar() {
     if (global_terminal)
       global_terminal->draw_bar();
+  }
+
+  void print_formatted(unsigned color, const char *fmt, ...) {
+    char buf[256];
+    va_list args;
+    va_start(args, fmt);
+    StringUtils::vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    print(buf, color);
   }
 
   const int get_cursor_position() const { return cursor_position; }

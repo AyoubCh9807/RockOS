@@ -42,5 +42,6 @@ qemu-system-x86_64 \
     -boot d \
     -drive file=disk.img,format=raw,if=ide,index=0,media=disk \
     -display gtk \
+    -no-reboot -no-shutdown \
     -d int,cpu_reset \
     -D qemu.log

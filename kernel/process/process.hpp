@@ -43,11 +43,12 @@ public:
 
   ~Process() { clean_up(); }
 
+  // process.hpp
   bool alloc() {
     if (!page_table)
       return false;
 
-    u64 virtual_addr = STACK_BOTTOM;
+    u64 stack_base = 0;
 
     for (size_t i = 0; i < STACK_PAGES; i++) {
       FrameAllocatorEvent ev = page_table->get_frame_allocator().alloc();
@@ -57,46 +58,30 @@ public:
         return false;
       }
 
-      bool ok = page_table->map(virtual_addr, ev.physical_address);
+      if (i == 0)
+        stack_base = ev.physical_address;
 
-      if (!ok) {
-        page_table->get_frame_allocator().free(ev.physical_address);
-
-        clean_up_stack();
-        return false;
-      }
-
+      // note to self fr: 0-4GiB is already identity-mapped with 2MB huge pages
+      // by the bootloader (see loader.s), so this physical address
+      // is already directly usable — no page_table->map() needed.
+      // Calling map() here corrupts memory (it misreads a huge PD
+      // entry as if it pointed to a normal PT). Real per-process
+      // virtual memory isolation is future work.
       allocated_stack_pages++;
-      virtual_addr += PAGE_SIZE;
     }
 
-    ctx.rsp = STACK_TOP;
+    ctx.rsp = stack_base + STACK_PAGES * PAGE_SIZE;
 
     return true;
   }
 
   bool setup() {
-    if (!size)
-      return false;
-
-    if (is_init)
-      return false;
-
-    if (!page_table)
-      return false;
-
-    if (!entry)
+    if (!size || is_init || !page_table || !entry)
       return false;
 
     const size_t pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
-
     if (!pages)
       return false;
-
-    /*
-     * Allocate normal process memory.
-     */
-    u64 virtual_addr = PROCESS_MEMORY_START;
 
     for (size_t i = 0; i < pages; i++) {
       FrameAllocatorEvent ev = page_table->alloc();
@@ -106,22 +91,10 @@ public:
         return false;
       }
 
-      bool ok = page_table->map(virtual_addr, ev.physical_address);
-
-      if (!ok) {
-        page_table->get_frame_allocator().free(ev.physical_address);
-
-        clean_up();
-        return false;
-      }
-
+      // Same reasoning as alloc(): no map() call needed/safe right now.
       allocated_pages++;
-      virtual_addr += PAGE_SIZE;
     }
 
-    /*
-     * Allocate the process stack.
-     */
     if (!alloc()) {
       clean_up();
       return false;
@@ -131,6 +104,10 @@ public:
     is_init = true;
 
     ctx.rip = reinterpret_cast<u64>(entry);
+    ctx.cs = 0x08;      // CODE_SEG from loader.s's gdt64
+    ctx.ss = 0x10;      // DATA_SEG from loader.s's gdt64
+    ctx.rflags = 0x202; // IF set then interrupts must stay enabled or the timer
+                        // never fires again
 
     return true;
   }

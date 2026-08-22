@@ -9,8 +9,12 @@ private:
   size_t quantum = 10;
   size_t ticks = 0;
 
+  inline static Scheduler *instance;
+
 public:
-  Scheduler(ProcessManager &pm) : process_manager(pm) {}
+  Scheduler(ProcessManager &pm) : process_manager(pm) { instance = this; }
+
+  static Scheduler *get_scheduler() { return instance; }
 
   void tick() {
     if (current_process == nullptr) {
@@ -85,37 +89,61 @@ public:
     if (current_process == nullptr) {
       current_process = pick_first_process();
 
-      if (current_process)
-        process_manager.set_process_state(current_process,
-                                          ProcessState::RUNNING);
+      if (!current_process)
+        return;
+
+      process_manager.set_process_state(current_process, ProcessState::RUNNING);
+
+      // Switch to the first process's address space.
+      Asm::write_cr3(current_process->get_page_table()->get_pml4());
+
+      // Tell the interrupt-return code to resume at
+      // the process's saved RIP/RSP/etc.
+      *ctx = current_process->get_context();
 
       return;
     }
-
+    // One timer interrupt happened.
     ticks++;
 
+    // Don't switch until the process has used its quantum.
     if (ticks < quantum)
       return;
 
+    // Quantum expired.
     ticks = 0;
 
     Process *next = pick_next();
 
+    // Nothing else to run.
     if (!next || next == current_process)
       return;
 
-    // Save the currently running CPU state.
+    /*
+     * Save current process CPU state.
+     */
     current_process->get_context() = *ctx;
 
-    // Switch which process is considered running.
+    /*
+     * Current process is no longer running.
+     */
     process_manager.set_process_state(current_process, ProcessState::READY);
 
+    /*
+     * Next process becomes running.
+     */
     process_manager.set_process_state(next, ProcessState::RUNNING);
 
     current_process = next;
 
-    // Put the next process's saved CPU state
-    // into the interrupt frame.
+    /*
+     * Switch address spaces.
+     */
+    Asm::write_cr3(next->get_page_table()->get_pml4());
+
+    /*
+     * Restore next process CPU state.
+     */
     *ctx = next->get_context();
   }
 };

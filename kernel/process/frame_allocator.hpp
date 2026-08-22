@@ -18,6 +18,8 @@ public:
     // Initially every frame is free.
     for (u32 i = 0; i < bitmap_size_bytes; i++)
       bitmap[i] = 0;
+
+    BitUtils::set_bit(bitmap, 0);
   }
 
   FrameAllocatorEvent alloc() {

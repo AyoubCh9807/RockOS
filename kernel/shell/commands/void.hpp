@@ -17,10 +17,10 @@ public:
 
     // void_character_names
     for (int i = 0; i < VOID_HIDDEN_CHARACTER_COUNT; i++) {
-      terminal_utils.print(StringUtils::format("%s: %s\n",
-                                               void_character_names[i],
-                                               void_character_status[i]),
-                           Colors::pick_random_color());
+      terminal_utils.print_formatted(0xFFFFFF, "%s: %s\n",
+                                     void_character_names[i],
+                                     void_character_status[i]),
+          Colors::pick_random_color();
     }
 
     return CommandResult("");

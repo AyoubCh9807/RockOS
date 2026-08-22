@@ -21,8 +21,8 @@ private:
   PathResolver path_resolver;
 
 public:
-  BlockManager &get_block_manager()  { return block_manager; }
-  InodeManager &get_inode_manager()  { return inode_manager; }
+  BlockManager &get_block_manager() { return block_manager; }
+  InodeManager &get_inode_manager() { return inode_manager; }
 
   static void append_bounded(char *dst, u32 cap, const char *src) {
     if (!dst || cap == 0)
@@ -582,9 +582,8 @@ public:
     Debugger::log(inode.is_directory ? "RM: DIR\n" : "RM: FILE\n");
     Debugger::log(inode.used ? "RM: USED\n" : "RM: NOT USED\n");
 
-    Debugger::log(StringUtils::format("RM INODE: %d USED=%d DIR=%d SIZE=%d\n",
-                                      inode.id, inode.used, inode.is_directory,
-                                      inode.size));
+    Debugger::logf("RM INODE: %d USED=%d DIR=%d SIZE=%d\n", inode.id,
+                   inode.used, inode.is_directory, inode.size);
 
     /*
      * The inode must actually represent a directory.

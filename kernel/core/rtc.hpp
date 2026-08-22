@@ -49,8 +49,11 @@ static u8 read_year() {
 }
 
 static u8 to_utc1(u8 hours) { return (hours + 1) % 24; }
+// DELETE THIS FUNCTION:
+// static String get_full_time() { ... }
 
-static String get_full_time() {
+// KEEP THIS ONE:
+static void get_full_time_into(char *buf, size_t max_len) {
   u8 seconds = Math::bcd_to_binary(read_seconds());
   u8 minutes = Math::bcd_to_binary(read_minutes());
   u8 hours = to_utc1(Math::bcd_to_binary(read_hours()));
@@ -58,8 +61,8 @@ static String get_full_time() {
   u8 month = Math::bcd_to_binary(read_month());
   u8 year = Math::bcd_to_binary(read_year());
 
-  return StringUtils::format("%d-%d-%d %d:%d:%d", 2000 + year, month, day,
-                             hours, minutes, seconds);
+  StringUtils::snprintf(buf, max_len, "%d-%d-%d %d:%d:%d", 2000 + year, month,
+                        day, hours, minutes, seconds);
 }
 
 } // namespace RTC
