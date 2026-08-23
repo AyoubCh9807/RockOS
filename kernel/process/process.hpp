@@ -7,8 +7,8 @@
 static constexpr u64 PROCESS_MEMORY_START = 0x04000000; // 64 MiB
 static constexpr u64 STACK_BOTTOM =
     0x08000000; // 128 MiB — separate region from process code, avoids collision
-                // as sizes growstatic
-constexpr size_t STACK_SIZE = 64 * 1024;
+                // as sizes grow
+static constexpr size_t STACK_SIZE = 64 * 1024;
 static constexpr size_t STACK_PAGES = (STACK_SIZE + PAGE_SIZE - 1) / PAGE_SIZE;
 static constexpr u64 STACK_TOP = STACK_BOTTOM + STACK_PAGES * PAGE_SIZE;
 
@@ -108,7 +108,7 @@ public:
     if (!size || is_init || !page_table || !entry)
       return false;
 
-    // TEMP: skip code copy entirely, just point at the function's
+    // TEMP: skip code copy entirely for now, just point at the function's
     // real address to isolate the scheduling test from the
     // code-relocation problem.
     ctx.rip = reinterpret_cast<u64>(entry);
