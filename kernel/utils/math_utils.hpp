@@ -1,3 +1,4 @@
+#pragma once
 #include "../shared/types.hpp"
 
 namespace Math {

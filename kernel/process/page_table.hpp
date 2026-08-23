@@ -9,7 +9,7 @@ private:
   static constexpr u64 ENTRY_PRESENT = 0x1;
   static constexpr u64 ENTRY_WRITABLE = 0x2;
   static constexpr u64 PAGE_MASK = ~0xFFFULL;
-  static constexpr u64 ENTRY_USER = 0x4; 
+  static constexpr u64 ENTRY_USER = 0x4;
 
   FrameAllocator &frame_allocator;
 
@@ -151,49 +151,43 @@ public:
 
     u64 *pml4_table = get_table(pml4);
 
-    // PML4 -> PDPT
-
     u64 pdpt_address;
-
     if (!get_or_create_table(pml4_table, get_pml4_index(virtual_addr),
-                             pdpt_address)) {
-
+                             pdpt_address))
       return false;
-    }
 
     u64 *pdpt_table = get_table(pdpt_address);
 
-    // PDPT -> PD
-
     u64 pd_address;
-
     if (!get_or_create_table(pdpt_table, get_pdpt_index(virtual_addr),
-                             pd_address)) {
-
+                             pd_address))
       return false;
-    }
 
     u64 *pd_table = get_table(pd_address);
 
-    // PD -> PT
+    u16 pd_index = get_pd_index(virtual_addr);
+    bool split_happened = false;
 
-    u64 pt_address;
-
-    if (!get_or_create_table(pd_table, get_pd_index(virtual_addr),
-                             pt_address)) {
-
-      return false;
+    if (is_present(pd_table[pd_index]) && is_huge(pd_table[pd_index])) {
+      if (!split_huge_page(pd_table, pd_index))
+        return false;
+      split_happened = true;
     }
 
+    u64 pt_address;
+    if (!get_or_create_table(pd_table, pd_index, pt_address))
+      return false;
+
     u64 *pt_table = get_table(pt_address);
-
-    // PT -> Physical frame
-
     u16 pt_index = get_pt_index(virtual_addr);
 
-    // We don't overwrite an existing mapping.
-    if (is_present(pt_table[pt_index]))
+    if (is_present(pt_table[pt_index]) && !split_happened) {
+      // A genuine pre-existing mapping we didn't just create — refuse.
       return false;
+    }
+    // If split_happened, pt_table[pt_index] is leftover identity-map
+    // filler from split_huge_page(), not a real allocation — safe to
+    // overwrite with the caller's actual mapping.
 
     pt_table[pt_index] = physical_addr | ENTRY_PRESENT | ENTRY_WRITABLE;
 
@@ -349,9 +343,10 @@ public:
     u64 *new_pml4 = get_table(pml4);
     u64 *kernel_table = get_table(kernel_pml4);
 
-    static constexpr u16 KERNEL_SHARED_SLOT =
-        511; // reserved, never used by user space
-    new_pml4[KERNEL_SHARED_SLOT] = kernel_table[KERNEL_SHARED_SLOT];
+    for (int i = 0; i < 512; i++) {
+      if (is_present(kernel_table[i]))
+        new_pml4[i] = kernel_table[i];
+    }
 
     return true;
   }
@@ -365,5 +360,36 @@ public:
         Debugger::logf("PML4[%d] PRESENT\n", i);
       }
     }
+  }
+
+  static constexpr u64 ENTRY_HUGE =
+      0x80; // PS bit — marks a 2MiB page at the PD level
+
+  bool is_huge(u64 entry) const { return entry & ENTRY_HUGE; }
+
+  // If pd_table[pd_index] is currently a 2MiB huge page, replace it with a
+  // freshly allocated page table that maps the exact same 2MiB physical
+  // region at 4KiB granularity (same flags, minus the PS bit). This
+  // preserves the existing identity mapping exactly — nothing that already
+  // worked stops working — it just becomes overridable one 4KiB page at a
+  // time from here on.
+  bool split_huge_page(u64 *pd_table, u16 pd_index) {
+    u64 entry = pd_table[pd_index];
+
+    u64 huge_phys_base = entry & PAGE_MASK;    // 2MiB-aligned base
+    u64 flags = (entry & 0xFFF) & ~ENTRY_HUGE; // keep present/writable, drop PS
+
+    u64 new_pt_phys;
+    if (!allocate_table(new_pt_phys))
+      return false;
+
+    u64 *new_pt = get_table(new_pt_phys);
+
+    for (int i = 0; i < 512; i++)
+      new_pt[i] = (huge_phys_base + (u64)i * PAGE_SIZE) | flags;
+
+    pd_table[pd_index] = new_pt_phys | ENTRY_PRESENT | ENTRY_WRITABLE;
+
+    return true;
   }
 };

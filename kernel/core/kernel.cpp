@@ -2,8 +2,8 @@
 #include "../../boot/graphics.hpp"
 #include "../../boot/multiboot2.hpp"
 #include "../memory/heap.hpp"
-// #include "../process/process_manager.hpp"
-// #include "../process/scheduler.hpp"
+#include "../process/process_manager.hpp"
+#include "../process/scheduler.hpp"
 #include "../random/random.hpp"
 #include "../shared/types.hpp"
 #include "../shell/shell.hpp"
@@ -14,7 +14,7 @@
 
 extern "C" void test_process_1() {
   while (true) {
-    Graphics::draw_string("1", 100, 100, 0x000000);
+    Graphics::draw_string("PROC1 ALIVE", 500, 500, 0x000000);
   }
 }
 
@@ -22,6 +22,31 @@ extern "C" void test_process_2() {
   while (true) {
     Graphics::draw_string("2", 200, 100, 0x000000);
   }
+}
+
+// Fault handlers - see loader.s pagefault_stub / gpfault_stub.
+// saved_regs points at the 15 GPRs pushed by the stub (rax, rcx, rdx,
+// rbx, rbp, rsi, rdi, r8-r15, in that push order), so the CPU's own
+// error code sits immediately above them at index 15.
+extern "C" void c_pagefault_handler(u64 *saved_regs) {
+  u64 fault_addr;
+  asm volatile("mov %%cr2, %0" : "=r"(fault_addr));
+
+  u64 error_code = saved_regs[15];
+
+  Debugger::logf("PAGE FAULT at addr=%x err=%x\n",
+                  (unsigned)fault_addr, (unsigned)error_code);
+  // bit 0: 0=not-present, 1=protection violation
+  // bit 1: 0=read, 1=write
+  // bit 2: 0=kernel, 1=user
+  Debugger::logf("  present=%d write=%d user=%d\n",
+                  (int)(error_code & 1), (int)((error_code >> 1) & 1),
+                  (int)((error_code >> 2) & 1));
+}
+
+extern "C" void c_gpfault_handler(u64 *saved_regs) {
+  u64 error_code = saved_regs[15];
+  Debugger::logf("GP FAULT err=%x\n", (unsigned)error_code);
 }
 
 extern "C" void kernel_main(u64 mb_addr) {
@@ -70,34 +95,34 @@ extern "C" void kernel_main(u64 mb_addr) {
   /*
    * Process system
    */
-  /*  constexpr u32 TEST_MEMORY = 128 * 1024 * 1024;
+  constexpr u32 TEST_MEMORY = 128 * 1024 * 1024;
 
-    FrameAllocator frame_allocator(TEST_MEMORY);
+  FrameAllocator frame_allocator(TEST_MEMORY);
 
-    PageTable::debug_kernel_pml4();
+  PageTable::debug_kernel_pml4();
 
-    ProcessManager process_manager(frame_allocator);
-    Scheduler scheduler(process_manager);
+  ProcessManager process_manager(frame_allocator);
+  Scheduler scheduler(process_manager);
 
-    Process *p1 = process_manager.create_process(64 * 1024, test_process_1).p;
+  Process *p1 = process_manager.create_process(64 * 1024, test_process_1).p;
 
-    Process *p2 = process_manager.create_process(64 * 1024, test_process_2).p;
+  if (!p1) {
+    Debugger::log("PROCESS CREATION FAILED\n");
+    Graphics::draw_string("P1 CREATE FAILED", 500, 450, 0x000000);
+    while (true)
+      Kernel::halt();
+  }
 
-    if (!p1 || !p2) {
-      Debugger::log("PROCESS CREATION FAILED\n");
+  Debugger::log("P1 CREATED\n");
+  Graphics::draw_string("P1 CREATE OK", 500, 450, 0x000000);
 
-      while (true)
-        Kernel::halt();
-    }
-
-    Debugger::log("P1 CREATED\n");
-    Debugger::log("P2 CREATED\n");
-  */
   /*
    * Shell
    */
-  ShellHistory sh;
-  Shell shell(terminal, sh);
+  // ShellHistory sh;
+  // Shell shell(terminal, sh);
+  // shell.run();
 
-  shell.run();
+  while (1)
+    Kernel::halt();
 }

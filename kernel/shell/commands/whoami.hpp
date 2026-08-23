@@ -1,6 +1,6 @@
-#include "../../data/system.hpp"
-
 #pragma once
+
+#include "../../data/system.hpp"
 
 #include "../../utils/terminal_utils.hpp"
 #include "icommand.hpp"
@@ -16,6 +16,7 @@ public:
 
   CommandResult execute(int argc, char **argv) {
 
-    return CommandResult(Generator::random_phrase(whoami_phrases), Colors::pick_random_color());
+    return CommandResult(Generator::random_phrase(whoami_phrases),
+                         Colors::pick_random_color());
   }
 };

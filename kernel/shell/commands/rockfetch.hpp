@@ -1,6 +1,6 @@
-#include "../../data/system.hpp"
-
 #pragma once
+
+#include "../../data/system.hpp"
 
 #include "../../utils/terminal_utils.hpp"
 #include "icommand.hpp"

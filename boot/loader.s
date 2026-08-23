@@ -42,6 +42,8 @@ global loader
 extern kernel_main
 extern c_timer_handler
 extern c_keyboard_handler
+extern c_pagefault_handler
+extern c_gpfault_handler
 
 
 loader:
@@ -177,6 +179,8 @@ long_mode:
 global default_stub
 global timer_stub
 global keyboard_stub
+global pagefault_stub
+global gpfault_stub
 
 
 default_stub:
@@ -278,6 +282,67 @@ keyboard_stub:
     pop rax
 
     iretq
+
+
+; Page fault (#PF, vector 14). The CPU pushes a 32-bit (zero-extended
+; to 64-bit) error code before this fires. We save all GPRs, pass a
+; pointer to them (plus the error code sitting right above) to C++
+; for logging, then halt. This does NOT attempt to recover/resume -
+; it's a debugging aid until real fault handling exists.
+pagefault_stub:
+
+    push rax
+    push rcx
+    push rdx
+    push rbx
+    push rbp
+    push rsi
+    push rdi
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+
+    mov rdi, rsp
+    call c_pagefault_handler
+
+pagefault_hang:
+    cli
+    hlt
+    jmp pagefault_hang
+
+
+; General protection fault (#GP, vector 13). Same shape as the page
+; fault stub above - CPU pushes an error code, we log and halt.
+gpfault_stub:
+
+    push rax
+    push rcx
+    push rdx
+    push rbx
+    push rbp
+    push rsi
+    push rdi
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+
+    mov rdi, rsp
+    call c_gpfault_handler
+
+gpfault_hang:
+    cli
+    hlt
+    jmp gpfault_hang
 
 
 ; A simple GDT with a null descriptor, 64-bit code segment,
