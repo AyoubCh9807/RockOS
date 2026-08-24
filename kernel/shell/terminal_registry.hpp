@@ -9,6 +9,7 @@
 #include "commands/clear.hpp"
 #include "commands/damian.hpp"
 #include "commands/date.hpp"
+#include "commands/dirname.hpp"
 #include "commands/echo.hpp"
 #include "commands/env.hpp"
 #include "commands/grep.hpp"
@@ -70,6 +71,7 @@ private:
   GrepCommand grep;
   AppendCommand append;
   HeadCommand head;
+  Dirname dirname;
 
   FortuneCommand fortune;
   WhoamiCommand whoami;
@@ -95,10 +97,11 @@ public:
         tyrant(), damian(), cd(fs, current_dir), touch(fs, current_dir),
         rm(fs, current_dir), rmdir(fs, current_dir), cat(fs, current_dir),
         write(fs, current_dir), wc(fs, current_dir), grep(fs, current_dir),
-        append(fs, current_dir), head(fs, current_dir), env(environment), date(), heaptest(), seq(),
-        fortune(), whoami(terminal_utils), motd(), rockfetch(terminal_utils),
-        ascii(terminal_utils), stats(terminal_utils), mood(),
-        void_cmd(terminal_utils), lore(), diagnose(terminal_utils) {}
+        append(fs, current_dir), head(fs, current_dir), env(environment),
+        date(), heaptest(), seq(), dirname(), fortune(), whoami(terminal_utils),
+        motd(), rockfetch(terminal_utils), ascii(terminal_utils),
+        stats(terminal_utils), mood(), void_cmd(terminal_utils), lore(),
+        diagnose(terminal_utils) {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 
@@ -127,6 +130,7 @@ public:
     register_command(&grep);
     register_command(&append);
     register_command(&head);
+    register_command(&dirname);
 
     register_command(&fortune);
     register_command(&whoami);

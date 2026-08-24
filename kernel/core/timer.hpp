@@ -8,6 +8,12 @@
 constexpr int DIVISOR = 11932;
 constexpr int TIMER_HZ = 100;
 
+// Scheduler::on_timer sets this before returning. timer_stub loads it
+// into the real RSP register right before popping registers and
+// executing iretq — this is what actually makes each process resume
+// on its own private stack instead of the shared kernel boot stack.
+extern "C" inline volatile u64 next_resume_rsp = 0;
+
 namespace Timer {
 
 volatile inline unsigned int ticks = 0;
@@ -129,14 +135,17 @@ inline void get_formatted_time_into(char *buf, size_t max_len) {
 #include "../process/scheduler.hpp"
 
 extern "C" void c_timer_handler(CpuContext *ctx) {
+  static u32 heartbeat = 0;
+  Debugger::logf("HB %d\n", (int)heartbeat++);
+
+  next_resume_rsp = reinterpret_cast<u64>(ctx);
+
   Timer::handler();
 
-  // Refresh status bar once per second
   static int last_second = -1;
   int now = Timer::get_seconds();
   if (now != last_second) {
     TerminalUtils::update_status_bar();
-
     Timer::last_bar_second = now;
     Timer::bar_dirty = true;
   }

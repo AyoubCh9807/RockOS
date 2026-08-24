@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+echo "Removing old build..."
+
+rm -f *.o my_kernel.bin my_os.iso isodir/boot/my_kernel.bin
+
 echo "Compiling OS..."
 
 # Bootloader starts in 32-bit mode under Multiboot2.

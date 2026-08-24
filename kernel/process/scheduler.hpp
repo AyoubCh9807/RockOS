@@ -1,4 +1,6 @@
 #pragma once
+#include "../core/timer.hpp"
+#include "../utils/debugger.hpp"
 #include "process_manager.hpp"
 #include "ps_types.hpp"
 
@@ -16,42 +18,13 @@ public:
 
   static Scheduler *get_scheduler() { return instance; }
 
-  void tick() {
-    if (current_process == nullptr) {
-      current_process = pick_first_process();
-      if (current_process)
-        process_manager.set_process_state(current_process,
-                                          ProcessState::RUNNING);
-      return;
-    }
-    Vector<Process *> &ptrain = process_manager.get_process_train();
-    if (ptrain.size() == 0)
-      return;
-    ticks++;
-    if (ticks % quantum != 0)
-      return;
-    Process *next_process = pick_next();
-    ticks %= quantum;
-    if (next_process != current_process) {
-      // switch context
-    }
-  };
   Process *pick_first_process() {
     Vector<Process *> &ptrain = process_manager.get_process_train();
-    if (ptrain.size() == 0)
-      return nullptr;
-    for (int i = 0; i < ptrain.size(); i++) {
+    for (int i = 0; i < ptrain.size(); i++)
       if (ptrain[i]->is_ready())
         return ptrain[i];
-    }
     return nullptr;
   }
-
-  void set_current(Process *process) {
-    if (process != nullptr)
-      current_process = process;
-  };
-  Process *get_current() const { return current_process; };
 
   Process *pick_next() {
     if (current_process == nullptr)
@@ -61,10 +34,9 @@ public:
       return nullptr;
 
     int index = -1;
-    for (int i = 0; i < ptrain.size(); i++) {
+    for (int i = 0; i < ptrain.size(); i++)
       if (ptrain[i] == current_process)
         index = i;
-    }
 
     if (index == -1)
       return current_process;
@@ -85,65 +57,49 @@ public:
     if (!ctx)
       return;
 
-    // First timer tick: choose the first process.
+    if (current_process)
+      Debugger::logf("TICK pid=%d ticks=%d\n", (int)current_process->get_pid(),
+                     (int)ticks);
+
+    // Default: keep resuming right where we currently are.
+    next_resume_rsp = reinterpret_cast<u64>(ctx);
+
     if (current_process == nullptr) {
       current_process = pick_first_process();
-
       if (!current_process)
         return;
 
       process_manager.set_process_state(current_process, ProcessState::RUNNING);
-
-      // Switch to the first process's address space.
       Asm::write_cr3(current_process->get_page_table()->get_pml4());
 
-      // Tell the interrupt-return code to resume at
-      // the process's saved RIP/RSP/etc.
-      *ctx = current_process->get_context();
-
+      // Resume from this process's own private stack (its pre-built
+      // synthetic frame — it's never actually run before), not the
+      // shared kernel stack `ctx` currently points at.
+      next_resume_rsp = current_process->get_context().rsp;
+      Debugger::logf("SCHED: next_resume_rsp set to %d\n",
+                     (unsigned)next_resume_rsp);
       return;
     }
-    // One timer interrupt happened.
-    ticks++;
 
-    // Don't switch until the process has used its quantum.
+    ticks++;
     if (ticks < quantum)
       return;
-
-    // Quantum expired.
     ticks = 0;
 
     Process *next = pick_next();
-
-    // Nothing else to run.
     if (!next || next == current_process)
       return;
 
-    /*
-     * Save current process CPU state.
-     */
-    current_process->get_context() = *ctx;
+    // `ctx` already points into current_process's OWN private stack
+    // (since it was switched in via next_resume_rsp last time) — just
+    // remember where, so we can resume it here later.
+    current_process->get_context().rsp = reinterpret_cast<u64>(ctx);
 
-    /*
-     * Current process is no longer running.
-     */
     process_manager.set_process_state(current_process, ProcessState::READY);
-
-    /*
-     * Next process becomes running.
-     */
     process_manager.set_process_state(next, ProcessState::RUNNING);
-
     current_process = next;
 
-    /*
-     * Switch address spaces.
-     */
     Asm::write_cr3(next->get_page_table()->get_pml4());
-
-    /*
-     * Restore next process CPU state.
-     */
-    *ctx = next->get_context();
+    next_resume_rsp = next->get_context().rsp;
   }
 };

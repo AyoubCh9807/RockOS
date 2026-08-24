@@ -7,21 +7,30 @@ private:
   u32 bitmap_size_bytes;
   u32 total_frames;
 
+  // Physical memory below this is off-limits: kernel image, heap,
+  // GDT/IDT, the boot-time page tables from loader.s, and anything
+  // else GRUB/the bootloader placed low in memory. None of that is
+  // currently tracked individually, so we reserve a generous floor
+  // instead of risking collisions.
+  static constexpr u32 RESERVED_FLOOR = 16 * 1024 * 1024; // 16 MiB
+
 public:
   FrameAllocator(u32 total_memory) : bitmap(nullptr) {
-
     total_frames = total_memory / PAGE_SIZE;
     bitmap_size_bytes = (total_frames + 7) / 8;
 
     bitmap = new u8[bitmap_size_bytes];
 
-    // Initially every frame is free.
     for (u32 i = 0; i < bitmap_size_bytes; i++)
       bitmap[i] = 0;
 
-    BitUtils::set_bit(bitmap, 0);
-  }
+    u32 reserved_frames = RESERVED_FLOOR / PAGE_SIZE;
+    if (reserved_frames > total_frames)
+      reserved_frames = total_frames;
 
+    for (u32 i = 0; i < reserved_frames; i++)
+      BitUtils::set_bit(bitmap, i);
+  }
   FrameAllocatorEvent alloc() {
 
     u32 bit = BitUtils::find_first_free_bit(bitmap, total_frames);

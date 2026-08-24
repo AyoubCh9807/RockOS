@@ -108,10 +108,11 @@ public:
     if (!size || is_init || !page_table || !entry)
       return false;
 
-    // TEMP: skip code copy entirely for now, just point at the function's
-    // real address to isolate the scheduling test from the
-    // code-relocation problem.
+    // TEMP: still no code copy — points at the function's real
+    // kernel-linked address. Separate problem, unchanged for now.
     ctx.rip = reinterpret_cast<u64>(entry);
+    ctx.cs = 0x08;
+    ctx.rflags = 0x202;
 
     if (!alloc()) {
       clean_up();
@@ -120,23 +121,19 @@ public:
 
     state = ProcessState::READY;
     is_init = true;
-
-    ctx.cs = 0x08;
-    ctx.ss = 0x10;
-    ctx.rflags = 0x202;
-
     return true;
   }
+
   bool alloc() {
     if (!page_table)
       return false;
 
     u64 virtual_addr = STACK_BOTTOM;
+    u64 last_page_phys = 0;
 
     for (size_t i = 0; i < STACK_PAGES; i++) {
       FrameAllocatorEvent ev = page_table->get_frame_allocator().alloc();
       if (!ev.success) {
-        Debugger::logf("alloc: stack frame alloc failed at page %d\n", (int)i);
         clean_up_stack();
         return false;
       }
@@ -144,18 +141,35 @@ public:
       page_table->unmap(virtual_addr);
 
       if (!page_table->map(virtual_addr, ev.physical_address)) {
-        Debugger::logf("alloc: stack map FAILED page=%d vaddr=%x phys=%x\n",
-                       (int)i, (unsigned)virtual_addr,
-                       (unsigned)ev.physical_address);
         clean_up_stack();
         return false;
       }
+
+      if (i == STACK_PAGES - 1)
+        last_page_phys = ev.physical_address;
 
       allocated_stack_pages++;
       virtual_addr += PAGE_SIZE;
     }
 
-    ctx.rsp = STACK_TOP;
+    // Build the frame timer_stub expects to pop: 15 GPRs then
+    // rip/cs/rflags, in exactly that pop order. Written via the
+    // physical address directly, since only THIS process's own page
+    // table (not the kernel's currently-active one) maps its virtual
+    // stack — but low physical RAM stays identity-mapped for the
+    // kernel regardless of whose frame it backs.
+    constexpr int FRAME_QWORDS = 18;
+    u64 offset_in_page = PAGE_SIZE - FRAME_QWORDS * sizeof(u64);
+    u64 *frame = reinterpret_cast<u64 *>(last_page_phys + offset_in_page);
+
+    for (int i = 0; i < 15; i++)
+      frame[i] = 0; // r15..rax — no meaningful state for a fresh process
+
+    frame[15] = ctx.rip;
+    frame[16] = ctx.cs;
+    frame[17] = ctx.rflags;
+
+    ctx.rsp = STACK_TOP - FRAME_QWORDS * sizeof(u64);
     return true;
   }
   void terminate() { state = ProcessState::TERMINATED; }
@@ -197,6 +211,10 @@ public:
        * Clean up stack.
        */
       clean_up_stack();
+
+      page_table->destroy_private_tables();
+      delete page_table;
+      page_table = nullptr;
 
       delete page_table;
       page_table = nullptr;

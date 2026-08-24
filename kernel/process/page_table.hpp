@@ -341,11 +341,63 @@ public:
       return false;
 
     u64 *new_pml4 = get_table(pml4);
-    u64 *kernel_table = get_table(kernel_pml4);
+    u64 *kernel_pml4_table = get_table(kernel_pml4);
 
     for (int i = 0; i < 512; i++) {
-      if (is_present(kernel_table[i]))
-        new_pml4[i] = kernel_table[i];
+      u64 pml4_entry = kernel_pml4_table[i];
+      if (!is_present(pml4_entry)) {
+        new_pml4[i] = 0;
+        continue;
+      }
+
+      // Deep-copy this PDPT so it's private to this process.
+      u64 kernel_pdpt_addr = get_table_address(pml4_entry);
+      u64 new_pdpt_addr;
+      if (!allocate_table(new_pdpt_addr))
+        return false;
+
+      u64 *kernel_pdpt = get_table(kernel_pdpt_addr);
+      u64 *new_pdpt = get_table(new_pdpt_addr);
+
+      for (int j = 0; j < 512; j++) {
+        u64 pdpt_entry = kernel_pdpt[j];
+        if (!is_present(pdpt_entry)) {
+          new_pdpt[j] = 0;
+          continue;
+        }
+
+        // 1GiB huge page at the PDPT level (unused by this bootloader, but
+        // handled for correctness): no PD beneath it, safe to share the
+        // physical frame directly.
+        if (is_huge(pdpt_entry)) {
+          new_pdpt[j] = pdpt_entry;
+          continue;
+        }
+
+        // Deep-copy this PD so it's private to this process. This is the
+        // level split_huge_page() mutates, so this is the level that must
+        // not be shared - otherwise one process splitting a page corrupts
+        // every other process's (and the kernel's) view of that region.
+        u64 kernel_pd_addr = get_table_address(pdpt_entry);
+        u64 new_pd_addr;
+        if (!allocate_table(new_pd_addr))
+          return false;
+
+        u64 *kernel_pd = get_table(kernel_pd_addr);
+        u64 *new_pd = get_table(new_pd_addr);
+
+        // Copy each PD entry as-is. Huge (2MiB) entries still point at the
+        // same underlying physical RAM as the kernel - that's correct,
+        // it's the same identity-mapped memory. What's now private is the
+        // PD *page itself*, so splitting one process's copy of an entry
+        // never touches anyone else's.
+        for (int k = 0; k < 512; k++)
+          new_pd[k] = kernel_pd[k];
+
+        new_pdpt[j] = new_pd_addr | (pdpt_entry & 0xFFF);
+      }
+
+      new_pml4[i] = new_pdpt_addr | (pml4_entry & 0xFFF);
     }
 
     return true;
@@ -391,5 +443,36 @@ public:
     pd_table[pd_index] = new_pt_phys | ENTRY_PRESENT | ENTRY_WRITABLE;
 
     return true;
+  }
+
+  // Frees the private PDPT/PD container pages created by
+  // inherit_kernel_mappings's deep copy, plus the PML4 itself. Safe to
+  // free regardless of what a PD still points to (huge kernel RAM,
+  // left untouched) — we're only reclaiming this process's own private
+  // copy of the table page, never what it references. Process-owned
+  // code/stack frames must already be unmapped via unmap() before this
+  // runs.
+  void destroy_private_tables() {
+    u64 *pml4_table = get_table(pml4);
+
+    for (int i = 0; i < 512; i++) {
+      u64 pml4_entry = pml4_table[i];
+      if (!is_present(pml4_entry))
+        continue;
+
+      u64 pdpt_addr = get_table_address(pml4_entry);
+      u64 *pdpt_table = get_table(pdpt_addr);
+
+      for (int j = 0; j < 512; j++) {
+        u64 pdpt_entry = pdpt_table[j];
+        if (!is_present(pdpt_entry) || is_huge(pdpt_entry))
+          continue;
+        frame_allocator.free(get_table_address(pdpt_entry));
+      }
+
+      frame_allocator.free(pdpt_addr);
+    }
+
+    frame_allocator.free(pml4);
   }
 };

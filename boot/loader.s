@@ -44,7 +44,8 @@ extern c_timer_handler
 extern c_keyboard_handler
 extern c_pagefault_handler
 extern c_gpfault_handler
-
+extern next_resume_rsp
+extern debug_resume_check
 
 loader:
 
@@ -192,10 +193,6 @@ default_stub:
 
 
 timer_stub:
-
-    ; Save every general-purpose register that C++ could change.
-    ; An interrupt can happen in the middle of any kernel code,
-    ; so we have to restore the interrupted state exactly.
     push rax
     push rcx
     push rdx
@@ -212,13 +209,23 @@ timer_stub:
     push r14
     push r15
 
-    
-    mov rdi, rsp ; context switch
+    mov rdi, rsp
     call c_timer_handler
 
-    ; Tell the PIC that IRQ0 has been handled.
     mov al, 0x20
     out 0x20, al
+
+    ; Resume on whatever stack the scheduler decided (may be a
+    ; different process's private stack, or the same location we're
+    ; already on if nothing switched).
+    mov rax, [next_resume_rsp]
+    mov rsp, rax
+
+    ; checkpoint - properly paired push/call/pop
+    push rdi
+    mov rdi, rax
+    call debug_resume_check
+    pop rdi
 
     pop r15
     pop r14
@@ -234,6 +241,16 @@ timer_stub:
     pop rbx
     pop rdx
     pop rcx
+    pop rax
+
+
+        ; checkpoint right before iretq - peek at what's on the stack
+    ; without popping it (rsp currently points at rip/cs/rflags/... )
+    push rax
+    push rdi
+    mov rdi, [rsp+16]      ; rip (skip the 2 qwords we just pushed)
+    call debug_resume_check
+    pop rdi
     pop rax
 
     iretq

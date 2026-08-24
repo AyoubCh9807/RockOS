@@ -13,17 +13,22 @@
 #include "timer.hpp"
 
 extern "C" void test_process_1() {
+  Debugger::log("P1 ENTERED\n");
   while (true) {
-    Graphics::draw_string("PROC1 ALIVE", 500, 500, 0x000000);
+    Graphics::draw_rect(0, 0, 512, 768, 0xFF0000);
   }
 }
 
 extern "C" void test_process_2() {
+  Debugger::log("P2 ENTERED\n");
+  u32 c = 0;
   while (true) {
-    Graphics::draw_string("2", 200, 100, 0x000000);
+    if (c % 2000000 == 0)
+      Debugger::log("P2 TICK\n");
+    c++;
+    Graphics::draw_rect(512, 0, 512, 768, 0x0000FF);
   }
 }
-
 // Fault handlers - see loader.s pagefault_stub / gpfault_stub.
 // saved_regs points at the 15 GPRs pushed by the stub (rax, rcx, rdx,
 // rbx, rbp, rsi, rdi, r8-r15, in that push order), so the CPU's own
@@ -33,15 +38,13 @@ extern "C" void c_pagefault_handler(u64 *saved_regs) {
   asm volatile("mov %%cr2, %0" : "=r"(fault_addr));
 
   u64 error_code = saved_regs[15];
+  u64 fault_rip = saved_regs[16];
 
-  Debugger::logf("PAGE FAULT at addr=%x err=%x\n",
-                  (unsigned)fault_addr, (unsigned)error_code);
-  // bit 0: 0=not-present, 1=protection violation
-  // bit 1: 0=read, 1=write
-  // bit 2: 0=kernel, 1=user
-  Debugger::logf("  present=%d write=%d user=%d\n",
-                  (int)(error_code & 1), (int)((error_code >> 1) & 1),
-                  (int)((error_code >> 2) & 1));
+  Debugger::logf("PAGE FAULT at addr=%d err=%d\n", (unsigned)fault_addr,
+                 (unsigned)error_code);
+  Debugger::logf("  present=%d write=%d user=%d\n", (int)(error_code & 1),
+                 (int)((error_code >> 1) & 1), (int)((error_code >> 2) & 1));
+  Debugger::logf("  faulting RIP=%d\n", (unsigned)fault_rip);
 }
 
 extern "C" void c_gpfault_handler(u64 *saved_regs) {
@@ -49,8 +52,16 @@ extern "C" void c_gpfault_handler(u64 *saved_regs) {
   Debugger::logf("GP FAULT err=%x\n", (unsigned)error_code);
 }
 
+extern "C" void debug_resume_check(u64 rsp_value) {
+  Debugger::logf("STUB: about to resume rsp=%d\n", (unsigned)rsp_value);
+}
+
 extern "C" void kernel_main(u64 mb_addr) {
+
   call_constructors();
+
+  Debugger::log("KERNEL MAIN ENTERED\n");
+
   heap.init_heap();
 
   Timer::init();
@@ -80,6 +91,7 @@ extern "C" void kernel_main(u64 mb_addr) {
   u32 current_dir = ROOT_INODE;
 
   TerminalUtils terminal_utils;
+  terminal_utils.print("ENTERING TERMINAL UTILS IG", 0xFFFFFF);
   Environment env(terminal_utils);
 
   TerminalRegistry reg(terminal_utils, fs, current_dir, env);
@@ -88,7 +100,7 @@ extern "C" void kernel_main(u64 mb_addr) {
 
   terminal.fill_registry();
 
-  Graphics::clear(0x00FF00);
+  //  Graphics::clear(Colors::GRAY);
 
   terminal_utils.print(Generator::random_phrase(reboot_phrases), 0xFFFFFF);
 
@@ -103,26 +115,31 @@ extern "C" void kernel_main(u64 mb_addr) {
 
   ProcessManager process_manager(frame_allocator);
   Scheduler scheduler(process_manager);
+  Asm::cli(); // no preemption while we set up processes
 
   Process *p1 = process_manager.create_process(64 * 1024, test_process_1).p;
-
   if (!p1) {
-    Debugger::log("PROCESS CREATION FAILED\n");
-    Graphics::draw_string("P1 CREATE FAILED", 500, 450, 0x000000);
+    Debugger::log("P1 CREATE FAILED\n");
     while (true)
       Kernel::halt();
   }
-
   Debugger::log("P1 CREATED\n");
-  Graphics::draw_string("P1 CREATE OK", 500, 450, 0x000000);
 
-  /*
-   * Shell
-   */
+  Process *p2 = process_manager.create_process(64 * 1024, test_process_2).p;
+  if (!p2) {
+    Debugger::log("P2 CREATE FAILED\n");
+    while (true)
+      Kernel::halt();
+  }
+  Debugger::log("P2 CREATED\n");
+
+  Asm::sti(); // safe now - both processes exist before the timer can act
+
+  while (1)
+    Kernel::halt(); /*
+                     * Shell
+                     */
   // ShellHistory sh;
   // Shell shell(terminal, sh);
   // shell.run();
-
-  while (1)
-    Kernel::halt();
 }
