@@ -14,11 +14,11 @@
 
 extern "C" void test_process_1() {
   Debugger::log("P1 ENTERED\n");
+  volatile u32 counter = 0;
   while (true) {
-    Graphics::draw_rect(0, 0, 512, 768, 0xFF0000);
+    counter++;
   }
 }
-
 extern "C" void test_process_2() {
   Debugger::log("P2 ENTERED\n");
   u32 c = 0;

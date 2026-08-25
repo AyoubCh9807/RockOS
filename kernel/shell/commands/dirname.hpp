@@ -3,7 +3,7 @@
 #include "icommand.hpp"
 #include "../../utils/fs_utils.hpp"
 
-class Dirname : public ICommand {
+class DirnameCommand : public ICommand {
 
 public:
 

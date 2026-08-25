@@ -1,5 +1,6 @@
 #pragma once
 #include "ps_types.hpp"
+#include "../utils/debugger.hpp"
 
 class FrameAllocator {
 private:
@@ -32,17 +33,12 @@ public:
       BitUtils::set_bit(bitmap, i);
   }
   FrameAllocatorEvent alloc() {
-
     u32 bit = BitUtils::find_first_free_bit(bitmap, total_frames);
-
     if (bit == BitUtils::INVALID_BIT_INDEX) {
       return FrameAllocatorEvent(0, false, FAllocatorEventType::ALLOCATED);
     }
-
     BitUtils::set_bit(bitmap, bit);
-
     u64 physical_address = (u64)bit * PAGE_SIZE;
-
     return FrameAllocatorEvent(physical_address, true,
                                FAllocatorEventType::ALLOCATED);
   }

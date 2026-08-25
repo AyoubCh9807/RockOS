@@ -57,11 +57,11 @@ public:
     if (!ctx)
       return;
 
-    if (current_process)
-      Debugger::logf("TICK pid=%d ticks=%d\n", (int)current_process->get_pid(),
-                     (int)ticks);
+    static u32 dbg_tick = 0;
+    if (current_process && (dbg_tick++ % 30 == 0))
+      Debugger::logf("RSP pid=%d val=%d\n", (int)current_process->get_pid(),
+                     (unsigned)reinterpret_cast<u64>(ctx));
 
-    // Default: keep resuming right where we currently are.
     next_resume_rsp = reinterpret_cast<u64>(ctx);
 
     if (current_process == nullptr) {
@@ -69,15 +69,16 @@ public:
       if (!current_process)
         return;
 
+      static bool logged_once = false;
+      if (!logged_once) {
+        Debugger::logf("FIRST SWITCH: pid=%d\n",
+                       (int)current_process->get_pid());
+        logged_once = true;
+      }
+
       process_manager.set_process_state(current_process, ProcessState::RUNNING);
       Asm::write_cr3(current_process->get_page_table()->get_pml4());
-
-      // Resume from this process's own private stack (its pre-built
-      // synthetic frame — it's never actually run before), not the
-      // shared kernel stack `ctx` currently points at.
       next_resume_rsp = current_process->get_context().rsp;
-      Debugger::logf("SCHED: next_resume_rsp set to %d\n",
-                     (unsigned)next_resume_rsp);
       return;
     }
 
@@ -90,15 +91,17 @@ public:
     if (!next || next == current_process)
       return;
 
-    // `ctx` already points into current_process's OWN private stack
-    // (since it was switched in via next_resume_rsp last time) — just
-    // remember where, so we can resume it here later.
-    current_process->get_context().rsp = reinterpret_cast<u64>(ctx);
+    static bool logged_switch_once = false;
+    if (!logged_switch_once) {
+      Debugger::logf("FIRST REAL SWITCH: from pid=%d to pid=%d\n",
+                     (int)current_process->get_pid(), (int)next->get_pid());
+      logged_switch_once = true;
+    }
 
+    current_process->get_context().rsp = reinterpret_cast<u64>(ctx);
     process_manager.set_process_state(current_process, ProcessState::READY);
     process_manager.set_process_state(next, ProcessState::RUNNING);
     current_process = next;
-
     Asm::write_cr3(next->get_page_table()->get_pml4());
     next_resume_rsp = next->get_context().rsp;
   }

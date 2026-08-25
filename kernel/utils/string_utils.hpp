@@ -444,4 +444,13 @@ static int to_int(const char *str) {
   return result * sign;
 }
 
+void reverse(const char *str, char *buf) {
+  int length = strlen(str);
+
+  for (int i = 0; i < length; i++)
+    buf[i] = str[length - 1 - i];
+
+  buf[length] = '\0';
+}
+
 } // namespace StringUtils

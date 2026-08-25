@@ -138,6 +138,10 @@ public:
         return false;
       }
 
+      u64 *zero_ptr = reinterpret_cast<u64 *>(ev.physical_address);
+      for (int z = 0; z < PAGE_SIZE / 8; z++)
+        zero_ptr[z] = 0;
+
       page_table->unmap(virtual_addr);
 
       if (!page_table->map(virtual_addr, ev.physical_address)) {
@@ -168,6 +172,7 @@ public:
     frame[15] = ctx.rip;
     frame[16] = ctx.cs;
     frame[17] = ctx.rflags;
+
 
     ctx.rsp = STACK_TOP - FRAME_QWORDS * sizeof(u64);
     return true;

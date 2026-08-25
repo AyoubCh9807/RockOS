@@ -135,8 +135,9 @@ inline void get_formatted_time_into(char *buf, size_t max_len) {
 #include "../process/scheduler.hpp"
 
 extern "C" void c_timer_handler(CpuContext *ctx) {
-  static u32 heartbeat = 0;
-  Debugger::logf("HB %d\n", (int)heartbeat++);
+  static u32 hb = 0;
+  if ((hb++ % 20) == 0)
+    Debugger::logf("HB%d\n", (int)hb);
 
   next_resume_rsp = reinterpret_cast<u64>(ctx);
 

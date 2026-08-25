@@ -41,7 +41,6 @@ cp my_kernel.bin isodir/boot/
 grub-mkrescue -o my_os.iso isodir >/dev/null 2>&1
 
 qemu-system-x86_64 \
-    -enable-kvm \
     -cdrom my_os.iso \
     -boot d \
     -drive file=disk.img,format=raw,if=ide,index=0,media=disk \
