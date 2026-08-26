@@ -108,10 +108,10 @@ public:
     if (!size || is_init || !page_table || !entry)
       return false;
 
-    // TEMP: still no code copy — points at the function's real
-    // kernel-linked address. Separate problem, unchanged for now.
     ctx.rip = reinterpret_cast<u64>(entry);
+    Debugger::logf("pid setup rip=%d\n", (unsigned)ctx.rip);
     ctx.cs = 0x08;
+    ctx.ss = 0x10; // ADD THIS
     ctx.rflags = 0x202;
 
     if (!alloc()) {
@@ -149,30 +149,27 @@ public:
         return false;
       }
 
-      if (i == STACK_PAGES - 1)
+      if (i == STACK_PAGES - 1) {
         last_page_phys = ev.physical_address;
-
+        Debugger::logf("stack last_page_phys=%d\n", (unsigned)last_page_phys);
+      }
       allocated_stack_pages++;
       virtual_addr += PAGE_SIZE;
     }
 
-    // Build the frame timer_stub expects to pop: 15 GPRs then
-    // rip/cs/rflags, in exactly that pop order. Written via the
-    // physical address directly, since only THIS process's own page
-    // table (not the kernel's currently-active one) maps its virtual
-    // stack — but low physical RAM stays identity-mapped for the
-    // kernel regardless of whose frame it backs.
-    constexpr int FRAME_QWORDS = 18;
+    // 15 GPRs + RIP + CS + RFLAGS + RSP + SS = 20
+    constexpr int FRAME_QWORDS = 20;
     u64 offset_in_page = PAGE_SIZE - FRAME_QWORDS * sizeof(u64);
     u64 *frame = reinterpret_cast<u64 *>(last_page_phys + offset_in_page);
 
     for (int i = 0; i < 15; i++)
-      frame[i] = 0; // r15..rax — no meaningful state for a fresh process
+      frame[i] = 0;
 
     frame[15] = ctx.rip;
     frame[16] = ctx.cs;
     frame[17] = ctx.rflags;
-
+    frame[18] = STACK_TOP; // RSP after iretq — empty stack
+    frame[19] = ctx.ss;    // 0x10
 
     ctx.rsp = STACK_TOP - FRAME_QWORDS * sizeof(u64);
     return true;

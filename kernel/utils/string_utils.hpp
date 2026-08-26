@@ -444,13 +444,35 @@ static int to_int(const char *str) {
   return result * sign;
 }
 
-void reverse(const char *str, char *buf) {
+static void reverse(const char *str, char *buf) {
   int length = strlen(str);
 
   for (int i = 0; i < length; i++)
     buf[i] = str[length - 1 - i];
 
   buf[length] = '\0';
+}
+
+static void uppercase(char* str) {
+  int l = strlen(str);
+  if(l <= 0) return;
+  for(int i = 0; i < l; i++) {
+    if('a' <= str[i] && str[i] <= 'z') {
+      // 97 -> 65
+      str[i] -= 32;
+    }
+  } 
+}
+
+static void lowercase(char* str) {
+  int l = strlen(str);
+  if(l <= 0) return;
+  for(int i = 0; i < l; i++) {
+    if('A' <= str[i] && str[i] <= 'Z') {
+      // 65 -> 97
+      str[i] += 32;
+    }
+  } 
 }
 
 } // namespace StringUtils

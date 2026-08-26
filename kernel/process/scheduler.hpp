@@ -26,6 +26,8 @@ public:
     return nullptr;
   }
 
+  Process *get_current_process() const { return current_process; }
+
   Process *pick_next() {
     if (current_process == nullptr)
       return nullptr;
@@ -103,6 +105,8 @@ public:
     process_manager.set_process_state(next, ProcessState::RUNNING);
     current_process = next;
     Asm::write_cr3(next->get_page_table()->get_pml4());
+    Debugger::logf("CR3 SWITCH OK pid=%d\n", (int)next->get_pid());
+
     next_resume_rsp = next->get_context().rsp;
   }
 };

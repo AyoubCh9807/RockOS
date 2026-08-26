@@ -1,6 +1,6 @@
 #pragma once
-#include "ps_types.hpp"
 #include "../utils/debugger.hpp"
+#include "ps_types.hpp"
 
 class FrameAllocator {
 private:
@@ -58,9 +58,10 @@ public:
                                  FAllocatorEventType::FREE);
     }
 
-    if (BitUtils::is_bit_set(bitmap, frame))
+    if (BitUtils::is_bit_set(bitmap, frame)) {
+      Debugger::logf("FREE frame=%d (real free)\n", frame);
       BitUtils::clear_bit(bitmap, frame);
-
+    }
     return FrameAllocatorEvent(physical_address, true,
                                FAllocatorEventType::FREE);
   }

@@ -136,20 +136,26 @@ inline void get_formatted_time_into(char *buf, size_t max_len) {
 
 extern "C" void c_timer_handler(CpuContext *ctx) {
   static u32 hb = 0;
-  if ((hb++ % 20) == 0)
-    Debugger::logf("HB%d\n", (int)hb);
+  if ((hb++ % 50) == 0) {
+    if (Scheduler::get_scheduler() &&
+        Scheduler::get_scheduler()->get_current_process()) {
+      int pid =
+          (int)Scheduler::get_scheduler()->get_current_process()->get_pid();
+      Debugger::logf("HB pid=%d\n", pid);
+    }
+  }
 
   next_resume_rsp = reinterpret_cast<u64>(ctx);
-
   Timer::handler();
 
-  static int last_second = -1;
-  int now = Timer::get_seconds();
-  if (now != last_second) {
-    TerminalUtils::update_status_bar();
-    Timer::last_bar_second = now;
-    Timer::bar_dirty = true;
-  }
+  // COMMENT OUT THE STATUS BAR FOR NOW
+  // static int last_second = -1;
+  // int now = Timer::get_seconds();
+  // if (now != last_second) {
+  //   TerminalUtils::update_status_bar();
+  //   Timer::last_bar_second = now;
+  //   Timer::bar_dirty = true;
+  // }
 
   if (Scheduler::get_scheduler())
     Scheduler::get_scheduler()->on_timer(ctx);

@@ -21,19 +21,16 @@ extern "C" void test_process_1() {
 }
 extern "C" void test_process_2() {
   Debugger::log("P2 ENTERED\n");
-  u32 c = 0;
+  volatile u32 counter = 0;
   while (true) {
-    if (c % 2000000 == 0)
-      Debugger::log("P2 TICK\n");
-    c++;
-    Graphics::draw_rect(512, 0, 512, 768, 0x0000FF);
+    counter++;
   }
-}
-// Fault handlers - see loader.s pagefault_stub / gpfault_stub.
+} // Fault handlers - see loader.s pagefault_stub / gpfault_stub.
 // saved_regs points at the 15 GPRs pushed by the stub (rax, rcx, rdx,
 // rbx, rbp, rsi, rdi, r8-r15, in that push order), so the CPU's own
 // error code sits immediately above them at index 15.
 extern "C" void c_pagefault_handler(u64 *saved_regs) {
+  Debugger::log("PAGE FAULT!\n");
   u64 fault_addr;
   asm volatile("mov %%cr2, %0" : "=r"(fault_addr));
 
@@ -48,6 +45,7 @@ extern "C" void c_pagefault_handler(u64 *saved_regs) {
 }
 
 extern "C" void c_gpfault_handler(u64 *saved_regs) {
+  Debugger::log("GP FAULT!\n");
   u64 error_code = saved_regs[15];
   Debugger::logf("GP FAULT err=%x\n", (unsigned)error_code);
 }
