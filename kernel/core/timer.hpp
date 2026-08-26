@@ -159,4 +159,7 @@ extern "C" void c_timer_handler(CpuContext *ctx) {
 
   if (Scheduler::get_scheduler())
     Scheduler::get_scheduler()->on_timer(ctx);
+  static u32 resume_dbg = 0;
+  if ((resume_dbg++ % 30) == 0)
+    Debugger::logf("about to resume rsp=%d\n", (unsigned)next_resume_rsp);
 }

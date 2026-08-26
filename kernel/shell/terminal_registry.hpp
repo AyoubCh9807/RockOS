@@ -33,6 +33,7 @@
 #include "commands/repeat.hpp"
 #include "commands/upper.hpp"
 #include "commands/lower.hpp"
+#include "commands/length.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -80,6 +81,7 @@ private:
   RepeatCommand repeat;
   UpperCommand upper;
   LowerCommand lower;
+  LengthCommand length;
 
   FortuneCommand fortune;
   WhoamiCommand whoami;
@@ -107,7 +109,7 @@ public:
         write(fs, current_dir), wc(fs, current_dir), grep(fs, current_dir),
         append(fs, current_dir), head(fs, current_dir), env(environment),
         date(), heaptest(), seq(), dirname(), rev(), fortune(), whoami(terminal_utils), repeat(terminal_utils),
-        upper(terminal_utils), lower(terminal_utils), motd(), rockfetch(terminal_utils), ascii(terminal_utils),
+        upper(terminal_utils), lower(terminal_utils), length(terminal_utils), motd(), rockfetch(terminal_utils), ascii(terminal_utils),
         stats(terminal_utils), mood(), void_cmd(terminal_utils), lore(),
         diagnose(terminal_utils) {}
 
@@ -143,6 +145,7 @@ public:
     register_command(&repeat);
     register_command(&upper);
     register_command(&lower);
+    register_command(&length);
 
     register_command(&fortune);
     register_command(&whoami);

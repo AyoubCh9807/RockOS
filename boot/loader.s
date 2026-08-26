@@ -216,11 +216,8 @@ timer_stub:
     out 0x20, al
 
     mov rax, [next_resume_rsp]
+    mov rsp, rax
 
-    mov rdi, rax
-    call debug_resume_check   ; MOVED: still on the old stack here, harmless
-
-    mov rsp, rax              ; NOW switch   
     pop r15
     pop r14
     pop r13
