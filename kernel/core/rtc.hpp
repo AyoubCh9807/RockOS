@@ -54,12 +54,12 @@ static u8 to_utc1(u8 hours) { return (hours + 1) % 24; }
 
 // KEEP THIS ONE:
 static void get_full_time_into(char *buf, size_t max_len) {
-  u8 seconds = Math::bcd_to_binary(read_seconds());
-  u8 minutes = Math::bcd_to_binary(read_minutes());
-  u8 hours = to_utc1(Math::bcd_to_binary(read_hours()));
-  u8 day = Math::bcd_to_binary(read_day());
-  u8 month = Math::bcd_to_binary(read_month());
-  u8 year = Math::bcd_to_binary(read_year());
+  u8 seconds = MathUtils::bcd_to_binary(read_seconds());
+  u8 minutes = MathUtils::bcd_to_binary(read_minutes());
+  u8 hours = to_utc1(MathUtils::bcd_to_binary(read_hours()));
+  u8 day = MathUtils::bcd_to_binary(read_day());
+  u8 month = MathUtils::bcd_to_binary(read_month());
+  u8 year = MathUtils::bcd_to_binary(read_year());
 
   StringUtils::snprintf(buf, max_len, "%d-%d-%d %d:%d:%d", 2000 + year, month,
                         day, hours, minutes, seconds);

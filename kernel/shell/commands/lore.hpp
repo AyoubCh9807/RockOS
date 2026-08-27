@@ -2,7 +2,6 @@
 #include "../../data/lore.hpp"
 
 #include "../../utils/list_utils.hpp"
-#include "../../utils/terminal_utils.hpp"
 #include "icommand.hpp"
 
 class LoreCommand : public ICommand {

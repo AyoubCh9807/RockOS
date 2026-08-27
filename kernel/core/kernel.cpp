@@ -29,7 +29,7 @@ extern "C" void test_process_2() {
 // saved_regs points at the 15 GPRs pushed by the stub (rax, rcx, rdx,
 // rbx, rbp, rsi, rdi, r8-r15, in that push order), so the CPU's own
 // error code sits immediately above them at index 15.
-extern "C" void c_pagefault_handler(u64 *saved_regs) {
+ extern "C" void c_pagefault_handler(u64 *saved_regs) {
   Debugger::log("PAGE FAULT!\n");
   u64 fault_addr;
   asm volatile("mov %%cr2, %0" : "=r"(fault_addr));
@@ -89,7 +89,7 @@ extern "C" void kernel_main(u64 mb_addr) {
   u32 current_dir = ROOT_INODE;
 
   TerminalUtils terminal_utils;
-  terminal_utils.print("ENTERING TERMINAL UTILS IG", 0xFFFFFF);
+  // terminal_utils.print("ENTERING TERMINAL UTILS IG", 0xFFFFFF);
   Environment env(terminal_utils);
 
   TerminalRegistry reg(terminal_utils, fs, current_dir, env);
@@ -105,7 +105,7 @@ extern "C" void kernel_main(u64 mb_addr) {
   /*
    * Process system
    */
-  constexpr u32 TEST_MEMORY = 128 * 1024 * 1024;
+  /* constexpr u32 TEST_MEMORY = 128 * 1024 * 1024;
 
   FrameAllocator frame_allocator(TEST_MEMORY);
 
@@ -113,7 +113,7 @@ extern "C" void kernel_main(u64 mb_addr) {
 
   ProcessManager process_manager(frame_allocator);
   Scheduler scheduler(process_manager);
-  Asm::cli(); // no preemption while we set up processes
+  // Asm::cli(); // no preemption while we set up processes
 
   Process *p1 = process_manager.create_process(64 * 1024, test_process_1).p;
   if (!p1) {
@@ -131,13 +131,14 @@ extern "C" void kernel_main(u64 mb_addr) {
   }
   Debugger::log("P2 CREATED\n");
 
-  Asm::sti(); // safe now - both processes exist before the timer can act
+  // Asm::sti(); // safe now - both processes exist before the timer can act
+*/
+  /* while (1)
+     Kernel::halt(); *
+                      * Shell
+                      */
 
-  while (1)
-    Kernel::halt(); /*
-                     * Shell
-                     */
-  // ShellHistory sh;
-  // Shell shell(terminal, sh);
-  // shell.run();
+  ShellHistory sh;
+  Shell shell(terminal, sh);
+  shell.run();
 }

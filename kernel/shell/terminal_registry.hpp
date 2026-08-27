@@ -4,6 +4,7 @@
 #include "../data/shell_commands.hpp"
 #include "../utils/string_utils.hpp"
 #include "commands/append.hpp"
+#include "commands/calc.hpp"
 #include "commands/cat.hpp"
 #include "commands/cd.hpp"
 #include "commands/clear.hpp"
@@ -17,23 +18,23 @@
 #include "commands/heaptest.hpp"
 #include "commands/help.hpp"
 #include "commands/icommand.hpp"
+#include "commands/length.hpp"
+#include "commands/lower.hpp"
 #include "commands/ls.hpp"
 #include "commands/mkdir.hpp"
 #include "commands/pwd.hpp"
 #include "commands/reboot.hpp"
+#include "commands/repeat.hpp"
+#include "commands/rev.hpp"
 #include "commands/rm.hpp"
 #include "commands/rmdir.hpp"
 #include "commands/seq.hpp"
 #include "commands/touch.hpp"
 #include "commands/tyrant.hpp"
+#include "commands/upper.hpp"
 #include "commands/uptime.hpp"
 #include "commands/wc.hpp"
 #include "commands/write.hpp"
-#include "commands/rev.hpp"
-#include "commands/repeat.hpp"
-#include "commands/upper.hpp"
-#include "commands/lower.hpp"
-#include "commands/length.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -82,6 +83,7 @@ private:
   UpperCommand upper;
   LowerCommand lower;
   LengthCommand length;
+  CalcCommand calc;
 
   FortuneCommand fortune;
   WhoamiCommand whoami;
@@ -108,10 +110,11 @@ public:
         rm(fs, current_dir), rmdir(fs, current_dir), cat(fs, current_dir),
         write(fs, current_dir), wc(fs, current_dir), grep(fs, current_dir),
         append(fs, current_dir), head(fs, current_dir), env(environment),
-        date(), heaptest(), seq(), dirname(), rev(), fortune(), whoami(terminal_utils), repeat(terminal_utils),
-        upper(terminal_utils), lower(terminal_utils), length(terminal_utils), motd(), rockfetch(terminal_utils), ascii(terminal_utils),
-        stats(terminal_utils), mood(), void_cmd(terminal_utils), lore(),
-        diagnose(terminal_utils) {}
+        date(), heaptest(), seq(), dirname(), rev(), fortune(),
+        whoami(terminal_utils), repeat(terminal_utils), upper(terminal_utils),
+        lower(terminal_utils), length(terminal_utils), calc(), motd(),
+        rockfetch(terminal_utils), ascii(terminal_utils), stats(terminal_utils),
+        mood(), void_cmd(terminal_utils), lore(), diagnose(terminal_utils) {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 
@@ -146,6 +149,7 @@ public:
     register_command(&upper);
     register_command(&lower);
     register_command(&length);
+    register_command(&calc);
 
     register_command(&fortune);
     register_command(&whoami);
