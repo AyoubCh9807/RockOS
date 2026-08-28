@@ -238,6 +238,20 @@ public:
     if (!is_present(pd_entry))
       return false;
 
+    // A huge (2MiB) PD entry has no PT beneath it — it's still the shared,
+    // unsplit identity-mapped region inherited from the kernel (see
+    // inherit_kernel_mappings). There is nothing process-private to unmap
+    // at this address yet: treating get_table_address(pd_entry) as a PT
+    // pointer here would reinterpret raw 2MiB-aligned physical RAM as an
+    // array of page-table entries and free() whatever garbage "physical
+    // address" falls out of that — silently corrupting an unrelated frame
+    // (easily one backing this process's own tables/stack). Bail out
+    // instead; the caller's subsequent map() is responsible for calling
+    // split_huge_page() to privatize this region before anything here can
+    // be meaningfully unmapped.
+    if (is_huge(pd_entry))
+      return false;
+
     u64 pt_address = get_table_address(pd_entry);
     u64 *pt_table = get_table(pt_address);
 
@@ -344,9 +358,9 @@ public:
     u64 *kernel_pml4_table = get_table(kernel_pml4);
 
     for (int i = 0; i < 512; i++) {
-      u64 pml4_entry = kernel_pml4_table[i];
+    u64 pml4_entry = kernel_pml4_table[i];
       if (!is_present(pml4_entry)) {
-        new_pml4[i] = 0;
+         new_pml4[i] = 0;
         continue;
       }
 

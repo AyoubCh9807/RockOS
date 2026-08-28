@@ -37,6 +37,8 @@
 #include "commands/uptime.hpp"
 #include "commands/wc.hpp"
 #include "commands/write.hpp"
+#include "commands/rtop.hpp"
+#include "commands/crystal.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -89,6 +91,8 @@ private:
   CalcCommand calc;
   RandomCommand random;
 
+  CrystalCommand crystal;
+  TopCommand rtop;
   FortuneCommand fortune;
   WhoamiCommand whoami;
   MotdCommand motd;
@@ -115,7 +119,7 @@ public:
         cat(fs, current_dir), write(fs, current_dir), wc(fs, current_dir),
         grep(fs, current_dir), append(fs, current_dir), head(fs, current_dir),
         env(environment), date(), heaptest(), seq(), dirname(), rev(),
-        fortune(), whoami(terminal_utils), repeat(terminal_utils),
+        crystal(), rtop(), fortune(), whoami(terminal_utils), repeat(terminal_utils),
         upper(terminal_utils), lower(terminal_utils), length(terminal_utils),
         calc(), motd(), rockfetch(terminal_utils), ascii(terminal_utils),
         stats(terminal_utils), mood(), void_cmd(terminal_utils), lore(),
@@ -158,6 +162,8 @@ public:
     register_command(&calc);
     register_command(&random);
 
+    register_command(&rtop);
+    register_command(&crystal);
     register_command(&fortune);
     register_command(&whoami);
     register_command(&motd);

@@ -13,6 +13,7 @@ constexpr int TIMER_HZ = 100;
 // executing iretq — this is what actually makes each process resume
 // on its own private stack instead of the shared kernel boot stack.
 extern "C" inline volatile u64 next_resume_rsp = 0;
+extern "C" inline volatile u64 next_resume_cr3 = 0;
 
 namespace Timer {
 

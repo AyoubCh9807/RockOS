@@ -45,7 +45,8 @@ extern c_keyboard_handler
 extern c_pagefault_handler
 extern c_gpfault_handler
 extern next_resume_rsp
-extern debug_resume_check 
+extern debug_resume_check
+extern next_resume_cr3
 
 loader:
 
@@ -214,9 +215,12 @@ timer_stub:
 
     mov al, 0x20
     out 0x20, al
-
-    mov rax, [next_resume_rsp]
-    mov rsp, rax
+; WE ADD TS BACK WHEN WE DO CONTEXT SWITCHING AGAIN
+;    mov rax, [next_resume_cr3]
+ ;   mov cr3, rax
+;
+ ;   mov rax, [next_resume_rsp]
+  ;  mov rsp, rax
 
     pop r15
     pop r14
@@ -305,7 +309,9 @@ pagefault_stub:
     push r15
 
     mov rdi, rsp
-    call c_pagefault_handler
+        ; I REMOVED THIS FOR TESTING PURPOSES
+
+    ; call c_pagefault_handler
 
 pagefault_hang:
     cli
@@ -334,7 +340,8 @@ gpfault_stub:
     push r15
 
     mov rdi, rsp
-    call c_gpfault_handler
+    ; I REMOVED THIS FOR TESTING PURPOSES
+    ; call c_gpfault_handler
 
 gpfault_hang:
     cli

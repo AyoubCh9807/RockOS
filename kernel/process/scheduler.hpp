@@ -66,25 +66,21 @@ public:
 
     next_resume_rsp = reinterpret_cast<u64>(ctx);
 
-    if (current_process == nullptr) {
-      current_process = pick_first_process();
-      if (!current_process)
-        return;
-
-      static bool logged_once = false;
-      if (!logged_once) {
-        Debugger::logf("FIRST SWITCH: pid=%d\n",
-                       (int)current_process->get_pid());
-        logged_once = true;
-      }
-
-      process_manager.set_process_state(current_process, ProcessState::RUNNING);
-      Asm::write_cr3(current_process->get_page_table()->get_pml4());
-      next_resume_rsp = current_process->get_context().rsp;
-      return;
-    }
-
-    ticks++;
+if (current_process == nullptr) {
+  current_process = pick_first_process();
+  if (!current_process)
+    return;
+  static bool logged_once = false;
+  if (!logged_once) {
+    Debugger::logf("FIRST SWITCH: pid=%d\n",
+                   (int)current_process->get_pid());
+    logged_once = true;
+  }
+  process_manager.set_process_state(current_process, ProcessState::RUNNING);
+  next_resume_cr3 = current_process->get_page_table()->get_pml4();
+  next_resume_rsp = current_process->get_context().rsp;
+  return;
+}
     if (ticks < quantum)
       return;
     ticks = 0;
@@ -104,9 +100,11 @@ public:
     process_manager.set_process_state(current_process, ProcessState::READY);
     process_manager.set_process_state(next, ProcessState::RUNNING);
     current_process = next;
-    Asm::write_cr3(next->get_page_table()->get_pml4());
+    Debugger::logf("SWITCH QUEUED pid=%d\n", (int)next->get_pid()); // safe: still on OLD cr3
+//    Asm::write_cr3(next->get_page_table()->get_pml4());
     Debugger::logf("CR3 SWITCH OK pid=%d\n", (int)next->get_pid());
 
+    next_resume_cr3 = next->get_page_table()->get_pml4();
     next_resume_rsp = next->get_context().rsp;
   }
 };
