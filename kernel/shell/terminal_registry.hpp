@@ -13,6 +13,7 @@
 #include "commands/dirname.hpp"
 #include "commands/echo.hpp"
 #include "commands/env.hpp"
+#include "commands/garrick.hpp"
 #include "commands/grep.hpp"
 #include "commands/head.hpp"
 #include "commands/heaptest.hpp"
@@ -23,6 +24,7 @@
 #include "commands/ls.hpp"
 #include "commands/mkdir.hpp"
 #include "commands/pwd.hpp"
+#include "commands/random.hpp"
 #include "commands/reboot.hpp"
 #include "commands/repeat.hpp"
 #include "commands/rev.hpp"
@@ -63,6 +65,7 @@ private:
   PwdCommand pwd;
   TyrantCommand tyrant;
   DamianCommand damian;
+  GarrickCommand garrick;
   CdCommand cd;
   TouchCommand touch;
   RmCommand rm;
@@ -84,6 +87,7 @@ private:
   LowerCommand lower;
   LengthCommand length;
   CalcCommand calc;
+  RandomCommand random;
 
   FortuneCommand fortune;
   WhoamiCommand whoami;
@@ -106,15 +110,16 @@ public:
       : current_dir(current_dir), reboot(), clear(terminal_utils),
         echo(environment, terminal_utils), uptime(), help(),
         ls(fs, current_dir), mkdir(fs, current_dir), pwd(fs, current_dir),
-        tyrant(), damian(), cd(fs, current_dir), touch(fs, current_dir),
-        rm(fs, current_dir), rmdir(fs, current_dir), cat(fs, current_dir),
-        write(fs, current_dir), wc(fs, current_dir), grep(fs, current_dir),
-        append(fs, current_dir), head(fs, current_dir), env(environment),
-        date(), heaptest(), seq(), dirname(), rev(), fortune(),
-        whoami(terminal_utils), repeat(terminal_utils), upper(terminal_utils),
-        lower(terminal_utils), length(terminal_utils), calc(), motd(),
-        rockfetch(terminal_utils), ascii(terminal_utils), stats(terminal_utils),
-        mood(), void_cmd(terminal_utils), lore(), diagnose(terminal_utils) {}
+        tyrant(), damian(), garrick(), random(), cd(fs, current_dir),
+        touch(fs, current_dir), rm(fs, current_dir), rmdir(fs, current_dir),
+        cat(fs, current_dir), write(fs, current_dir), wc(fs, current_dir),
+        grep(fs, current_dir), append(fs, current_dir), head(fs, current_dir),
+        env(environment), date(), heaptest(), seq(), dirname(), rev(),
+        fortune(), whoami(terminal_utils), repeat(terminal_utils),
+        upper(terminal_utils), lower(terminal_utils), length(terminal_utils),
+        calc(), motd(), rockfetch(terminal_utils), ascii(terminal_utils),
+        stats(terminal_utils), mood(), void_cmd(terminal_utils), lore(),
+        diagnose(terminal_utils) {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 
@@ -129,6 +134,7 @@ public:
     register_command(&pwd);
     register_command(&tyrant);
     register_command(&damian);
+    register_command(&garrick);
     register_command(&cd);
     register_command(&touch);
     register_command(&rm);
@@ -150,6 +156,7 @@ public:
     register_command(&lower);
     register_command(&length);
     register_command(&calc);
+    register_command(&random);
 
     register_command(&fortune);
     register_command(&whoami);
