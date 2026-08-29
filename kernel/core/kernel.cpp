@@ -28,6 +28,14 @@ extern "C" void test_process_2() {
   }
 }
 
+extern "C" void test_process_3() {
+  Debugger::log("P3 ENTERED\n");
+  volatile u32 counter = 0;
+  while (true) {
+    counter++;
+  }
+}
+
 /* Fault handlers, see loader.s pagefault_stub / gpfault_stub.
    saved_regs points at the 15 GPRs pushed by the stub (rax, rcx, rdx,
    rbx, rbp, rsi, rdi, r8-r15, in that push order), so the CPU's own
@@ -79,49 +87,60 @@ extern "C" void kernel_main(u64 mb_addr) {
   u32 current_dir = ROOT_INODE;
   TerminalUtils terminal_utils;
   Environment env(terminal_utils);
-  TerminalRegistry reg(terminal_utils, fs, current_dir, env);
-  Terminal terminal(terminal_utils, fs, reg, env);
+  TerminalRegistry terminal_registry(terminal_utils, fs, current_dir, env);
+  CliAppRegistry cli_app_registry(terminal_utils);
+  Terminal terminal(terminal_utils, fs, terminal_registry, cli_app_registry,
+                    env);
   terminal.fill_registry();
   terminal_utils.print(Generator::random_phrase(reboot_phrases), 0xFFFFFF);
 
   /*
    * Process system
    */
-  constexpr u32 TEST_MEMORY = 128 * 1024 * 1024;
-  FrameAllocator frame_allocator(TEST_MEMORY);
-  PageTable::debug_kernel_pml4();
-  ProcessManager process_manager(frame_allocator);
-  Scheduler scheduler(process_manager);
+  /*  constexpr u32 TEST_MEMORY = 128 * 1024 * 1024;
+    FrameAllocator frame_allocator(TEST_MEMORY);
+    PageTable::debug_kernel_pml4();
+    ProcessManager process_manager(frame_allocator);
+    Scheduler scheduler(process_manager);
 
-  Asm::cli(); // no preemption while we set up processes
+    Asm::cli(); // no preemption while we set up processes
 
-  Process *p1 = process_manager.create_process(64 * 1024, test_process_1).p;
-  if (!p1) {
-    Debugger::log("P1 CREATE FAILED\n");
+    Process *p1 = process_manager.create_process(64 * 1024, test_process_1).p;
+    if (!p1) {
+      Debugger::log("P1 CREATE FAILED\n");
+      while (true)
+        Kernel::halt();
+    }
+    Debugger::log("P1 CREATED\n");
+
+    Process *p2 = process_manager.create_process(64 * 1024, test_process_2).p;
+    if (!p2) {
+      Debugger::log("P2 CREATE FAILED\n");
+      while (true)
+        Kernel::halt();
+    }
+    Debugger::log("P2 CREATED\n");
+
+    Process *p3 = process_manager.create_process(64 * 1024, test_process_3).p;
+  if (!p3) {
+    Debugger::log("P3 CREATE FAILED\n");
     while (true)
       Kernel::halt();
   }
-  Debugger::log("P1 CREATED\n");
+  Debugger::log("P3 CREATED\n");
 
-  Process *p2 = process_manager.create_process(64 * 1024, test_process_2).p;
-  if (!p2) {
-    Debugger::log("P2 CREATE FAILED\n");
-    while (true)
+    Asm::sti(); // safe now, both processes exist before the timer can act
+
+    while (1)
       Kernel::halt();
-  }
-  Debugger::log("P2 CREATED\n");
-
-  Asm::sti(); // safe now, both processes exist before the timer can act
-
-  while (1)
-    Kernel::halt();
+      */
 
   /*
    * Shell (unreachable while the process test above runs, kept here
    * so it is easy to switch back once process switching is confirmed
    * working)
    */
-  // ShellHistory sh;
-  // Shell shell(terminal, sh);
-  // shell.run();
+  ShellHistory sh;
+  Shell shell(terminal, sh);
+  shell.run();
 }

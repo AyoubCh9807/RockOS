@@ -29,7 +29,7 @@ public:
     char buf[256];
 
     StringUtils::snprintf(buf, sizeof(buf), "Damian calculated the length himself and found it to be %d", total);
-    terminal_utils.print(Colors::WHITE, buf);
+    terminal_utils.print(buf, Colors::WHITE);
 
     return CommandResult("");
   }

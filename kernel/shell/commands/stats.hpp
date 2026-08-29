@@ -17,8 +17,8 @@ public:
   CommandResult execute(int argc, char **argv) {
 
     for (int i = 0; i < STAT_FIELD_COUNT; i++) {
-      terminal_utils.print(Colors::GREEN,
-                           ("%s: %s\n", stat_labels[i], stat_values[i]));
+      terminal_utils.print(("%s: %s\n", stat_labels[i], stat_values[i]),
+                           Colors::GREEN);
     }
   }
 };

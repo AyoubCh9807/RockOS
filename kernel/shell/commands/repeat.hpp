@@ -25,12 +25,12 @@ public:
 
     for (int i = 0; i < repeat_times; i++) {
       for (int j = 2; j < argc; j++) {
-        terminal_utils.print(Colors::WHITE, argv[j]);
+        terminal_utils.print(argv[j], Colors::WHITE);
 
         if (j < argc - 1)
-          terminal_utils.print(Colors::WHITE, " ");
+          terminal_utils.print(" ", Colors::WHITE);
       }
-      terminal_utils.print(Colors::WHITE, "\n");
+      terminal_utils.print("\n", Colors::WHITE);
     }
 
     return CommandResult("");

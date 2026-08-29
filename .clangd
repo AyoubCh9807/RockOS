@@ -1,0 +1,19 @@
+CompileFlags:
+  Add:
+    - -std=c++23
+    - -Ikernel
+    - --target=x86_64-elf
+    - -D__x86_64__
+    - -D__amd64__
+  Remove:
+    - -nostdlib
+    - -fno-builtin
+    - -mno-red-zone
+    - -mno-mmx
+    - -mno-sse
+    - -mno-sse2
+    - -mno-80387
+    - -mgeneral-regs-only
+    - -O2
+    - -fno-use-cxa-atexit
+    - -fno-stack-protector

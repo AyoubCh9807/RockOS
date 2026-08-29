@@ -19,13 +19,13 @@ public:
     if (argc < 2 || !argv[1])
       return CommandResult(Generator::random_phrase(foolish_phrases));
 
-    for(int i = 1; i < argc; i++) {
+    for (int i = 1; i < argc; i++) {
       StringUtils::uppercase(argv[i]);
-      terminal_utils.print(Colors::WHITE, argv[i]);
-      if(i < argc - 1) terminal_utils.print(Colors::WHITE, " ");
-    } 
+      terminal_utils.print(argv[i], Colors::WHITE);
+      if (i < argc - 1)
+        terminal_utils.print(" ", Colors::WHITE);
+    }
 
     return CommandResult("");
   }
 };
-

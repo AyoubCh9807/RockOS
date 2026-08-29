@@ -193,8 +193,8 @@ public:
     va_start(args, fmt);
     StringUtils::vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
-    print(buf, color);  // calls the existing print(const char*, unsigned)
-}
+    print(buf, color); // calls the existing print(const char*, unsigned)
+  }
 
   static void static_print(const char *str, const u32 color) {
     global_terminal->print(str, color);
@@ -279,7 +279,7 @@ public:
     }
   }
 
-   void draw_bar() {
+  void draw_bar() {
     size_t used = heap.get_used();
 
     size_t whole = used / (1024 * 1024);
@@ -329,7 +329,19 @@ public:
       global_terminal->draw_bar();
   }
 
-  void print_formatted(unsigned color, const char *fmt, ...) {
+  /**
+   * @brief The equivalent of printf(color, fmt, args)
+   * @param color The 32-bit color value for the output.
+   * @param fmt The format string.
+   * @param ... Additional arguments for the format string.
+   *
+   * This is the only print call with the color argument before
+   * the string argument because the color cannot be parsed after
+   * an unknown number of arguments.
+   *
+   * @example print_formatted(0xFFFFFF, "%s is here!", "damian");
+   */
+  void print_formatted(u32 color, const char *fmt, ...) {
     char buf[256];
     va_list args;
     va_start(args, fmt);
