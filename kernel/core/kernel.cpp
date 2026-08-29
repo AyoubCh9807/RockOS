@@ -1,6 +1,12 @@
 #include "kernel.hpp"
 #include "../../boot/graphics.hpp"
 #include "../../boot/multiboot2.hpp"
+#include "../gui/demo_app.hpp"
+#include "../gui/clock_app.hpp"
+#include "../gui/tyrant_app.hpp"
+#include "../gui/window.hpp"
+#include "../gui/window_app.hpp"
+#include "../gui/window_manager.hpp"
 #include "../memory/heap.hpp"
 #include "../process/process_manager.hpp"
 #include "../process/scheduler.hpp"
@@ -95,6 +101,21 @@ extern "C" void kernel_main(u64 mb_addr) {
   terminal_utils.print(Generator::random_phrase(reboot_phrases), 0xFFFFFF);
 
   /*
+   * GUI test. Same pattern as the process test below, this block
+   * takes over completely and never returns, so shell.run() (and the
+   * process test, if that were also uncommented) becomes unreachable
+   * while this is active. Flip this and the shell block below to
+   * switch between testing the GUI and testing the shell, they are
+   * not set up to coexist yet.
+   */
+  
+    WindowManager wm;
+    TyrantApp tyrant;
+    wm.create_window(&tyrant, 100, 100, 600, 480);
+    wm.run();
+  
+
+  /*
    * Process system
    */
   /*  constexpr u32 TEST_MEMORY = 128 * 1024 * 1024;
@@ -136,9 +157,8 @@ extern "C" void kernel_main(u64 mb_addr) {
       */
 
   /*
-   * Shell (unreachable while the process test above runs, kept here
-   * so it is easy to switch back once process switching is confirmed
-   * working)
+   * Shell (unreachable while the GUI test or process test above are
+   * uncommented, kept here so it is easy to switch back)
    */
   ShellHistory sh;
   Shell shell(terminal, sh);

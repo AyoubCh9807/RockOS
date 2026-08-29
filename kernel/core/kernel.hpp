@@ -1,5 +1,4 @@
 #pragma once
-
 #include "timer.hpp"
 #include <stdarg.h>
 #include "asm.hpp"
