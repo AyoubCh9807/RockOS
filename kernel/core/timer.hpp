@@ -1,17 +1,17 @@
 #pragma once
 
 #include "../containers/string.hpp"
-// #include "../process/scheduler.hpp"
 #include "asm.hpp"
 #include "idt.hpp"
 
 constexpr int DIVISOR = 11932;
 constexpr int TIMER_HZ = 100;
 
-// Scheduler::on_timer sets this before returning. timer_stub loads it
-// into the real RSP register right before popping registers and
-// executing iretq — this is what actually makes each process resume
-// on its own private stack instead of the shared kernel boot stack.
+/* Scheduler::on_timer sets these before returning. timer_stub loads
+   them into the real CR3 and RSP registers, back to back, right
+   before popping registers and executing iretq. This is what makes
+   each process resume on its own private stack and page tables
+   instead of whatever was active when the interrupt fired. */
 extern "C" inline volatile u64 next_resume_rsp = 0;
 extern "C" inline volatile u64 next_resume_cr3 = 0;
 
@@ -29,54 +29,50 @@ inline void remap_pic() {
   unsigned char a1 = Asm::inb(0x21);
   unsigned char a2 = Asm::inb(0xA1);
 
-  // an ICW (initialization command word) is a setting we send to the PIC since
-  // we cant write normal settings ICW1: Start initialization
+  /* An ICW (initialization command word) is a setting we send to the
+     PIC since we cannot write normal settings. ICW1 starts
+     initialization. */
   Asm::outb(0x20, 0x11);
   Asm::outb(0xA0, 0x11);
 
-  // ICW2: Deliver offsets (Master = 32, Slave = 40)
-  // We do that because vector 0 through 31 handle exceptions such as divide by
-  // zero or faults
+  /* ICW2 delivers offsets (master = 32, slave = 40). We do that
+     because vectors 0 through 31 handle exceptions such as divide by
+     zero or faults. */
   Asm::outb(0x21, 0x20);
   Asm::outb(0xA1, 0x28);
 
-  // ICW3: Setup cascading
-  // cascading is how to PICs talk to each other (pic: programmable interrupt
-  // controller)
+  // ICW3 sets up cascading, how the two PICs talk to each other.
   Asm::outb(0x21, 0x04);
   Asm::outb(0xA1, 0x02);
 
-  // ICW4: Environment info
+  // ICW4 sets environment info.
   Asm::outb(0x21, 0x01);
   Asm::outb(0xA1, 0x01);
 
-  // Mask every IRQ except IRQ0 (timer). Keyboard is polled directly in
-  // kernel_main rather than handled via IRQ1, and no other line has a
-  // handler yet, so keep them masked to avoid faulting on an
-  // unhandled vector when the hardware fires them.
-  Asm::outb(0x21, 0xFC); // Master: 1111 1110 -> only IRQ0 unmasked
+  /* Mask every IRQ except IRQ0 (timer). Keyboard is polled directly
+     in kernel_main rather than handled via IRQ1, and no other line
+     has a handler yet, so keep them masked to avoid faulting on an
+     unhandled vector when the hardware fires them. */
+  Asm::outb(0x21, 0xFC); // Master: 1111 1110, only IRQ0 unmasked
   Asm::outb(0xA1, 0xFF); // Slave: all masked
 }
 
 inline void init() {
-
   remap_pic();
 
-  // Set up the Interrup Descriptor Table first so the CPU is ready
+  // Set up the Interrupt Descriptor Table first so the CPU is ready.
   idt_init();
 
-  // Preparing to send a 16 bit number on channel zero in 2 parts: low byte
-  // and then high byte
+  /* Preparing to send a 16 bit number on channel zero in 2 parts,
+     low byte and then high byte. */
   Asm::outb(command_register_hex, 0x36);
 
-  // Dropping the first byte (low) to the chip and preparing for the second
-  // one (high)
+  // Dropping the low byte to the chip.
   Asm::outb(channel_zero_data_port, (unsigned char)(DIVISOR & 0xFF));
 
-  // Dropping the second byte (high) to the chip
+  // Dropping the high byte to the chip.
   Asm::outb(channel_zero_data_port, (unsigned char)((DIVISOR >> 8) & 0xFF));
 
-  // Calling sti
   Asm::sti();
 }
 
@@ -133,6 +129,7 @@ inline void get_formatted_time_into(char *buf, size_t max_len) {
 }
 
 } // namespace Timer
+
 #include "../process/scheduler.hpp"
 
 extern "C" void c_timer_handler(CpuContext *ctx) {
@@ -147,20 +144,25 @@ extern "C" void c_timer_handler(CpuContext *ctx) {
   }
 
   next_resume_rsp = reinterpret_cast<u64>(ctx);
-  Timer::handler();
 
-  // COMMENT OUT THE STATUS BAR FOR NOW
-  // static int last_second = -1;
-  // int now = Timer::get_seconds();
-  // if (now != last_second) {
-  //   TerminalUtils::update_status_bar();
-  //   Timer::last_bar_second = now;
-  //   Timer::bar_dirty = true;
-  // }
+  /* Default to the CR3 that is actually loaded right now. Without
+     this, next_resume_cr3 stays at its zero-initialized value on any
+     tick where on_timer does not run (for example before the
+     scheduler exists yet), and timer_stub would force CR3 to 0 on
+     iretq. on_timer overwrites this below when a real switch
+     happens. */
+  next_resume_cr3 = Asm::read_cr3();
+
+  Timer::handler();
 
   if (Scheduler::get_scheduler())
     Scheduler::get_scheduler()->on_timer(ctx);
+
+  /* Diagnostic: confirm what timer_stub is about to load, on the
+     untouched entry stack, safe regardless of what on_timer just did
+     to next_resume_cr3 / next_resume_rsp. */
   static u32 resume_dbg = 0;
   if ((resume_dbg++ % 30) == 0)
-    Debugger::logf("about to resume rsp=%d\n", (unsigned)next_resume_rsp);
+    Debugger::logf("RESUME cr3=%d rsp=%d\n", (unsigned)next_resume_cr3,
+                   (unsigned)next_resume_rsp);
 }

@@ -1,4 +1,5 @@
 #pragma once
+
 #include "../core/timer.hpp"
 #include "../utils/debugger.hpp"
 #include "process_manager.hpp"
@@ -10,7 +11,6 @@ private:
   ProcessManager &process_manager;
   size_t quantum = 10;
   size_t ticks = 0;
-
   inline static Scheduler *instance;
 
 public:
@@ -31,6 +31,7 @@ public:
   Process *pick_next() {
     if (current_process == nullptr)
       return nullptr;
+
     Vector<Process *> &ptrain = process_manager.get_process_train();
     if (ptrain.size() == 0)
       return nullptr;
@@ -66,21 +67,36 @@ public:
 
     next_resume_rsp = reinterpret_cast<u64>(ctx);
 
-if (current_process == nullptr) {
-  current_process = pick_first_process();
-  if (!current_process)
-    return;
-  static bool logged_once = false;
-  if (!logged_once) {
-    Debugger::logf("FIRST SWITCH: pid=%d\n",
-                   (int)current_process->get_pid());
-    logged_once = true;
-  }
-  process_manager.set_process_state(current_process, ProcessState::RUNNING);
-  next_resume_cr3 = current_process->get_page_table()->get_pml4();
-  next_resume_rsp = current_process->get_context().rsp;
-  return;
-}
+    if (current_process == nullptr) {
+      current_process = pick_first_process();
+      if (!current_process)
+        return;
+
+      static bool logged_once = false;
+      if (!logged_once) {
+        Debugger::logf("FIRST SWITCH: pid=%d\n",
+                       (int)current_process->get_pid());
+        logged_once = true;
+      }
+
+      process_manager.set_process_state(current_process,
+                                        ProcessState::RUNNING);
+
+      /* Both of these are picked up by timer_stub right before iretq.
+         Nothing here calls write_cr3 directly, that switch has to
+         happen atomically with the RSP switch in the stub, or any
+         C++/stack activity in between runs on the old RSP but the
+         new page tables. */
+      next_resume_cr3 = current_process->get_page_table()->get_pml4();
+      next_resume_rsp = current_process->get_context().rsp;
+
+      Debugger::logf("SET next_resume_cr3=%d for pid=%d\n",
+                     (unsigned)next_resume_cr3,
+                     (int)current_process->get_pid());
+      return;
+    }
+
+    ticks++;
     if (ticks < quantum)
       return;
     ticks = 0;
@@ -100,11 +116,14 @@ if (current_process == nullptr) {
     process_manager.set_process_state(current_process, ProcessState::READY);
     process_manager.set_process_state(next, ProcessState::RUNNING);
     current_process = next;
-    Debugger::logf("SWITCH QUEUED pid=%d\n", (int)next->get_pid()); // safe: still on OLD cr3
-//    Asm::write_cr3(next->get_page_table()->get_pml4());
-    Debugger::logf("CR3 SWITCH OK pid=%d\n", (int)next->get_pid());
+
+    // Safe to log here, CR3 has not changed yet.
+    Debugger::logf("SWITCH QUEUED pid=%d\n", (int)next->get_pid());
 
     next_resume_cr3 = next->get_page_table()->get_pml4();
     next_resume_rsp = next->get_context().rsp;
+
+    Debugger::logf("SET next_resume_cr3=%d for pid=%d\n",
+                   (unsigned)next_resume_cr3, (int)next->get_pid());
   }
 };

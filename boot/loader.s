@@ -215,12 +215,12 @@ timer_stub:
 
     mov al, 0x20
     out 0x20, al
-; WE ADD TS BACK WHEN WE DO CONTEXT SWITCHING AGAIN
-;    mov rax, [next_resume_cr3]
- ;   mov cr3, rax
-;
- ;   mov rax, [next_resume_rsp]
-  ;  mov rsp, rax
+
+    mov rax, [next_resume_cr3]
+    mov cr3, rax
+
+    mov rax, [next_resume_rsp]
+    mov rsp, rax
 
     pop r15
     pop r14
