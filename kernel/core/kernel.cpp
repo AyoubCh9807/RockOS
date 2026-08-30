@@ -2,10 +2,7 @@
 #include "../../boot/graphics.hpp"
 #include "../../boot/multiboot2.hpp"
 #include "../gui/demo_app.hpp"
-#include "../gui/clock_app.hpp"
-#include "../gui/tyrant_app.hpp"
-#include "../gui/window.hpp"
-#include "../gui/window_app.hpp"
+#include "../gui/dice_app.hpp"
 #include "../gui/window_manager.hpp"
 #include "../memory/heap.hpp"
 #include "../process/process_manager.hpp"
@@ -110,8 +107,8 @@ extern "C" void kernel_main(u64 mb_addr) {
    */
   
     WindowManager wm;
-    TyrantApp tyrant;
-    wm.create_window(&tyrant, 100, 100, 600, 480);
+    DiceApp dice;
+    wm.create_window(&dice, 100, 100, 600, 480);
     wm.run();
   
 
