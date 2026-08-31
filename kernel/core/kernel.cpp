@@ -3,6 +3,7 @@
 #include "../../boot/multiboot2.hpp"
 #include "../gui/demo_app.hpp"
 #include "../gui/dice_app.hpp"
+#include "../gui/dvd_app.hpp"
 #include "../gui/window_manager.hpp"
 #include "../memory/heap.hpp"
 #include "../process/process_manager.hpp"
@@ -107,8 +108,8 @@ extern "C" void kernel_main(u64 mb_addr) {
    */
   
     WindowManager wm;
-    DiceApp dice;
-    wm.create_window(&dice, 100, 100, 600, 480);
+    DvdApp dvd;
+    wm.create_window(&dvd, 100, 100, 600, 480);
     wm.run();
   
 

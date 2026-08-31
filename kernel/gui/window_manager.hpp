@@ -14,6 +14,8 @@
    worth switching to once you confirm what's available). */
 #include "../../boot/graphics.hpp"
 
+
+constexpr int WINDOW_UPDATE_TICKS = 5;
 constexpr int MAX_WINDOWS = 32;
 
 class WindowManager {
@@ -170,7 +172,7 @@ public:
          key was pressed. This is what lets something like a clock
          update on its own. */
       u32 now = Timer::get_ticks();
-      if (now - last_refresh_tick >= 100) {
+      if (now - last_refresh_tick >= WINDOW_UPDATE_TICKS) {
         last_refresh_tick = now;
         redraw_all();
         render();
