@@ -4,7 +4,7 @@
 #include "../gui/demo_app.hpp"
 #include "../gui/dice_app.hpp"
 #include "../gui/dvd_app.hpp"
-#include "../gui/matrix_app.hpp"
+#include "../gui/counter_app.hpp"
 #include "../gui/window_manager.hpp"
 #include "../memory/heap.hpp"
 #include "../process/process_manager.hpp"
@@ -109,7 +109,7 @@ extern "C" void kernel_main(u64 mb_addr) {
    */
   
     WindowManager wm;
-    MatrixApp app;
+    CounterApp app;
     wm.create_window(&app, 100, 100, 600, 480);
     wm.run();
   
