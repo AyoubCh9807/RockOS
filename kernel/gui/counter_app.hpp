@@ -12,7 +12,7 @@ private:
   int count = 0;
 
 public:
-  const char *name() const override { return "counter"; }
+  const char *name() const override { return "Counter"; }
 
   void on_create(Window &win) override { draw(win); }
 

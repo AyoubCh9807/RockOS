@@ -13,9 +13,9 @@ private:
   bool initialized = false;
 
 public:
-  const char *name() const override { return "matrix"; }
+  const char *name() const override { return "Matrix"; }
 
-  void on_create(Window &win) override { 
+  void on_create(Window &win) override {
     init_drops(win);
     draw(win); 
   }

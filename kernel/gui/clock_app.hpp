@@ -7,7 +7,7 @@
 
 class ClockApp : public IWindowApp {
 public:
-  const char *name() const override { return "clock"; }
+  const char *name() const override { return "Clock"; }
 
   void on_create(Window &win) override { draw(win); }
 

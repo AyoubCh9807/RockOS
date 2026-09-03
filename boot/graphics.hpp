@@ -101,4 +101,33 @@ inline void draw_string(const char *str, u32 x, u32 y, u32 color) {
   }
 }
 
+inline void draw_bitmap(const u8 *bitmap, u32 x, u32 y, u32 width, u32 height,
+                        u32 color) {
+  for (u32 i = 0; i < height; i++) {
+    u8 bm = bitmap[i];
+
+    for (u32 j = 0; j < width; j++) {
+      if (bm & (1 << (width - 1 - j)))
+        put_pixel(x + j, y + i, color);
+    }
+  }
+}
+
+inline void draw_image(const u32 *pixels, u32 x, u32 y, u32 width, u32 height) {
+  if (!pixels)
+    return;
+
+  for (u32 py = 0; py < height; py++) {
+    for (u32 px = 0; px < width; px++) {
+      u32 color = pixels[py * width + px];
+
+      // 0 alpha = transparent
+      if ((color >> 24) == 0)
+        continue;
+
+      put_pixel(x + px, y + py, color);
+    }
+  }
+}
+
 } // namespace Graphics

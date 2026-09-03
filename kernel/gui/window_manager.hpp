@@ -7,15 +7,10 @@
 #include "window.hpp"
 #include "window_app.hpp"
 
-/* NOTE: render() below calls Graphics::put_pixel(x, y, color) as a
-   stand-in for whatever your actual boot/graphics.hpp exposes. Paste
-   that file over if the real API differs (a blit/rect-fill function
-   would be much faster than one put_pixel call per pixel per frame,
-   worth switching to once you confirm what's available). */
 #include "../../boot/graphics.hpp"
 
-
 constexpr int WINDOW_UPDATE_TICKS = 5;
+constexpr int FRAME_TICKS = 2; // arnd 50fps
 constexpr int MAX_WINDOWS = 32;
 
 class WindowManager {
@@ -23,6 +18,7 @@ private:
   Window *windows[MAX_WINDOWS]{};
   IWindowApp *apps[MAX_WINDOWS]{};
   int count = 0;
+  u32 last_refresh_tick = 0;
 
   Window *focused_window = nullptr;
 
@@ -35,6 +31,8 @@ private:
   }
 
 public:
+  WindowManager() : last_refresh_tick(Timer::get_ticks()) {}
+
   Window *create_window(IWindowApp *app, int x, int y, int width, int height) {
     if (count >= MAX_WINDOWS)
       return nullptr;
@@ -149,36 +147,12 @@ public:
       apps[i]->on_draw(*windows[i]);
   }
 
-  /* Blocking loop, same shape as Shell::run(). Meant to be called
-     instead of shell.run() while testing the GUI in isolation, later
-     this and the shell will need to coexist (probably as two things
-     the user can switch between, or the shell becomes one more
-     window), not solved yet. */
-  void run() {
-    render();
+  void update() {
+    u32 now = Timer::get_ticks();
 
-    u32 last_refresh_tick = Timer::get_ticks();
-
-    while (1) {
-      KeyEvent ev = Keyboard::read();
-
-      if (ev.scancode != 0 && ev.keytype != KeyType::None) {
-        route_key(ev);
-        render();
-      }
-
-      /* Once per second (100 ticks at the current 100Hz timer),
-         redraw everything and recomposite, regardless of whether any
-         key was pressed. This is what lets something like a clock
-         update on its own. */
-      u32 now = Timer::get_ticks();
-      if (now - last_refresh_tick >= WINDOW_UPDATE_TICKS) {
-        last_refresh_tick = now;
-        redraw_all();
-        render();
-      }
-
-      Kernel::halt();
+    if (now - last_refresh_tick >= WINDOW_UPDATE_TICKS) {
+      last_refresh_tick = now;
+      redraw_all();
     }
   }
 };

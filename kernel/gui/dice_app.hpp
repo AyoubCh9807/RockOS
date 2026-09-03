@@ -15,7 +15,7 @@ private:
   int roll() { return (Random::next() % 6) + 1; }
 
 public:
-  const char *name() const override { return "dice"; }
+  const char *name() const override { return "Dice"; }
 
   void on_create(Window &win) override { draw(win); }
 

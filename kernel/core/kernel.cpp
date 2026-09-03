@@ -1,17 +1,15 @@
 #include "kernel.hpp"
-#include "../../boot/graphics.hpp"
+// #include "../../boot/graphics.hpp"
 #include "../../boot/multiboot2.hpp"
-#include "../gui/demo_app.hpp"
-#include "../gui/dice_app.hpp"
-#include "../gui/dvd_app.hpp"
-#include "../gui/counter_app.hpp"
+#include "../desktop/desktop.hpp"
+#include "../gui/window_app_registry.hpp"
 #include "../gui/window_manager.hpp"
 #include "../memory/heap.hpp"
-#include "../process/process_manager.hpp"
-#include "../process/scheduler.hpp"
+// #include "../process/process_manager.hpp"
+// #include "../process/scheduler.hpp"
 #include "../random/random.hpp"
 #include "../shared/types.hpp"
-#include "../shell/shell.hpp"
+// #include "../shell/shell.hpp"
 #include "../shell/terminal.hpp"
 #include "../shell/terminal_registry.hpp"
 #include "crti.hpp"
@@ -107,13 +105,24 @@ extern "C" void kernel_main(u64 mb_addr) {
    * switch between testing the GUI and testing the shell, they are
    * not set up to coexist yet.
    */
-  
-    WindowManager wm;
-    CounterApp app;
-    wm.create_window(&app, 100, 100, 600, 480);
-    wm.run();
-  
 
+  WindowManager wm;
+  WindowAppRegistry window_app_reg;
+
+  window_app_reg.fill_registry();
+
+  Desktop desktop(wm, window_app_reg);
+
+  desktop.add_icon("Counter", 20, 20);
+  desktop.add_icon("Dice", 20, 60);
+  desktop.add_icon("DVD", 20, 100);
+  desktop.add_icon("Clock", 20, 140);
+  desktop.add_icon("Tyrant", 20, 180);
+  desktop.add_icon("Matrix", 20, 220);
+
+  desktop.init();
+
+  desktop.run();
   /*
    * Process system
    */
@@ -159,7 +168,7 @@ extern "C" void kernel_main(u64 mb_addr) {
    * Shell (unreachable while the GUI test or process test above are
    * uncommented, kept here so it is easy to switch back)
    */
-  ShellHistory sh;
-  Shell shell(terminal, sh);
-  shell.run();
+  //  ShellHistory sh;
+  //  Shell shell(terminal, sh);
+  // shell.run();
 }

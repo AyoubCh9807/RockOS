@@ -48,7 +48,7 @@ private:
   }
 
 public:
-  const char *name() const override { return "dvd"; }
+  const char *name() const override { return "DVD"; }
 
   void on_create(Window &win) override { draw(win); }
 

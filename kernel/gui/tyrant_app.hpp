@@ -11,7 +11,7 @@ private:
   const char* current_phrase = Generator::random_phrase(foolish_phrases);
 
 public:
-  const char *name() const override { return "tyrant"; }
+  const char *name() const override { return "Tyrant"; }
 
   void on_create(Window &win) override { draw(win); }
 
