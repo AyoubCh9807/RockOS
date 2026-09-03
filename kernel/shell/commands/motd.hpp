@@ -1,7 +1,6 @@
-#include "../../data/system.hpp"
-
 #pragma once
 
+#include "../../data/system.hpp"
 #include "icommand.hpp"
 
 class MotdCommand : public ICommand {

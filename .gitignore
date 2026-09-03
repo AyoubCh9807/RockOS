@@ -10,6 +10,9 @@ isodir/
 .vscode/
 .idea/
 *.swp
+compile_commands.json
+*.clangd
+
 
 # Combined code text file
 combined_code.txt

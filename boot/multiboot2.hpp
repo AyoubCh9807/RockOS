@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../kernel/core/kernel.hpp"
+#include "../kernel/shared/types.hpp"
 
 struct Framebuffer {
   u8 *address;

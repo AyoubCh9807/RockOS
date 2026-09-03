@@ -1,9 +1,10 @@
 #pragma once
 
+#include "multiboot2.hpp"
+
 #include "../kernel/data/font.hpp"
 #include "../kernel/shared/types.hpp"
 #include "../kernel/utils/bit_utils.hpp"
-#include "multiboot2.hpp"
 
 namespace Graphics {
 

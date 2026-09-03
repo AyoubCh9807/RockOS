@@ -1,3 +1,5 @@
+#pragma once
+
 extern "C" void (*__init_array_start[])();
 extern "C" void (*__init_array_end[])();
 

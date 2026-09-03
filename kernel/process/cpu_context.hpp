@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../shared/types.hpp"
 
 struct CpuContext {

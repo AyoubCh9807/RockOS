@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../../data/system.hpp"
 #include "../../storage/file_system.hpp"
 #include "icommand.hpp"
