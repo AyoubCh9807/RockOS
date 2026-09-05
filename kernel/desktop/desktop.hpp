@@ -5,13 +5,14 @@
 #include "../gui/window_app_registry.hpp"
 #include "../gui/window_manager.hpp"
 #include "desktop_icon.hpp"
+#include "wallpaper.hpp"
 
-#include "../gui/counter_app.hpp"
-#include "../gui/dice_app.hpp"
-#include "../gui/dvd_app.hpp"
-#include "../gui/matrix_app.hpp"
-#include "../gui/paint_app.hpp"
-#include "../gui/tyrant_app.hpp"
+// #include "../gui/counter_app.hpp"
+// #include "../gui/dice_app.hpp"
+// #include "../gui/dvd_app.hpp"
+// #include "../gui/matrix_app.hpp"
+// #include "../gui/paint_app.hpp"
+// #include "../gui/tyrant_app.hpp"
 
 static constexpr auto MAX_DESKTOP_APPS = 256;
 static constexpr auto DEFAULT_WINDOW_WIDTH = 600;
@@ -75,7 +76,7 @@ public:
   void render() {
     draw_background();
 
-    // draw_wallpaper();
+    Wallpaper::draw_selected_wallpaper();
     draw_icons();
 
     window_manager.render();
@@ -143,10 +144,31 @@ public:
 
     char memory_text[32];
 
-    StringUtils::snprintf(memory_text, sizeof(memory_text), "MEM %u KB",
-                          used_memory / 1024);
+    if (used_memory > 1024 * 1024) {
+      StringUtils::snprintf(memory_text, sizeof(memory_text), "MEM %u.%u MB",
+                            used_memory / (1024 * 1024),
+                            (used_memory % (1024 * 1024)) / 102400);
 
-    Graphics::draw_string(memory_text, INFO_X, taskbar_y + 18, Colors::WHITE);
+    } else {
+      StringUtils::snprintf(memory_text, sizeof(memory_text), "MEM %u KB",
+                            used_memory / 1024);
+    }
+
+    bool low_memory_usage = used_memory > 1024 * 1024 * 3;
+    bool medium_memory_usage = used_memory > 1024 * 1024 * 6;
+    bool high_memory_usage = used_memory > 1024 * 1024 * 9;
+    bool dangerous_memory_usage = used_memory > 1024 * 1024 * 12;
+    bool critical_memory_usage = used_memory > 1024 * 1024 * 15;
+
+    u32 memory_text_color = (used_memory > 1024 * 1024 * 15) ? Colors::RED
+                            : (used_memory > 1024 * 1024 * 12) ? Colors::ORANGE
+                            : (used_memory > 1024 * 1024 * 9)  ? Colors::GOLD
+                            : (used_memory > 1024 * 1024 * 6)  ? Colors::YELLOW
+                            : (used_memory > 1024 * 1024 * 3)  ? Colors::GREEN
+                                                               : Colors::WHITE;
+
+    Graphics::draw_string(memory_text, INFO_X, taskbar_y + 18,
+                          memory_text_color);
 
     // Uptime
 
@@ -174,8 +196,8 @@ public:
 
     char clock_text[16];
 
-    StringUtils::snprintf(clock_text, sizeof(clock_text), "%02d:%02d:%02d", (int)hour,
-                          (int)minute, (int)second);
+    StringUtils::snprintf(clock_text, sizeof(clock_text), "%02d:%02d:%02d",
+                          (int)hour, (int)minute, (int)second);
 
     constexpr u32 RIGHT_PADDING = 16;
 
@@ -196,8 +218,6 @@ public:
       icons[i].draw();
     }
   }
-
-  // void draw_wallpaper();
 
   void add_icon(const char *label, u32 x, u32 y) {
     if (icon_count >= MAX_DESKTOP_APPS)
@@ -238,6 +258,10 @@ public:
     if (ev.keytype == KeyType::Enter ||
         (ev.keytype == KeyType::Char && ev.scancode == 'o')) {
       launch_app(icons[selected_icon]);
+      return true;
+    }
+    if (ev.keytype == KeyType::Char && ev.scancode == 'w') {
+      Wallpaper::select_next_wallpaper();
       return true;
     }
     return false;
