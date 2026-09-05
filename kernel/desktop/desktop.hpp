@@ -25,7 +25,7 @@ private:
   DesktopIcon icons[MAX_DESKTOP_APPS];
   int icon_count = 0;
   int selected_icon = 0;
-  
+
   u32 background_color = Colors::DARK_RED;
 
   void draw_background() { Graphics::clear(background_color); }
@@ -35,19 +35,22 @@ private:
   int LAUNCH_DX = 32;
   int LAUNCH_DY = 32;
 
-  static constexpr auto SCREEN_WIDTH = 640;
-  static constexpr auto SCREEN_HEIGHT = 480;
-
+  inline static auto SCREEN_WIDTH = Multiboot2::framebuffer.width;
+  inline static auto SCREEN_HEIGHT = Multiboot2::framebuffer.height;
 
   void handle_launch_coords() {
-    if(LAUNCH_X >= SCREEN_WIDTH) LAUNCH_DX = -LAUNCH_DX;
-    if(LAUNCH_Y >= SCREEN_HEIGHT) LAUNCH_DY = -LAUNCH_DY;
+    if (LAUNCH_X >= SCREEN_WIDTH)
+      LAUNCH_DX = -LAUNCH_DX;
+    if (LAUNCH_Y >= SCREEN_HEIGHT)
+      LAUNCH_DY = -LAUNCH_DY;
 
-    if(LAUNCH_X <= 0) LAUNCH_DX = -LAUNCH_DX;
-    if(LAUNCH_Y <= 0) LAUNCH_DY = -LAUNCH_DY;
+    if (LAUNCH_X <= 0)
+      LAUNCH_DX = -LAUNCH_DX;
+    if (LAUNCH_Y <= 0)
+      LAUNCH_DY = -LAUNCH_DY;
 
     LAUNCH_X += LAUNCH_DX;
-    LAUNCH_DY += LAUNCH_DY;
+    LAUNCH_Y += LAUNCH_DY;
   }
 
 public:
@@ -72,17 +75,116 @@ public:
   void render() {
     draw_background();
 
-    window_manager.render();
-
-    //    draw_wallpaper();
+    // draw_wallpaper();
     draw_icons();
 
-    //    draw_taskbar();
+    window_manager.render();
+
+    draw_taskbar();
+
+    Graphics::present();
   }
 
   void clear() { draw_background(); }
 
-  //  void draw_taskbar();
+  void draw_taskbar() {
+    u32 width = Multiboot2::framebuffer.width;
+    u32 height = Multiboot2::framebuffer.height;
+
+    constexpr u32 TASKBAR_HEIGHT = 64;
+    u32 taskbar_y = height - TASKBAR_HEIGHT;
+
+    // TASKBAR
+
+    Graphics::draw_rect(0, taskbar_y, width, TASKBAR_HEIGHT, Colors::DARK_GRAY);
+
+    // Top border
+    Graphics::draw_rect(0, taskbar_y, width, 2, Colors::BLUE);
+
+    // ROCK OS START BUTTON
+
+    constexpr u32 START_X = 12;
+    constexpr u32 START_SIZE = 44;
+
+    Graphics::draw_rect(START_X, taskbar_y + 10, START_SIZE, START_SIZE,
+                        Colors::BLUE);
+
+    Graphics::draw_string("R", START_X + 17, taskbar_y + 28, Colors::WHITE);
+
+    // APP BUTTONS
+
+    constexpr u32 APP_START_X = 72;
+    constexpr u32 APP_SIZE = 44;
+    constexpr u32 APP_GAP = 8;
+
+    const char *apps[] = {
+        "C", "D", "P", "M", "T",
+    };
+
+    constexpr u32 APP_COUNT = 5;
+
+    for (u32 i = 0; i < APP_COUNT; i++) {
+      u32 x = APP_START_X + i * (APP_SIZE + APP_GAP);
+
+      // App button
+      Graphics::draw_rect(x, taskbar_y + 10, APP_SIZE, APP_SIZE, Colors::GRAY);
+
+      // App icon/letter
+      Graphics::draw_string(apps[i], x + 17, taskbar_y + 28, Colors::WHITE);
+    }
+
+    // SYSTEM INFO
+
+    constexpr u32 INFO_X = 380;
+
+    // Memory
+
+    u32 used_memory = heap.get_used();
+
+    char memory_text[32];
+
+    StringUtils::snprintf(memory_text, sizeof(memory_text), "MEM %u KB",
+                          used_memory / 1024);
+
+    Graphics::draw_string(memory_text, INFO_X, taskbar_y + 18, Colors::WHITE);
+
+    // Uptime
+
+    char uptime_text[32];
+    Timer::get_formatted_time_into(uptime_text, sizeof(uptime_text));
+
+    Graphics::draw_string(uptime_text, INFO_X, taskbar_y + 38, Colors::WHITE);
+
+    // RTC DATE
+
+    u32 year = RTC::get_year() + 2000;
+    u8 month = RTC::get_year();
+    u8 day = RTC::get_day();
+
+    char date_text[32];
+
+    StringUtils::snprintf(date_text, sizeof(date_text), "%d-%d-%d", (int)year,
+                          (int)month, (int)day);
+
+    // CLOCK
+
+    u8 hour = RTC::get_hours() % 24;
+    u8 minute = RTC::get_minutes() % 60;
+    u8 second = RTC::get_seconds() % 60;
+
+    char clock_text[16];
+
+    StringUtils::snprintf(clock_text, sizeof(clock_text), "%02d:%02d:%02d", (int)hour,
+                          (int)minute, (int)second);
+
+    constexpr u32 RIGHT_PADDING = 16;
+
+    Graphics::draw_string(date_text, width - 160, taskbar_y + 14,
+                          Colors::WHITE);
+
+    Graphics::draw_string(clock_text, width - 80, taskbar_y + 34,
+                          Colors::WHITE);
+  }
 
   void draw_icons() {
     for (int i = 0; i < icon_count; i++) {
@@ -111,10 +213,8 @@ public:
 
     window_manager.create_window(app, LAUNCH_X, LAUNCH_Y, DEFAULT_WINDOW_WIDTH,
                                  DEFAULT_WINDOW_HEIGHT);
-  
 
     handle_launch_coords();
-
   }
 
   void select_next_icon() { selected_icon = (selected_icon + 1) % icon_count; }
@@ -135,7 +235,8 @@ public:
       select_prev_icon();
       return true;
     }
-    if (ev.keytype == KeyType::Enter || (ev.keytype == KeyType::Char && ev.scancode == 'o')) {
+    if (ev.keytype == KeyType::Enter ||
+        (ev.keytype == KeyType::Char && ev.scancode == 'o')) {
       launch_app(icons[selected_icon]);
       return true;
     }

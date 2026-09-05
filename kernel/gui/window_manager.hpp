@@ -38,6 +38,7 @@ public:
       return nullptr;
 
     Window *win = new Window(x, y, width, height, app->name());
+
     windows[count] = win;
     apps[count] = app;
     count++;
@@ -50,6 +51,12 @@ public:
 
     return win;
   }
+
+  Window* get_window(int index) { 
+    if(index >= count || index < 0) return nullptr;
+    return windows[index]; 
+  }
+  int get_count() { return count; }
 
   void destroy_window(Window *win) {
     for (int i = 0; i < count; i++) {
@@ -100,29 +107,41 @@ public:
      z_order. Simple insertion sort since MAX_WINDOWS is small, not
      worth anything fancier. */
   void render() {
+    // Graphics::clear(Colors::BLACK);
+
     Window *ordered[MAX_WINDOWS];
+
     for (int i = 0; i < count; i++)
       ordered[i] = windows[i];
 
+    // Sort back → front.
     for (int i = 1; i < count; i++) {
       Window *key = ordered[i];
       int j = i - 1;
+
       while (j >= 0 && ordered[j]->z_order > key->z_order) {
         ordered[j + 1] = ordered[j];
         j--;
       }
+
       ordered[j + 1] = key;
     }
 
+    // Composite windows into the global back buffer.
     for (int i = 0; i < count; i++) {
       Window *win = ordered[i];
+
       for (int ly = 0; ly < win->height; ly++) {
         for (int lx = 0; lx < win->width; lx++) {
           u32 color = win->get_pixel(lx, ly);
+
           Graphics::put_pixel(win->x + lx, win->y + ly, color);
         }
       }
     }
+
+    // Graphics::present(); Does not go here because its better if the desktop
+    // owns the final frame presentation
   }
 
   void route_key(const KeyEvent &ev) {

@@ -100,31 +100,19 @@ inline int get_cpu_usage() {
 }
 
 inline void get_formatted_time_into(char *buf, size_t max_len) {
-  int seconds = get_seconds();
-  int minutes = get_minutes();
-  int hours = get_hours();
-  int days = 0;
-  if (hours > 24) {
-    days = hours / 24;
-    hours %= 24;
-  }
-  seconds %= 60;
-  minutes %= 60;
-  hours %= 24;
+  int seconds = get_seconds() % 60;
+  int minutes = get_minutes() % 60;
+  int total_hours = get_hours();
 
-  if (minutes == 0) {
-    StringUtils::snprintf(buf, max_len, "Uptime: %d seconds\n", seconds);
-  } else if (hours == 0) {
-    StringUtils::snprintf(buf, max_len, "Uptime: %d minutes and %d seconds\n",
-                          minutes, seconds);
-  } else if (days == 0) {
-    StringUtils::snprintf(buf, max_len,
-                          "Uptime: %d hours, %d minutes and %d seconds\n",
+  int days = total_hours / 24;
+  int hours = total_hours % 24;
+
+  if (days > 0) {
+    StringUtils::snprintf(buf, max_len, "Uptime: %02d:%02d:%02d:%02d\n", days,
                           hours, minutes, seconds);
   } else {
-    StringUtils::snprintf(
-        buf, max_len, "Uptime: %d days, %d hours, %d minutes and %d seconds\n",
-        days, hours, minutes, seconds);
+    StringUtils::snprintf(buf, max_len, "Uptime: %02d:%02d:%02d\n", hours,
+                          minutes, seconds);
   }
 }
 

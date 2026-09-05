@@ -40,6 +40,10 @@ SECTIONS
     .bss ALIGN(16) :
     {
         *(.bss)
+        *(.bss.*)
         *(COMMON)
     }
+
+    . = ALIGN(4096);
+    __kernel_end = .;
 }

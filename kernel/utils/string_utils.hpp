@@ -317,6 +317,20 @@ inline int vsnprintf(char *buf, size_t max_len, const char *fmt, va_list args) {
     if (!*p)
       break;
 
+    // Parse optional flags and width (e.g., %02d)
+    bool zero_pad = false;
+    int width = 0;
+    if (*p == '0') {
+      zero_pad = true;
+      p++;
+    }
+    while (*p >= '0' && *p <= '9') {
+      width = width * 10 + (*p - '0');
+      p++;
+    }
+    if (!*p)
+      break;
+
     switch (*p) {
     case '%':
       buf[i++] = '%';
@@ -340,7 +354,7 @@ inline int vsnprintf(char *buf, size_t max_len, const char *fmt, va_list args) {
 
     case 'd': {
       int n = va_arg(args, int);
-      char num_buf[16];
+      char num_buf[32];
       bool neg = n < 0;
       unsigned int un = neg ? -n : n;
       int num_i = 0;
@@ -348,8 +362,21 @@ inline int vsnprintf(char *buf, size_t max_len, const char *fmt, va_list args) {
         num_buf[num_i++] = '0' + (un % 10);
         un /= 10;
       } while (un);
+
+      int digits_len = num_i;
+      int total_len = digits_len + (neg ? 1 : 0);
+      int padding = (width > total_len) ? (width - total_len) : 0;
+
       if (neg && i < max_len - 1)
         buf[i++] = '-';
+
+      if (zero_pad) {
+        while (padding > 0 && i < max_len - 1) {
+          buf[i++] = '0';
+          padding--;
+        }
+      }
+
       while (num_i > 0 && i < max_len - 1)
         buf[i++] = num_buf[--num_i];
       break;
@@ -357,12 +384,22 @@ inline int vsnprintf(char *buf, size_t max_len, const char *fmt, va_list args) {
 
     case 'u': {
       unsigned int n = va_arg(args, unsigned int);
-      char num_buf[16];
+      char num_buf[32];
       int num_i = 0;
       do {
         num_buf[num_i++] = '0' + (n % 10);
         n /= 10;
       } while (n);
+
+      int padding = (width > num_i) ? (width - num_i) : 0;
+
+      if (zero_pad) {
+        while (padding > 0 && i < max_len - 1) {
+          buf[i++] = '0';
+          padding--;
+        }
+      }
+
       while (num_i > 0 && i < max_len - 1)
         buf[i++] = num_buf[--num_i];
       break;
@@ -371,7 +408,7 @@ inline int vsnprintf(char *buf, size_t max_len, const char *fmt, va_list args) {
     case 'x':
     case 'X': {
       unsigned int n = va_arg(args, unsigned int);
-      char num_buf[8];
+      char num_buf[16];
       int num_i = 0;
       const char *digits =
           (*p == 'x') ? "0123456789abcdef" : "0123456789ABCDEF";

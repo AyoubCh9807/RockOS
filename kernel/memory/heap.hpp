@@ -9,11 +9,13 @@ struct Header {
   Header *prev;
 };
 
+extern "C" u8 __kernel_end[];
+
 class Heap {
 
 private:
-  u8 *heap_start = (u8 *)0x00400000;
-  u8 *heap_end = (u8 *)0x00800000;
+  u8 *heap_start = __kernel_end;
+  u8 *heap_end = __kernel_end + 0x1000000;
   size_t heap_used = 0;
   Events &allocation_events;
 

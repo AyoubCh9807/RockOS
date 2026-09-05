@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../data/colors.hpp"
 #include "../data/font.hpp"
 #include "../shared/types.hpp"
-#include "../data/colors.hpp"
 
 /* A Window owns a private pixel buffer. Apps draw into that buffer,
    never directly onto the real framebuffer, the WindowManager is the
@@ -32,7 +32,12 @@ public:
   Window(int x, int y, int width, int height, const char *title)
       : x(x), y(y), width(width), height(height), title(title), z_order(0),
         focused(false) {
+
     pixels = new u32[width * height];
+
+    if (!pixels)
+      return;
+
     clear(0x000000);
   }
 

@@ -85,12 +85,10 @@ public:
 
   void select() {
     is_selected = true;
-    draw();
   }
 
   void unselect() {
     is_selected = false;
-    draw();
   }
 
   bool selected() const { return is_selected; }

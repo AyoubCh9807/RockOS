@@ -8,42 +8,53 @@
 
 namespace Graphics {
 
+constexpr u32 MAX_WIDTH = 1920;
+constexpr u32 MAX_HEIGHT = 1080;
+
+inline u32 back_buffer[MAX_WIDTH * MAX_HEIGHT];
+inline u64 back_buffer_size = 0;
+
+inline bool init_back_buffer() {
+  if (!Multiboot2::framebuffer.valid)
+    return false;
+
+  Framebuffer &fb = Multiboot2::framebuffer;
+
+  if (fb.bpp != 32)
+    return false;
+
+  if (fb.width > MAX_WIDTH || fb.height > MAX_HEIGHT)
+    return false;
+
+  back_buffer_size = static_cast<u64>(fb.width) * fb.height;
+
+  return true;
+}
+
 inline void put_pixel(u32 x, u32 y, u32 color) {
   if (!Multiboot2::framebuffer.valid)
     return;
 
   Framebuffer &fb = Multiboot2::framebuffer;
 
+  if (!back_buffer)
+    return;
+
   if (x >= fb.width || y >= fb.height)
     return;
 
-  u32 bytes_per_pixel = fb.bpp / 8;
-
-  u8 *pixel = fb.address + y * fb.pitch + x * bytes_per_pixel;
-
-  if (fb.bpp == 32) {
-    *reinterpret_cast<u32 *>(pixel) = color;
-  } else if (fb.bpp == 16) {
-    u16 r = (color >> 16) & 0xFF;
-    u16 g = (color >> 8) & 0xFF;
-    u16 b = color & 0xFF;
-
-    u16 rgb565 = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3);
-
-    *reinterpret_cast<u16 *>(pixel) = rgb565;
-  }
+  back_buffer[y * fb.width + x] = color;
 }
 
 inline void clear(u32 color) {
-  if (!Multiboot2::framebuffer.valid)
+  if (!Multiboot2::framebuffer.valid || !back_buffer)
     return;
 
   Framebuffer &fb = Multiboot2::framebuffer;
+  u32 total_size = fb.width * fb.height;
 
-  for (u32 y = 0; y < fb.height; y++) {
-    for (u32 x = 0; x < fb.width; x++) {
-      put_pixel(x, y, color);
-    }
+  for (u64 i = 0; i < total_size; i++) {
+    back_buffer[i] = color;
   }
 }
 
@@ -126,6 +137,29 @@ inline void draw_image(const u32 *pixels, u32 x, u32 y, u32 width, u32 height) {
         continue;
 
       put_pixel(x + px, y + py, color);
+    }
+  }
+}
+
+inline void present() {
+  if (!Multiboot2::framebuffer.valid)
+    return;
+
+  if (!back_buffer)
+    return;
+
+  Framebuffer &fb = Multiboot2::framebuffer;
+
+  if (fb.bpp != 32)
+    return;
+
+  for (u32 y = 0; y < fb.height; y++) {
+    u32 *dst = reinterpret_cast<u32 *>(fb.address + y * fb.pitch);
+
+    u32 *src = back_buffer + y * fb.width;
+
+    for (u32 x = 0; x < fb.width; x++) {
+      dst[x] = src[x];
     }
   }
 }

@@ -6,6 +6,8 @@
 #include "../utils/math_utils.hpp"
 #include "../utils/string_utils.hpp"
 
+enum class Timezone { UTC1, UTC2 };
+
 namespace RTC {
 
 constexpr u8 CMOS_INDEX = 0x70;
@@ -48,21 +50,44 @@ static u8 read_year() {
   return Asm::inb(CMOS_DATA);
 }
 
-static u8 to_utc1(u8 hours) { return (hours + 1) % 24; }
-// DELETE THIS FUNCTION:
-// static String get_full_time() { ... }
+inline u8 get_seconds() { return MathUtils::bcd_to_binary(read_seconds()); }
 
-// KEEP THIS ONE:
+inline u8 get_minutes() { return MathUtils::bcd_to_binary(read_minutes()); }
+
+inline u8 get_hours() { return MathUtils::bcd_to_binary(read_hours()); }
+
+inline u8 get_day() { return MathUtils::bcd_to_binary(read_day()); }
+
+inline u8 get_month() { return MathUtils::bcd_to_binary(read_month()); }
+
+inline u8 get_year() { return MathUtils::bcd_to_binary(read_year()); }
+
 static void get_full_time_into(char *buf, size_t max_len) {
-  u8 seconds = MathUtils::bcd_to_binary(read_seconds());
-  u8 minutes = MathUtils::bcd_to_binary(read_minutes());
-  u8 hours = to_utc1(MathUtils::bcd_to_binary(read_hours()));
-  u8 day = MathUtils::bcd_to_binary(read_day());
-  u8 month = MathUtils::bcd_to_binary(read_month());
-  u8 year = MathUtils::bcd_to_binary(read_year());
+  u8 seconds = get_seconds();
+  u8 minutes = get_minutes();
+  u8 hours = get_hours();
+  u8 day = get_day();
+  u8 month = get_month();
+  u8 year = get_year();
 
-  StringUtils::snprintf(buf, max_len, "%d-%d-%d %d:%d:%d", 2000 + year, month,
-                        day, hours, minutes, seconds);
+  StringUtils::snprintf(buf, max_len, "%d-%02d-%02d %02d:%02d:%02d",
+                        2000 + year, month, day, hours, minutes, seconds);
+}
+static void get_full_time_into(char *buf, size_t max_len, Timezone tz) {
+  u8 seconds = get_seconds();
+  u8 minutes = get_minutes();
+  u8 hours = get_hours();
+  u8 day = get_day();
+  u8 month = get_month();
+  u8 year = get_year();
+
+  switch(tz) {
+    case Timezone::UTC1: hours = (hours + 1) % 24; break;
+    case Timezone::UTC2: hours = (hours + 2) % 24; break;
+  }
+
+  StringUtils::snprintf(buf, max_len, "%d-%02d-%02d %02d:%02d:%02d",
+                        2000 + year, month, day, hours, minutes, seconds);
 }
 
 } // namespace RTC
