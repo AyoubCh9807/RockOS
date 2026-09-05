@@ -10,6 +10,7 @@ enum class KeyType : u8 {
   Char,
   BackSpace,
   Enter,
+  Escape,
   ArrowUp,
   ArrowDown,
   ArrowLeft,

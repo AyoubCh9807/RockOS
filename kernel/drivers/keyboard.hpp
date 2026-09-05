@@ -23,6 +23,7 @@ private:
   static constexpr unsigned char ARROW_LEFT_SCANCODE = 0x4B;
   static constexpr unsigned char ARROW_RIGHT_SCANCODE = 0x4D;
   static constexpr unsigned char CTRL_SCANCODE = 0x1D;
+  static constexpr unsigned char ESCAPE_SCANCODE = 0x01;
   // Circular buffer implementation (must be static for header-only classes)
   inline static KeyEvent buffer[KEYBOARD_RING_BUFFER_SIZE];
   inline static int head = 0;
@@ -209,6 +210,10 @@ public:
 
     else {
 
+      if (scancode == ESCAPE_SCANCODE) {
+        ascii = 27;
+        ktype = KeyType::Escape;
+      }
       if (scancode == BACKSPACE_SCANCODE) {
         ascii = '\b';
         ktype = KeyType::BackSpace;

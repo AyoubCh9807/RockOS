@@ -235,55 +235,66 @@ static constexpr u32 DVD_PIXELS[] = {
     0xFF00FFFF, 0xFF00FFFF, 0x00000000, 0x00000000,
 };
 
-static constexpr DesktopIconData COUNTER = {
-    "Counter",
-    COUNTER_PIXELS,
-    COUNTER_WIDTH,
-    COUNTER_HEIGHT
+static constexpr u32 ABOUT_WIDTH = 14;
+static constexpr u32 ABOUT_HEIGHT = 8;
+
+static constexpr u32 ABOUT_PIXELS[] = {
+    0x00000000, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+    0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000,
+
+    0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000,
+
+    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000, 0xFF0000FF,
+    0xFF0000FF, 0xFF0000FF, 0xFF0000FF, 0x00000000, 0x00000000,
+    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000,
+
+    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000,
+    0xFF0000FF, 0xFF0000FF, 0x00000000, 0x00000000, 0x00000000,
+    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000,
+
+    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000,
+    0xFF0000FF, 0xFF0000FF, 0x00000000, 0x00000000, 0x00000000,
+    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000,
+
+    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000,
+    0xFF0000FF, 0xFF0000FF, 0x00000000, 0x00000000, 0x00000000,
+    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000,
+
+    0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000,
+    0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000,
+
+    0x00000000, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+    0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000,
 };
 
-static constexpr DesktopIconData TYRANT = {
-    "Tyrant",
-    TYRANT_PIXELS,
-    TYRANT_WIDTH,
-    TYRANT_HEIGHT
-};
+static constexpr DesktopIconData COUNTER = {"Counter", COUNTER_PIXELS,
+                                            COUNTER_WIDTH, COUNTER_HEIGHT};
 
-static constexpr DesktopIconData CLOCK = {
-    "Clock",
-    CLOCK_PIXELS,
-    CLOCK_WIDTH,
-    CLOCK_HEIGHT
-};
+static constexpr DesktopIconData TYRANT = {"Tyrant", TYRANT_PIXELS,
+                                           TYRANT_WIDTH, TYRANT_HEIGHT};
 
-static constexpr DesktopIconData DICE = {
-    "Dice",
-    DICE_PIXELS,
-    DICE_WIDTH,
-    DICE_HEIGHT
-};
+static constexpr DesktopIconData CLOCK = {"Clock", CLOCK_PIXELS, CLOCK_WIDTH,
+                                          CLOCK_HEIGHT};
 
-static constexpr DesktopIconData MATRIX = {
-    "Matrix",
-    MATRIX_PIXELS,
-    MATRIX_WIDTH,
-    MATRIX_HEIGHT
-};
+static constexpr DesktopIconData DICE = {"Dice", DICE_PIXELS, DICE_WIDTH,
+                                         DICE_HEIGHT};
 
-static constexpr DesktopIconData DVD = {
-    "DVD",
-    DVD_PIXELS,
-    DVD_WIDTH,
-    DVD_HEIGHT
-};
+static constexpr DesktopIconData MATRIX = {"Matrix", MATRIX_PIXELS,
+                                           MATRIX_WIDTH, MATRIX_HEIGHT};
+
+static constexpr DesktopIconData DVD = {"DVD", DVD_PIXELS, DVD_WIDTH,
+                                        DVD_HEIGHT};
+
+static constexpr DesktopIconData ABOUT = {"About", ABOUT_PIXELS, ABOUT_WIDTH,
+                                          ABOUT_HEIGHT};
 
 static constexpr const DesktopIconData *ALL[] = {
-    &COUNTER,
-    &TYRANT,
-    &CLOCK,
-    &DICE,
-    &MATRIX,
-    &DVD,
+    &COUNTER, &TYRANT, &CLOCK, &DICE, &MATRIX, &DVD, &ABOUT
 };
 
 static constexpr u32 COUNT = sizeof(ALL) / sizeof(ALL[0]);

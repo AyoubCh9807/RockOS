@@ -19,7 +19,7 @@ extern "C" void test_process_1() {
   Debugger::log("P1 ENTERED\n");
   volatile u32 counter = 0;
   while (true) {
-    counter++;
+    counter += 1;
   }
 }
 
@@ -27,7 +27,7 @@ extern "C" void test_process_2() {
   Debugger::log("P2 ENTERED\n");
   volatile u32 counter = 0;
   while (true) {
-    counter++;
+    counter += 1;
   }
 }
 
@@ -35,7 +35,7 @@ extern "C" void test_process_3() {
   Debugger::log("P3 ENTERED\n");
   volatile u32 counter = 0;
   while (true) {
-    counter++;
+    counter += 1;
   }
 }
 
@@ -111,7 +111,9 @@ extern "C" void kernel_main(u64 mb_addr) {
 
   window_app_reg.fill_registry();
 
-  Desktop desktop(wm, window_app_reg);
+  DialogManager dialog_manager;
+
+  Desktop desktop(wm, window_app_reg, dialog_manager);
 
   desktop.add_icon("Counter", 20, 20);
   desktop.add_icon("Dice", 20, 60);
@@ -119,6 +121,7 @@ extern "C" void kernel_main(u64 mb_addr) {
   desktop.add_icon("Clock", 20, 140);
   desktop.add_icon("Tyrant", 20, 180);
   desktop.add_icon("Matrix", 20, 220);
+  desktop.add_icon("About", 20, 260);
 
   desktop.init();
 

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "../data/system.hpp"
-#include "../random/random.hpp"
-#include "../tyrant_generator/generator.hpp"
-#include "window.hpp"
-#include "window_app.hpp"
+
+#include "../../data/system.hpp"
+#include "../../random/random.hpp"
+#include "../../tyrant_generator/generator.hpp"
+#include "../window.hpp"
+#include "../window_app.hpp"
 
 class DiceApp : public IWindowApp {
 private:

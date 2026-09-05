@@ -13,6 +13,8 @@ constexpr int WINDOW_UPDATE_TICKS = 5;
 constexpr int FRAME_TICKS = 2; // arnd 50fps
 constexpr int MAX_WINDOWS = 32;
 
+constexpr u32 HEAP_SAFETY_MARGIN = 2 * 1024 * 1024; // 2 MiB
+
 class WindowManager {
 private:
   Window *windows[MAX_WINDOWS]{};
@@ -34,10 +36,21 @@ public:
   WindowManager() : last_refresh_tick(Timer::get_ticks()) {}
 
   Window *create_window(IWindowApp *app, int x, int y, int width, int height) {
-    if (count >= MAX_WINDOWS)
-      return nullptr;
+
+    constexpr u32 SAFETY_MARGIN = 2 * 1024 * 1024;
+
+    // Make room before allocating another ~1 MB window.
+    while (heap.get_used() + SAFETY_MARGIN >= heap.get_size()) {
+      if (count == 0)
+        return nullptr;
+
+      remove_oldest_window();
+    }
 
     Window *win = new Window(x, y, width, height, app->name());
+
+    if (!win)
+      return nullptr;
 
     windows[count] = win;
     apps[count] = app;
@@ -52,9 +65,10 @@ public:
     return win;
   }
 
-  Window* get_window(int index) { 
-    if(index >= count || index < 0) return nullptr;
-    return windows[index]; 
+  Window *get_window(int index) {
+    if (index >= count || index < 0)
+      return nullptr;
+    return windows[index];
   }
   int get_count() { return count; }
 
@@ -140,6 +154,9 @@ public:
       }
     }
 
+    if (focused_window)
+      draw_focus_border(focused_window);
+
     // Graphics::present(); Does not go here because its better if the desktop
     // owns the final frame presentation
   }
@@ -172,6 +189,45 @@ public:
     if (now - last_refresh_tick >= WINDOW_UPDATE_TICKS) {
       last_refresh_tick = now;
       redraw_all();
+    }
+  }
+
+  void remove_oldest_window() {
+    if (count == 0)
+      return;
+
+    destroy_window(windows[0]);
+  }
+
+  void draw_focus_border(Window *win) {
+    if (!win)
+      return;
+
+    constexpr int BORDER = 3;
+    constexpr u32 COLOR = Colors::RED;
+
+    // Top
+    for (int x = 0; x < win->width; x++) {
+      for (int i = 0; i < BORDER; i++)
+        Graphics::put_pixel(win->x + x, win->y + i, COLOR);
+    }
+
+    // Bottom
+    for (int x = 0; x < win->width; x++) {
+      for (int i = 0; i < BORDER; i++)
+        Graphics::put_pixel(win->x + x, win->y + win->height - 1 - i, COLOR);
+    }
+
+    // Left
+    for (int y = 0; y < win->height; y++) {
+      for (int i = 0; i < BORDER; i++)
+        Graphics::put_pixel(win->x + i, win->y + y, COLOR);
+    }
+
+    // Right
+    for (int y = 0; y < win->height; y++) {
+      for (int i = 0; i < BORDER; i++)
+        Graphics::put_pixel(win->x + win->width - 1 - i, win->y + y, COLOR);
     }
   }
 };

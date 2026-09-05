@@ -14,15 +14,27 @@ extern "C" u8 __kernel_end[];
 class Heap {
 
 private:
+  static constexpr u32 MB = 1024 * 1024;
+  static constexpr u32 heap_size = 0x1000000;
   u8 *heap_start = __kernel_end;
-  u8 *heap_end = __kernel_end + 0x1000000;
+  u8 *heap_end = __kernel_end + heap_size;
   size_t heap_used = 0;
   Events &allocation_events;
 
 public:
   Heap(Events &e) : allocation_events(e) {};
 
-  // This function allocates memory
+  static constexpr u32 get_size() { return heap_size; }
+
+  bool memory_low() const { return heap_used >= 3 * MB; }
+
+  bool memory_medium() const { return heap_used >= 6 * MB; }
+
+  bool memory_high() const { return heap_used >= 9 * MB; }
+
+  bool memory_dangerous() const { return heap_used >= 12 * MB; }
+
+  bool memory_critical() const { return heap_used >= 15 * MB; }
 
   inline void init_heap() {
     Header *first_block = (Header *)heap_start;
@@ -31,6 +43,8 @@ public:
     first_block->prev = nullptr;
     first_block->next = nullptr;
   };
+  
+  // This function allocates memory
 
   inline void *kmalloc(size_t size) {
     if (size == 0)
@@ -79,7 +93,12 @@ public:
   inline void *kfree(void *ptr) {
     if (!ptr)
       return 0;
+
     Header *header = (Header *)((u8 *)ptr - sizeof(Header));
+
+    if (header->is_free)
+      return 0;
+
     header->is_free = true;
 
     heap_used -= header->size + sizeof(Header);
@@ -88,41 +107,32 @@ public:
     ev.size = header->size + sizeof(Header);
     ev.type = ev.FREED;
 
-    // We check the previous block is it exists and is free
+    // Merge with previous block
     if (header->prev != nullptr && header->prev->is_free) {
       header->prev->size += header->size + sizeof(Header);
 
-      // currently we are here: prev -> HERE -> next
-      // we want (prev + HERE) -> next
-
-      // We make next point back to (prev + HERE)
       if (header->next != nullptr)
         header->next->prev = header->prev;
 
-      // We make (prev + HERE) point to next
       header->prev->next = header->next;
 
       header = header->prev;
     }
 
-    // We check if the next block exists and is free
+    // Merge with next block
     if (header->next != nullptr && header->next->is_free) {
-
       header->size += header->next->size + sizeof(Header);
 
-      if (header->next->next != nullptr) {
+      if (header->next->next != nullptr)
         header->next->next->prev = header;
 
-        header->next = header->next->next;
-      } else {
-        header->next = nullptr;
-      }
+      header->next = header->next->next;
     }
 
     allocation_events.push_event(ev);
+
     return 0;
   }
-
   size_t const get_used() const { return heap_used; }
 
   Events &get_event_stream() { return allocation_events; }
@@ -147,3 +157,5 @@ inline void *kmalloc(size_t size) { return heap.kmalloc(size); }
 inline void kfree(void *ptr) { heap.kfree(ptr); }
 
 inline const size_t get_used() { return heap.get_used(); }
+
+static constexpr u32 MB = 1024 * 1024;

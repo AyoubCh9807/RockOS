@@ -1,9 +1,9 @@
 #pragma once
 
-#include "window.hpp"
-#include "window_app.hpp"
-#include "../tyrant_generator/generator.hpp"
-#include "../data/system.hpp"
+#include "../window.hpp"
+#include "../window_app.hpp"
+#include "../../tyrant_generator/generator.hpp"
+#include "../../data/system.hpp"
 
 class TyrantApp : public IWindowApp {
 private:

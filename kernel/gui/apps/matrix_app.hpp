@@ -1,7 +1,7 @@
 #pragma once
 
-#include "window.hpp"
-#include "window_app.hpp"
+#include "../window.hpp"
+#include "../window_app.hpp"
 
 class MatrixApp : public IWindowApp {
 private:

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../core/timer.hpp"
-#include "window.hpp"
-#include "window_app.hpp"
-#include "../data/colors.hpp"
+#include "../../core/timer.hpp"
+#include "../window.hpp"
+#include "../window_app.hpp"
+#include "../../data/colors.hpp"
 
 class ClockApp : public IWindowApp {
 public:

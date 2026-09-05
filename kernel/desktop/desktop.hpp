@@ -2,6 +2,7 @@
 
 #include "../../boot/graphics.hpp"
 
+#include "../gui/dialog_manager.hpp"
 #include "../gui/window_app_registry.hpp"
 #include "../gui/window_manager.hpp"
 #include "desktop_icon.hpp"
@@ -22,6 +23,7 @@ class Desktop {
 private:
   WindowManager &window_manager;
   WindowAppRegistry &window_app_registry;
+  DialogManager &dialog_manager;
 
   DesktopIcon icons[MAX_DESKTOP_APPS];
   int icon_count = 0;
@@ -42,11 +44,13 @@ private:
   void handle_launch_coords() {
     if (LAUNCH_X >= SCREEN_WIDTH)
       LAUNCH_DX = -LAUNCH_DX;
+
     if (LAUNCH_Y >= SCREEN_HEIGHT)
       LAUNCH_DY = -LAUNCH_DY;
 
     if (LAUNCH_X <= 0)
       LAUNCH_DX = -LAUNCH_DX;
+
     if (LAUNCH_Y <= 0)
       LAUNCH_DY = -LAUNCH_DY;
 
@@ -55,19 +59,34 @@ private:
   }
 
 public:
-  Desktop(WindowManager &wm, WindowAppRegistry &window_app_registry)
-      : window_manager(wm), window_app_registry(window_app_registry) {}
+  Desktop(WindowManager &wm, WindowAppRegistry &window_app_registry,
+          DialogManager &dialog_manager)
+      : window_manager(wm), window_app_registry(window_app_registry),
+        dialog_manager(dialog_manager) {}
 
-  void init() { clear(); }
+  void init() {
+    clear();
+
+    Dialog *dialog = dialog_manager.create_dialog(
+        200, 150, 400, 200, "Welcome to Rock OS", "Welcome! Enjoy your stay.");
+
+    if (dialog)
+      dialog_manager.show(dialog);
+  }
 
   void update() {
     KeyEvent ev = Keyboard::read();
 
     if (ev.scancode != 0 && ev.keytype != KeyType::None) {
-      if (handle_key(ev))
-        return;
-
-      window_manager.route_key(ev);
+      if (dialog_manager.has_active()) {
+        // Key event gets routed to the dialog manager
+        dialog_manager.route_key(ev);
+      } else if (handle_key(ev)) {
+        // Desktop handled it
+      } else {
+        // Key event gets routed to the window manager
+        window_manager.route_key(ev);
+      }
     }
 
     window_manager.update();
@@ -80,6 +99,8 @@ public:
     draw_icons();
 
     window_manager.render();
+
+    dialog_manager.render();
 
     draw_taskbar();
 
@@ -112,7 +133,7 @@ public:
 
     Graphics::draw_string("R", START_X + 17, taskbar_y + 28, Colors::WHITE);
 
-    // APP BUTTONS
+    // APP BUTTONS ONLY FOR THE TASKBAR CURRENTLY MOCKED
 
     constexpr u32 APP_START_X = 72;
     constexpr u32 APP_SIZE = 44;
@@ -154,18 +175,12 @@ public:
                             used_memory / 1024);
     }
 
-    bool low_memory_usage = used_memory > 1024 * 1024 * 3;
-    bool medium_memory_usage = used_memory > 1024 * 1024 * 6;
-    bool high_memory_usage = used_memory > 1024 * 1024 * 9;
-    bool dangerous_memory_usage = used_memory > 1024 * 1024 * 12;
-    bool critical_memory_usage = used_memory > 1024 * 1024 * 15;
-
-    u32 memory_text_color = (used_memory > 1024 * 1024 * 15) ? Colors::RED
-                            : (used_memory > 1024 * 1024 * 12) ? Colors::ORANGE
-                            : (used_memory > 1024 * 1024 * 9)  ? Colors::GOLD
-                            : (used_memory > 1024 * 1024 * 6)  ? Colors::YELLOW
-                            : (used_memory > 1024 * 1024 * 3)  ? Colors::GREEN
-                                                               : Colors::WHITE;
+    u32 memory_text_color = heap.memory_critical()    ? Colors::RED
+                            : heap.memory_dangerous() ? Colors::ORANGE
+                            : heap.memory_high()      ? Colors::GOLD
+                            : heap.memory_medium()    ? Colors::YELLOW
+                            : heap.memory_low()       ? Colors::GREEN
+                                                      : Colors::WHITE;
 
     Graphics::draw_string(memory_text, INFO_X, taskbar_y + 18,
                           memory_text_color);
@@ -228,13 +243,26 @@ public:
 
   void launch_app(DesktopIcon &icon) {
     IWindowApp *app = window_app_registry.find(icon.get_label());
+
     if (!app)
       return;
 
-    window_manager.create_window(app, LAUNCH_X, LAUNCH_Y, DEFAULT_WINDOW_WIDTH,
-                                 DEFAULT_WINDOW_HEIGHT);
+    Window *window = window_manager.create_window(
+        app, LAUNCH_X, LAUNCH_Y, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+
+    if (!window)
+      return;
 
     handle_launch_coords();
+
+    if (heap.memory_high() && !dialog_manager.has_active()) {
+      Dialog *dialog =
+          dialog_manager.create_dialog(200, 150, 400, 200, "Memory Warning",
+                                       "Memory usage is getting high!");
+
+      if (dialog)
+        dialog_manager.show(dialog);
+    }
   }
 
   void select_next_icon() { selected_icon = (selected_icon + 1) % icon_count; }

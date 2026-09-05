@@ -2,12 +2,13 @@
 
 #include "../utils/string_utils.hpp"
 
-#include "clock_app.hpp"
-#include "counter_app.hpp"
-#include "dice_app.hpp"
-#include "dvd_app.hpp"
-#include "matrix_app.hpp"
-#include "tyrant_app.hpp"
+#include "apps/clock_app.hpp"
+#include "apps/counter_app.hpp"
+#include "apps/dice_app.hpp"
+#include "apps/dvd_app.hpp"
+#include "apps/matrix_app.hpp"
+#include "apps/tyrant_app.hpp"
+#include "apps/about_app.hpp"
 
 #include "window_app.hpp"
 
@@ -23,11 +24,12 @@ private:
   DiceApp dice;
   MatrixApp matrix;
   DvdApp dvd;
+  AboutApp about;
 
   int count = 0;
 
 public:
-  WindowAppRegistry() : counter(), tyrant(), clock(), dice(), matrix(), dvd() {}
+  WindowAppRegistry() : counter(), tyrant(), clock(), dice(), matrix(), dvd(), about() {}
 
   void register_app(IWindowApp *app) {
     if (count >= MAX_WINDOW_APPS)
@@ -43,6 +45,7 @@ public:
     register_app(&dice);
     register_app(&matrix);
     register_app(&dvd);
+    register_app(&about);
   }
 
 
