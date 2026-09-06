@@ -40,20 +40,24 @@ private:
   void draw_background() { Graphics::clear(background_color); }
 
   void handle_launch_coords() {
-    if (LAUNCH_X >= SCREEN_WIDTH)
+    int MAX_X = SCREEN_WIDTH - DEFAULT_WINDOW_WIDTH;
+    int MAX_Y = SCREEN_HEIGHT - DEFAULT_WINDOW_HEIGHT;
+
+    int next_x = LAUNCH_X + LAUNCH_DX;
+    int next_y = LAUNCH_Y + LAUNCH_DY;
+
+    if (next_x < 0 || next_x > MAX_X) {
       LAUNCH_DX = -LAUNCH_DX;
+      next_x = LAUNCH_X + LAUNCH_DX;
+    }
 
-    if (LAUNCH_Y >= SCREEN_HEIGHT)
+    if (next_y < 0 || next_y > MAX_Y) {
       LAUNCH_DY = -LAUNCH_DY;
+      next_y = LAUNCH_Y + LAUNCH_DY;
+    }
 
-    if (LAUNCH_X <= 0)
-      LAUNCH_DX = -LAUNCH_DX;
-
-    if (LAUNCH_Y <= 0)
-      LAUNCH_DY = -LAUNCH_DY;
-
-    LAUNCH_X += LAUNCH_DX;
-    LAUNCH_Y += LAUNCH_DY;
+    LAUNCH_X = next_x;
+    LAUNCH_Y = next_y;
   }
 
   void draw_mouse_debug() {

@@ -15,7 +15,7 @@ class Heap {
 
 private:
   static constexpr u32 MB = 1024 * 1024;
-  static constexpr u32 heap_size = 0x1000000;
+  static constexpr u32 heap_size = 0x2000000;
   u8 *heap_start = __kernel_end;
   u8 *heap_end = __kernel_end + heap_size;
   size_t heap_used = 0;
@@ -25,17 +25,15 @@ public:
   Heap(Events &e) : allocation_events(e) {};
 
   static constexpr u32 get_size() { return heap_size; }
+  bool memory_low() const { return heap_used >= heap_size * 25 / 100; }
 
-  bool memory_low() const { return heap_used >= 3 * MB; }
+  bool memory_medium() const { return heap_used >= heap_size * 50 / 100; }
 
-  bool memory_medium() const { return heap_used >= 6 * MB; }
+  bool memory_high() const { return heap_used >= heap_size * 65 / 100; }
 
-  bool memory_high() const { return heap_used >= 9 * MB; }
+  bool memory_dangerous() const { return heap_used >= heap_size * 80 / 100; }
 
-  bool memory_dangerous() const { return heap_used >= 12 * MB; }
-
-  bool memory_critical() const { return heap_used >= 15 * MB; }
-
+  bool memory_critical() const { return heap_used >= heap_size * 95 / 100; }
   inline void init_heap() {
     Header *first_block = (Header *)heap_start;
     first_block->size = (heap_end - heap_start - sizeof(Header));
@@ -43,7 +41,7 @@ public:
     first_block->prev = nullptr;
     first_block->next = nullptr;
   };
-  
+
   // This function allocates memory
 
   inline void *kmalloc(size_t size) {

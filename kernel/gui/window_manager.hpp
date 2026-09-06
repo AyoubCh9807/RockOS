@@ -36,33 +36,34 @@ public:
   WindowManager() : last_refresh_tick(Timer::get_ticks()) {}
 
   Window *create_window(IWindowApp *app, int x, int y, int width, int height) {
-
     constexpr u32 SAFETY_MARGIN = 2 * 1024 * 1024;
 
-    // Make room before allocating another ~1 MB window.
-    while (heap.get_used() + SAFETY_MARGIN >= heap.get_size()) {
+    while (true) {
+      // Keep some breathing room if possible.
+      if (heap.get_used() + SAFETY_MARGIN < heap.get_size()) {
+        Window *win = new Window(x, y, width, height, app->name());
+
+        if (win) {
+          windows[count] = win;
+          apps[count] = app;
+          count++;
+
+          raise_to_front(win);
+          focus(win);
+
+          app->on_create(*win);
+          app->on_draw(*win);
+
+          return win;
+        }
+      }
+
+      // Allocation failed or we're too close to the heap limit.
       if (count == 0)
         return nullptr;
 
       remove_oldest_window();
     }
-
-    Window *win = new Window(x, y, width, height, app->name());
-
-    if (!win)
-      return nullptr;
-
-    windows[count] = win;
-    apps[count] = app;
-    count++;
-
-    raise_to_front(win);
-    focus(win);
-
-    app->on_create(*win);
-    app->on_draw(*win);
-
-    return win;
   }
 
   Window *get_window(int index) {
