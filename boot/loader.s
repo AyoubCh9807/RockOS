@@ -42,6 +42,7 @@ global loader
 extern kernel_main
 extern c_timer_handler
 extern c_keyboard_handler
+extern c_mouse_handler
 extern c_pagefault_handler
 extern c_gpfault_handler
 extern next_resume_rsp
@@ -174,13 +175,14 @@ long_mode:
     jmp .hang
 
 
-; These functions are referenced by the C++ IDT code.
+; These functions are referenced by the C++ IDT code (kernel/core/idt.hpp).
 ; Interrupts must remain disabled until the IDT and PIC
 ; have been configured by the kernel.
 
 global default_stub
 global timer_stub
 global keyboard_stub
+global mouse_stub
 global pagefault_stub
 global gpfault_stub
 
@@ -242,7 +244,7 @@ timer_stub:
 
 keyboard_stub:
 
-    ; Preserve the interrupted CPU state before entering C++.
+    ; preserve the interrupted cpu state before entering c++.
     push rax
     push rcx
     push rdx
@@ -259,11 +261,56 @@ keyboard_stub:
     push r14
     push r15
 
-    ; C++ reads the keyboard scancode from port 0x60.
+    ; c++ reads the keyboard scancode from port 0x60.
     call c_keyboard_handler
 
-    ; Tell the master PIC that IRQ1 has been handled.
+    ; tell the master pic that irq1 has been handled.
     mov al, 0x20
+    out 0x20, al
+
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop rdi
+    pop rsi
+    pop rbp
+    pop rbx
+    pop rdx
+    pop rcx
+    pop rax
+
+    iretq
+
+
+mouse_stub:
+    ; preserve the interrupted cpu state before entering c++.
+    push rax
+    push rcx
+    push rdx
+    push rbx
+    push rbp
+    push rsi
+    push rdi
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+
+    ; c++ reads the mouse event from port 0x60.
+    call c_mouse_handler
+
+    ; tell both the master and the slave pics that irq12 has been handled.
+    mov al, 0x20
+    out 0xA0, al
     out 0x20, al
 
     pop r15

@@ -86,5 +86,23 @@ public:
     }
   }
 
+  void draw_rect(int x, int y, int width, int height, u32 color) {
+    for (int py = y; py < y + height; py++) {
+      for (int px = x; px < x + width; px++) {
+        set_pixel(px, py, color);
+      }
+    }
+  }
+
+  void draw_border(int thickness, u32 color) {
+    // Top and bottom
+    draw_rect(0, 0, width, thickness, color);
+    draw_rect(0, height - thickness, width, thickness, color);
+
+    // Left and right
+    draw_rect(0, 0, thickness, height, color);
+    draw_rect(width - thickness, 0, thickness, height, color);
+  }
+
   const u32 *get_buffer() const { return pixels; }
 };

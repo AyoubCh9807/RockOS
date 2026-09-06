@@ -1,7 +1,7 @@
 #pragma once
 
-#include "window.hpp"
-#include "window_app.hpp"
+#include "../window.hpp"
+#include "../window_app.hpp"
 
 class DemoApp : public IWindowApp {
 private:
@@ -15,19 +15,7 @@ public:
   void draw(Window &win) {
     win.clear(fill_color);
 
-    // 2px white border, just to prove per-pixel drawing works.
-    for (int x = 0; x < win.width; x++) {
-      win.set_pixel(x, 0, 0xFFFFFF);
-      win.set_pixel(x, 1, 0xFFFFFF);
-      win.set_pixel(x, win.height - 1, 0xFFFFFF);
-      win.set_pixel(x, win.height - 2, 0xFFFFFF);
-    }
-    for (int y = 0; y < win.height; y++) {
-      win.set_pixel(0, y, 0xFFFFFF);
-      win.set_pixel(1, y, 0xFFFFFF);
-      win.set_pixel(win.width - 1, y, 0xFFFFFF);
-      win.set_pixel(win.width - 2, y, 0xFFFFFF);
-    }
+    win.draw_border(2, Colors::WHITE);
   }
 
   void on_draw(Window &win) override { draw(win); }

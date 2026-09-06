@@ -1,7 +1,7 @@
 #pragma once
 #include "../shared/types.hpp"
 
-namespace MathUtils{
+namespace MathUtils {
 static constexpr u8 bcd_to_binary(u8 value) {
   return (value & 0x0F) + ((value >> 4) * 10);
 }
@@ -38,4 +38,14 @@ static void int_to_hex(u32 value, char *buf) {
   buf[10] = '\0';
 }
 
-} // namespace Math
+template <typename T> T max(T a, T b) { return a > b ? a : b; }
+
+template <typename T> T min(T a, T b) { return a < b ? a : b; }
+
+template <typename T> T clamp(T min, T mid, T max) {
+  T res;
+  res = (min > mid ? min : mid);
+  res = (res > max ? max : res);
+  return res;
+}
+} // namespace MathUtils

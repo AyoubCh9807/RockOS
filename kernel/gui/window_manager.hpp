@@ -77,19 +77,42 @@ public:
       if (windows[i] != win)
         continue;
 
+      bool was_focused = (focused_window == win);
+      int closed_z = win->z_order;
+
       apps[i]->on_destroy(*win);
-
-      if (focused_window == win)
-        focused_window = nullptr;
-
       delete win;
 
-      // Shift everything after this one down, keep the arrays dense.
       for (int j = i; j < count - 1; j++) {
         windows[j] = windows[j + 1];
         apps[j] = apps[j + 1];
       }
+
       count--;
+
+      if (was_focused) {
+        Window *previous = nullptr;
+        int best_z = -1;
+
+        for (int j = 0; j < count; j++) {
+          if (windows[j]->z_order < closed_z && windows[j]->z_order > best_z) {
+            previous = windows[j];
+            best_z = windows[j]->z_order;
+          }
+        }
+
+        // If there was no window underneath it, fall back to the
+        // most top remaining window.
+        if (!previous) {
+          for (int j = 0; j < count; j++) {
+            if (!previous || windows[j]->z_order > previous->z_order)
+              previous = windows[j];
+          }
+        }
+
+        focus(previous);
+      }
+
       return;
     }
   }
@@ -164,6 +187,11 @@ public:
   void route_key(const KeyEvent &ev) {
     if (!focused_window)
       return;
+
+    if (ev.scancode == (int)'x') {
+      destroy_window(focused_window);
+      return;
+    }
 
     IWindowApp *app = app_for(focused_window);
     if (!app)

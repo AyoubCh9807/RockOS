@@ -38,6 +38,8 @@ public:
 
     win.clear(fill_color);
 
+    win.draw_border(2, Colors::WHITE);
+
     int cols = win.width / Graphics::CHARACTER_WIDTH;
     if (cols > MAX_COLS) cols = MAX_COLS;
     int rows = win.height / Graphics::CHARACTER_HEIGHT;

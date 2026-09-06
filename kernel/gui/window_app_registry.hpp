@@ -9,6 +9,7 @@
 #include "apps/matrix_app.hpp"
 #include "apps/tyrant_app.hpp"
 #include "apps/about_app.hpp"
+#include "apps/settings_app.hpp"
 
 #include "window_app.hpp"
 
@@ -25,6 +26,7 @@ private:
   MatrixApp matrix;
   DvdApp dvd;
   AboutApp about;
+  SettingsApp settings;
 
   int count = 0;
 
@@ -46,6 +48,7 @@ public:
     register_app(&matrix);
     register_app(&dvd);
     register_app(&about);
+    register_app(&settings);
   }
 
 

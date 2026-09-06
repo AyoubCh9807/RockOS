@@ -4,7 +4,7 @@
 
 #include "../kernel/data/font.hpp"
 #include "../kernel/shared/types.hpp"
-#include "../kernel/utils/bit_utils.hpp"
+#include "graphic_colors.hpp"
 
 namespace Graphics {
 
@@ -161,6 +161,28 @@ inline void present() {
     for (u32 x = 0; x < fb.width; x++) {
       dst[x] = src[x];
     }
+  }
+}
+
+static void draw_cursor(int x, int y) {
+  // The cursor is drawn relative to its tip at (x, y).
+  static constexpr int cursor[] = {
+      0, 0,
+
+      0, 1,  1, 1,  2, 1,  3, 1,  0, 2,  1, 2,  3, 2,  4, 2,  0, 3,
+      1, 3,  4, 3,  5, 3,  0, 4,  1, 4,  2, 4,  3, 4,  0, 5,  1, 5,
+      2, 5,  3, 5,  4, 5,  0, 6,  1, 6,  2, 6,  0, 7,  1, 7,  2, 7,
+      3, 7,  4, 7,  0, 8,  1, 8,  2, 8,  4, 8,  5, 8,  0, 9,  1, 9,
+      2, 9,  2, 10, 3, 10, 4, 10, 3, 11, 4, 11, 5, 11, 4, 12, 5, 12,
+      6, 12, 5, 13, 6, 13, 7, 13, 6, 14, 7, 14, 7, 15, 8, 15,
+  };
+  constexpr int point_count = sizeof(cursor) / sizeof(cursor[0]) / 2;
+
+  for (int i = 0; i < point_count; ++i) {
+    int px = x + cursor[i * 2];
+    int py = y + cursor[i * 2 + 1];
+
+    put_pixel(px, py, WHITE);
   }
 }
 

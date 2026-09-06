@@ -53,27 +53,32 @@ inline void remap_pic() {
      in kernel_main rather than handled via IRQ1, and no other line
      has a handler yet, so keep them masked to avoid faulting on an
      unhandled vector when the hardware fires them. */
-  Asm::outb(0x21, 0xFC); // Master: 1111 1110, only IRQ0 unmasked
-  Asm::outb(0xA1, 0xFF); // Slave: all masked
+  //  Asm::outb(0x21, 0xFC); // Master: 1111 1110, only IRQ0 unmasked
+  // Asm::outb(0xA1, 0xFF); // Slave: all masked
+
+  // Master:
+  // IRQ0 = timer       → enabled
+  // IRQ1 = keyboard    → enabled
+  // IRQ2 = slave PIC   → enabled
+  // everything else   → masked
+  Asm::outb(0x21, 0xF8);
+
+  // Slave:
+  // IRQ12 = mouse      → enabled
+  // everything else    → masked
+  Asm::outb(0xA1, 0xEF);
 }
 
 inline void init() {
   remap_pic();
 
-  // Set up the Interrupt Descriptor Table first so the CPU is ready.
   idt_init();
 
-  /* Preparing to send a 16 bit number on channel zero in 2 parts,
-     low byte and then high byte. */
   Asm::outb(command_register_hex, 0x36);
-
-  // Dropping the low byte to the chip.
   Asm::outb(channel_zero_data_port, (unsigned char)(DIVISOR & 0xFF));
-
-  // Dropping the high byte to the chip.
   Asm::outb(channel_zero_data_port, (unsigned char)((DIVISOR >> 8) & 0xFF));
 
-  Asm::sti();
+  // Interrupts stay disabled until all devices are initialized.
 }
 
 inline void handler() {

@@ -24,6 +24,7 @@ extern "C" void default_stub();
 extern "C" void keyboard_stub();
 extern "C" void pagefault_stub();
 extern "C" void gpfault_stub();
+extern "C" void mouse_stub();
 
 inline void idt_set_gate(int n, u64 handler) {
   idt[n].offset_low = handler & 0xFFFF;
@@ -55,10 +56,9 @@ inline void idt_init() {
   // IRQ1 -> vector 33 -> keyboard
   idt_set_gate(33, reinterpret_cast<u64>(keyboard_stub));
 
+  // IRQ12 -> vector 44 -> PS/2 mouse
+  idt_set_gate(44, reinterpret_cast<u64>(mouse_stub));
+
   // Load the 64-bit IDT.
-  asm volatile(
-      "lidt %0"
-      :
-      : "m"(idt_p)
-      : "memory");
+  asm volatile("lidt %0" : : "m"(idt_p) : "memory");
 }

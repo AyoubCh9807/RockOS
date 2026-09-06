@@ -10,6 +10,7 @@
 #include "../random/random.hpp"
 #include "../shared/types.hpp"
 // #include "../shell/shell.hpp"
+#include "../drivers/mouse.hpp"
 #include "../shell/terminal.hpp"
 #include "../shell/terminal_registry.hpp"
 #include "crti.hpp"
@@ -66,13 +67,16 @@ extern "C" void kernel_main(u64 mb_addr) {
   call_constructors();
   Debugger::log("KERNEL MAIN ENTERED\n");
   heap.init_heap();
+
   Timer::init();
   Random::init();
   Multiboot2::fill_tags(mb_addr);
 
-  /*
-   * Filesystem
-   */
+  Mouse::init();
+
+  Asm::sti(); /*
+               * Filesystem
+               */
   Disk disk;
   FileSystem fs(disk);
   if (!fs.mount()) {
@@ -122,6 +126,7 @@ extern "C" void kernel_main(u64 mb_addr) {
   desktop.add_icon("Tyrant", 20, 180);
   desktop.add_icon("Matrix", 20, 220);
   desktop.add_icon("About", 20, 260);
+  desktop.add_icon("Settings", 20, 300);
 
   desktop.init();
 
