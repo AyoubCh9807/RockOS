@@ -29,4 +29,11 @@ public:
       current_phrase = Generator::random_phrase(foolish_phrases);
     }
   }
+
+  void on_mouse_event(MouseEvent &ev) {
+    
+    if (ev.click_type == ClickType::LEFT_CLICK) {
+      current_phrase = Generator::random_phrase(foolish_phrases);
+    }
+  }
 };

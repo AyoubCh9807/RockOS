@@ -15,7 +15,7 @@ static constexpr u32 DIALOG_BUTTON_COLOR = Colors::RED;
 static constexpr u32 DIALOG_BUTTON_TEXT_COLOR = Colors::WHITE;
 
 class Dialog {
-public:
+private:
   int x;
   int y;
   int width;
@@ -26,6 +26,7 @@ public:
 
   bool visible = false;
 
+public:
   Dialog(int x, int y, int width, int height, const String &title,
          const String &message)
       : x(x), y(y), width(width), height(height), title(title),
@@ -45,46 +46,26 @@ public:
     constexpr int BUTTON_WIDTH = 80;
 
     // Shadow
-    Graphics::draw_rect(
-        x + 5, y + 5, width, height,
-        DIALOG_SHADOW_COLOR
-    );
+    Graphics::draw_rect(x + 5, y + 5, width, height, DIALOG_SHADOW_COLOR);
 
     // Outer dialog
-    Graphics::draw_rect(
-        x, y, width, height,
-        DIALOG_BORDER_COLOR
-    );
+    Graphics::draw_rect(x, y, width, height, DIALOG_BORDER_COLOR);
 
     // Main background
-    Graphics::draw_rect(
-        x + 2, y + 2,
-        width - 4, height - 4,
-        DIALOG_BACKGROUND_COLOR
-    );
+    Graphics::draw_rect(x + 2, y + 2, width - 4, height - 4,
+                        DIALOG_BACKGROUND_COLOR);
 
     // Title bar
-    Graphics::draw_rect(
-        x + 2, y + 2,
-        width - 4, TITLE_BAR_HEIGHT,
-        DIALOG_TITLE_COLOR
-    );
+    Graphics::draw_rect(x + 2, y + 2, width - 4, TITLE_BAR_HEIGHT,
+                        DIALOG_TITLE_COLOR);
 
     // Title
-    Graphics::draw_string(
-        title.c_str(),
-        x + PADDING,
-        y + 10,
-        DIALOG_TEXT_COLOR
-    );
+    Graphics::draw_string(title.c_str(), x + PADDING, y + 10,
+                          DIALOG_TEXT_COLOR);
 
     // Message
-    Graphics::draw_string(
-        message.c_str(),
-        x + PADDING,
-        y + TITLE_BAR_HEIGHT + 20,
-        DIALOG_TEXT_COLOR
-    );
+    Graphics::draw_string(message.c_str(), x + PADDING,
+                          y + TITLE_BAR_HEIGHT + 20, DIALOG_TEXT_COLOR);
 
     // Buttons area
     int button_y = y + height - BUTTON_HEIGHT - PADDING;
@@ -92,27 +73,22 @@ public:
     // OK button
     int ok_x = x + width - BUTTON_WIDTH - PADDING;
 
-    Graphics::draw_rect(
-        ok_x, button_y,
-        BUTTON_WIDTH, BUTTON_HEIGHT,
-        DIALOG_BUTTON_COLOR
-    );
+    Graphics::draw_rect(ok_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT,
+                        DIALOG_BUTTON_COLOR);
 
-    Graphics::draw_string(
-        "OK",
-        ok_x + 30,
-        button_y + 9,
-        DIALOG_BUTTON_TEXT_COLOR
-    );
+    Graphics::draw_string("OK", ok_x + 30, button_y + 9,
+                          DIALOG_BUTTON_TEXT_COLOR);
   }
 
   bool handle_key(KeyEvent &ev) {
-    if (ev.keytype == KeyType::Escape ||
-        ev.keytype == KeyType::Enter) {
+    if (ev.keytype == KeyType::Escape || ev.keytype == KeyType::Enter ||
+        ev.keytype == KeyType::Char && ev.scancode == 'x') {
       close();
       return true;
     }
 
     return false;
   }
+
+  constexpr bool is_visible() const { return visible; }
 };

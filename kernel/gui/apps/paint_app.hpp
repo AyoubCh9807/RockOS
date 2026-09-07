@@ -89,4 +89,6 @@ public:
     }
     draw(win);
   }
+
+  void on_mouse_event(MouseEvent &ev) { return; }
 };

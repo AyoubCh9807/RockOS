@@ -80,12 +80,13 @@ public:
     if (!active_dialog)
       return;
 
-    if (!active_dialog->visible)
+    if (!active_dialog->is_visible())
       return;
 
     bool handled = active_dialog->handle_key(ev);
 
-    if (handled && !active_dialog->visible)
+    if (handled && !active_dialog->is_visible())
       active_dialog = nullptr;
   }
+
 };

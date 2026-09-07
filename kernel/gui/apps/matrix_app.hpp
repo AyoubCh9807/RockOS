@@ -6,7 +6,7 @@
 class MatrixApp : public IWindowApp {
 private:
   u32 fill_color = Colors::BLACK;
-  
+
   // Assume a safe maximum number of columns for your screen resolution
   static constexpr int MAX_COLS = 256;
   int drops[MAX_COLS];
@@ -17,16 +17,18 @@ public:
 
   void on_create(Window &win) override {
     init_drops(win);
-    draw(win); 
+    draw(win);
   }
 
   void init_drops(Window &win) {
     int cols = win.width / Graphics::CHARACTER_WIDTH;
-    if (cols > MAX_COLS) cols = MAX_COLS; // safety check
+    if (cols > MAX_COLS)
+      cols = MAX_COLS; // safety check
 
     for (int i = 0; i < cols; i++) {
       // Random starting row position
-      drops[i] = (int)(Random::next() % (win.height / Graphics::CHARACTER_HEIGHT));
+      drops[i] =
+          (int)(Random::next() % (win.height / Graphics::CHARACTER_HEIGHT));
     }
     initialized = true;
   }
@@ -41,7 +43,8 @@ public:
     win.draw_border(2, Colors::WHITE);
 
     int cols = win.width / Graphics::CHARACTER_WIDTH;
-    if (cols > MAX_COLS) cols = MAX_COLS;
+    if (cols > MAX_COLS)
+      cols = MAX_COLS;
     int rows = win.height / Graphics::CHARACTER_HEIGHT;
 
     for (int i = 0; i < cols; i++) {
@@ -63,9 +66,9 @@ public:
     }
   }
 
-  void on_draw(Window &win) override { 
-    draw(win); 
-  }
+  void on_draw(Window &win) override { draw(win); }
 
   void on_key(Window &win, const KeyEvent &ev) override {}
+
+  void on_mouse_event(MouseEvent &ev) { return; }
 };

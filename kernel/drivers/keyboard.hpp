@@ -40,28 +40,28 @@ public:
 
     // We only use the first 64 Set 1 scancodes here.
     // Extended keys such as arrows and Delete are handled separately.
-    static const char normal_map[64] = {
+    static constexpr const char normal_map[64] = {
         0,   27,   '&',  ' ', '"', '\'', '(', '-', ' ', '_', ' ', ' ', ')',
         '=', '\b', '\t', 'a', 'z', 'e',  'r', 't', 'y', 'u', 'i', 'o', 'p',
         '^', '$',  '\n', 0,   'q', 's',  'd', 'f', 'g', 'h', 'j', 'k', 'l',
         'm', ' ',  '`',  0,   '*', 'w',  'x', 'c', 'v', 'b', 'n', ',', ';',
         ':', '!',  0,    '*', 0,   ' ',  0,   0,   0,   0,   0,   0};
 
-    static const char shift_map[64] = {
+    static constexpr const char shift_map[64] = {
         0,   27,   '1',  '2', '3', '4', '5', '6', '7', '8', '9', '0', '_',
         '+', '\b', '\t', 'A', 'Z', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
         '"', '*',  '\n', 0,   'Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
         'M', '%',  '~',  0,   '!', 'W', 'X', 'C', 'V', 'B', 'N', '?', '.',
         '/', 0,    0,    '*', 0,   ' ', 0,   0,   0,   0,   0,   0};
 
-    static const char altgr_map[64] = {
+    static constexpr const char altgr_map[64] = {
         0,   27,   '~',  '#', '{',  '[', '|', '`', '\\', '@', ']', '}', 0,
         0,   '\b', '\t', 'a', 'z',  'e', 'r', 't', 'y',  'u', 'i', 'o', 'p',
         '^', '$',  '\n', 0,   'q',  's', 'd', 'f', 'g',  'h', 'j', 'k', 'l',
         'm', 0,    '`',  0,   '\\', 'w', 'x', 'c', 'v',  'b', 'n', 0,   0,
         0,   0,    0,    '*', 0,    ' ', 0,   0,   0,    0,   0,   0};
 
-    static const char shift_altgr_map[64] = {
+    static constexpr const char shift_altgr_map[64] = {
         0,   27,   '~',  '#', '{', '[', '|', '`', '\\', '@', ']', '}', 0,
         '+', '\b', '\t', 'A', 'Z', 'E', 'R', 'T', 'Y',  'U', 'I', 'O', 'P',
         '"', '*',  '\n', 0,   'Q', 'S', 'D', 'F', 'G',  'H', 'J', 'K', 'L',
@@ -83,7 +83,7 @@ public:
     return normal_map[scancode];
   }
 
-  static void push(KeyEvent ev) {
+  static constexpr void push(KeyEvent ev) {
     int next_head = (head + 1) % KEYBOARD_RING_BUFFER_SIZE;
     if (next_head != tail) {
       buffer[head] = ev;
@@ -91,7 +91,7 @@ public:
     }
   }
 
-  static KeyEvent read() {
+  static constexpr KeyEvent read() {
     if (tail == head)
       return {KeyType::None, 0};
     KeyEvent ev = buffer[tail];
@@ -242,6 +242,12 @@ public:
       push(ev);
     }
   }
+
+  static constexpr bool is_shift_down() { return is_shift; }
+  static constexpr bool is_ctrl_down() { return is_ctrl; }
+  static constexpr bool is_altgr_pressed() { return is_altgr; }
+  static constexpr bool is_caps_lock_pressed() { return is_caps_lock; }
+
 };
 
 extern "C" void c_keyboard_handler() { Keyboard::interrupt_handler(); }

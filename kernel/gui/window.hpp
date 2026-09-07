@@ -104,5 +104,14 @@ public:
     draw_rect(width - thickness, 0, thickness, height, color);
   }
 
+  constexpr bool contains(u32 mouse_x, u32 mouse_y) const {
+    if (!pixels)
+      return false;
+
+    return mouse_x >= x && mouse_x < x + width && mouse_y >= y &&
+           mouse_y < y + height;
+  }
+
+
   const u32 *get_buffer() const { return pixels; }
 };

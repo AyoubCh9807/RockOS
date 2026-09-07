@@ -2,10 +2,21 @@
 
 #include "../../boot/multiboot2.hpp"
 #include "../core/asm.hpp"
+#include "../core/timer.hpp"
+#include "../random/random.hpp"
 #include "../shared/types.hpp"
 #include "../utils/math_utils.hpp"
 
+enum class ClickType { LEFT_CLICK, RIGHT_CLICK, MIDDLE_CLICK, NONE };
+enum class MouseButton { LEFT_BUTTON, RIGHT_BUTTON, MIDDLE_BUTTON, NONE };
+
+struct MouseEvent {
+  ClickType click_type; // eg LEFT_CLICK / RIGHT_CLICK / MIDDLE_CLICK
+  bool is_pressed;      // true if the buton is down, false otherwise
+};
+
 class Mouse {
+
 private:
   static constexpr u16 DATA_PORT = 0x60;
   static constexpr u16 COMMAND_PORT = 0x64;
@@ -24,11 +35,16 @@ private:
   inline static int x = 0;
   inline static int y = 0;
 
-  // Debug state is only written by the interrupt handler.
-  // The desktop reads it later while rendering.
-  inline static volatile u32 irq_count = 0;
-  inline static volatile u8 last_byte = 0;
-  inline static volatile u8 debug_packet[3] = {0, 0, 0};
+  inline static u8 mouse_flags = 0;
+
+  static constexpr auto MOUSE_RING_BUFFER_SIZE = 256;
+
+  // Circular buffer implementation (must be static for header-only classes)
+  inline static MouseEvent buffer[MOUSE_RING_BUFFER_SIZE];
+  inline static int head = 0;
+  inline static int tail = 0;
+
+  static void set_flags(u8 new_flags) { mouse_flags = new_flags; }
 
   static bool wait_for_read() {
     for (int i = 0; i < 1000000; i++) {
@@ -62,11 +78,6 @@ private:
     return true;
   }
 
-  static void set_coords(int x_, int y_) {
-    x = x_;
-    y = y_;
-  }
-
   enum class Flags {
     LEFT_BUTTON = 0,
     RIGHT_BUTTON = 1,
@@ -79,6 +90,10 @@ private:
   };
 
 public:
+  static void set_coords(int x_, int y_) {
+    x = x_;
+    y = y_;
+  }
   static void init() {
     write_controller(ENABLE_AUX_PORT);
     write_controller(READ_CONFIG);
@@ -116,8 +131,6 @@ public:
 
   static void interrupt_handler() {
     u8 data = Asm::inb(DATA_PORT);
-    irq_count++;
-    last_byte = data;
 
     // byte 0 must always have bit 3 set. If we're out of
     // sync (eg missed a byte), drop bytes until we see one that
@@ -133,16 +146,14 @@ public:
 
     packet_index = 0;
 
-    debug_packet[0] = packet[0];
-    debug_packet[1] = packet[1];
-    debug_packet[2] = packet[2];
-
     u8 flags = packet[0];
 
     // Overflow means garbage data so we discard the packet.
     if (is_flag_active(flags, Flags::X_OVERFLOW) ||
         is_flag_active(flags, Flags::Y_OVERFLOW))
       return;
+
+    set_flags(flags);
 
     int dx = packet[1];
     int dy = packet[2];
@@ -160,21 +171,90 @@ public:
     new_y = MathUtils::clamp(new_y, 0, (int)Multiboot2::framebuffer.height - 1);
 
     set_coords(new_x, new_y);
+
+    // Adding more entrophy for better unprectibility
+    if (Timer::get_ticks() % (new_x + new_y + 1) == 0) {
+      Random::add_entropy(Timer::ticks ^
+                          ((new_x * new_y + 1) % (new_x + new_y + 1) + 1) / 10);
+    }
+    push(MouseEvent(get_event_click_type(flags),
+                    is_button_down(click_type_to_mouse_button(
+                        get_event_click_type(flags)))));
   }
 
   static int get_x() { return x; }
 
   static int get_y() { return y; }
 
-  static u32 get_irq_count() { return irq_count; }
-
-  static u8 get_last_byte() { return last_byte; }
-
-  static u8 get_packet_byte(int index) {
+  /* static u8 get_packet_byte(int index) {
     if (index < 0 || index >= 3)
       return 0;
+  } */
 
-    return debug_packet[index];
+  static constexpr bool is_button_down(MouseButton b) {
+    switch (b) {
+    case MouseButton::LEFT_BUTTON:
+      return is_flag_active(mouse_flags, Flags::LEFT_BUTTON);
+    case MouseButton::RIGHT_BUTTON:
+      return is_flag_active(mouse_flags, Flags::RIGHT_BUTTON);
+    case MouseButton::MIDDLE_BUTTON:
+      return is_flag_active(mouse_flags, Flags::MIDDLE_BUTTON);
+    case MouseButton::NONE:
+      return false;
+    }
+    return false;
+  }
+  static constexpr bool is_left_button_down() {
+    return is_button_down(MouseButton::LEFT_BUTTON);
+  }
+  static constexpr bool is_right_button_down() {
+    return is_button_down(MouseButton::RIGHT_BUTTON);
+  }
+  static constexpr bool is_middle_button_down() {
+    return is_button_down(MouseButton::MIDDLE_BUTTON);
+  }
+
+  static constexpr void push(MouseEvent ev) {
+    int next_head = (head + 1) % MOUSE_RING_BUFFER_SIZE;
+    if (next_head != tail) {
+      buffer[head] = ev;
+      head = next_head;
+    }
+  }
+
+  static constexpr ClickType get_event_click_type(u8 flags) {
+    if (is_flag_active(flags, Flags::LEFT_BUTTON)) {
+      return ClickType::LEFT_CLICK;
+    }
+    if (is_flag_active(flags, Flags::RIGHT_BUTTON)) {
+      return ClickType::RIGHT_CLICK;
+    }
+    if (is_flag_active(flags, Flags::MIDDLE_BUTTON)) {
+      return ClickType::MIDDLE_CLICK;
+    }
+    return ClickType::NONE;
+  }
+  static constexpr MouseEvent read() {
+    if (tail == head)
+      return {ClickType::NONE, 0};
+    MouseEvent ev = buffer[tail];
+    tail = (tail + 1) % MOUSE_RING_BUFFER_SIZE;
+    return ev;
+  }
+
+  static constexpr MouseButton click_type_to_mouse_button(ClickType c) {
+    switch (c) {
+    case ClickType::LEFT_CLICK:
+      return MouseButton::LEFT_BUTTON;
+    case ClickType::RIGHT_CLICK:
+      return MouseButton::RIGHT_BUTTON;
+    case ClickType::MIDDLE_CLICK:
+      return MouseButton::MIDDLE_BUTTON;
+    case ClickType::NONE:
+      return MouseButton::NONE;
+    }
+
+    return MouseButton::NONE;
   }
 };
 

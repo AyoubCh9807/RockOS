@@ -3,6 +3,7 @@
 #include "../core/kernel.hpp"
 #include "../core/timer.hpp"
 #include "../drivers/keyboard.hpp"
+#include "../drivers/mouse.hpp"
 #include "../shared/key_event.hpp"
 #include "window.hpp"
 #include "window_app.hpp"
@@ -194,11 +195,43 @@ public:
       return;
     }
 
+    // Kill all of the windows with ctrl + k
+    if(ev.scancode == 'k' && Keyboard::is_ctrl_down()) {
+      for(int i = 0; i < count; i++) destroy_window(windows[i]);
+      if(focused_window) destroy_window(focused_window);
+      return;
+    }
+
     IWindowApp *app = app_for(focused_window);
     if (!app)
       return;
 
     app->on_key(*focused_window, ev);
+    redraw(focused_window);
+  }
+
+  void route_mouse_event(const MouseEvent &ev) {
+    if (!focused_window)
+      return;
+
+    /* if (ev.click_type == ClickType::MIDDLE_CLICK) {
+      destroy_window(focused_window);
+      return;
+    } */
+
+    for (int i = 0; i < count; i++) {
+      if (windows[i] != focused_window && ev.is_pressed && ev.click_type == ClickType::LEFT_CLICK &&
+          windows[i]->contains(Mouse::get_x(), Mouse::get_y())) {
+        focused_window = windows[i];
+        redraw_all();
+      }
+    }
+
+    IWindowApp *app = app_for(focused_window);
+    if (!app)
+      return;
+
+    app->on_mouse_event(*focused_window, ev);
     redraw(focused_window);
   }
 
@@ -258,5 +291,12 @@ public:
       for (int i = 0; i < BORDER; i++)
         Graphics::put_pixel(win->x + win->width - 1 - i, win->y + y, COLOR);
     }
+  }
+
+  constexpr bool any_window_contains(int x, int y) {
+    for(int i = 0; i < count; i++) {
+      if(windows[i]->contains(x, y)) return true;
+    }
+    return false;
   }
 };

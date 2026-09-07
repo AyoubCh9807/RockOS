@@ -24,4 +24,8 @@ public:
      no key input needed, this is what makes the clock actually
      live. */
   void on_draw(Window &win) override { draw(win); }
+  void on_mouse_event(MouseEvent& ev) {
+    return;
+  }
+
 };

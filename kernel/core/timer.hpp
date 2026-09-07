@@ -57,15 +57,15 @@ inline void remap_pic() {
   // Asm::outb(0xA1, 0xFF); // Slave: all masked
 
   // Master:
-  // IRQ0 = timer       → enabled
-  // IRQ1 = keyboard    → enabled
-  // IRQ2 = slave PIC   → enabled
-  // everything else   → masked
+  // IRQ0 = timer       -> enabled
+  // IRQ1 = keyboard    -> enabled
+  // IRQ2 = slave PIC   -> enabled
+  // everything else   -> masked
   Asm::outb(0x21, 0xF8);
 
   // Slave:
-  // IRQ12 = mouse      → enabled
-  // everything else    → masked
+  // IRQ12 = mouse      -> enabled
+  // everything else    -> masked
   Asm::outb(0xA1, 0xEF);
 }
 
@@ -153,7 +153,10 @@ extern "C" void c_timer_handler(CpuContext *ctx) {
 
   /* Diagnostic: confirm what timer_stub is about to load, on the
      untouched entry stack, safe regardless of what on_timer just did
-     to next_resume_cr3 / next_resume_rsp. */
+     to next_resume_cr3 / next_resume_rsp. 
+     This diagnostic is redundant for now since isolated processes are not
+     being used currently
+  */
   static u32 resume_dbg = 0;
   if ((resume_dbg++ % 30) == 0)
     Debugger::logf("RESUME cr3=%d rsp=%d\n", (unsigned)next_resume_cr3,

@@ -66,4 +66,8 @@ public:
   }
 
   void on_key(Window &win, const KeyEvent &ev) override {}
+
+  void on_mouse_event(MouseEvent& ev) {
+    return;
+  }
 };

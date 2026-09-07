@@ -15,6 +15,8 @@ static constexpr auto MAX_DESKTOP_APPS = 256;
 static constexpr auto DEFAULT_WINDOW_WIDTH = 600;
 static constexpr auto DEFAULT_WINDOW_HEIGHT = 480;
 
+static constexpr auto INVALID_ICON_INDEX = -1;
+
 class Desktop {
 private:
   WindowManager &window_manager;
@@ -26,12 +28,14 @@ private:
   int icon_count = 0;
   int selected_icon = 0;
 
+  int last_launched_app = INVALID_ICON_INDEX;
+
   u32 background_color = Colors::DARK_RED;
 
-  int LAUNCH_X = 0;
-  int LAUNCH_Y = 0;
-  int LAUNCH_DX = 32;
-  int LAUNCH_DY = 32;
+  int LAUNCH_X = 128;
+  int LAUNCH_Y = 128;
+  int LAUNCH_DX = -32;
+  int LAUNCH_DY = -32;
 
   inline static auto SCREEN_WIDTH = Multiboot2::framebuffer.width;
 
@@ -60,32 +64,6 @@ private:
     LAUNCH_Y = next_y;
   }
 
-  void draw_mouse_debug() {
-    char debug[128];
-
-    StringUtils::snprintf(debug, sizeof(debug), "Mouse IRQ: %u",
-                          (unsigned)Mouse::get_irq_count());
-
-    Graphics::draw_string(debug, 10, 10, Colors::pick_random_color());
-
-    StringUtils::snprintf(debug, sizeof(debug), "Last byte: %x",
-                          (unsigned)Mouse::get_last_byte());
-
-    Graphics::draw_string(debug, 10, 30, Colors::WHITE);
-
-    StringUtils::snprintf(debug, sizeof(debug), "Packet: %x %x %x",
-                          (unsigned)Mouse::get_packet_byte(0),
-                          (unsigned)Mouse::get_packet_byte(1),
-                          (unsigned)Mouse::get_packet_byte(2));
-
-    Graphics::draw_string(debug, 10, 50, Colors::WHITE);
-
-    StringUtils::snprintf(debug, sizeof(debug), "Mouse: %d %d", Mouse::get_x(),
-                          Mouse::get_y());
-
-    Graphics::draw_string(debug, 10, 70, Colors::WHITE);
-  }
-
 public:
   Desktop(WindowManager &wm, WindowAppRegistry &window_app_registry,
           DialogManager &dialog_manager)
@@ -103,24 +81,45 @@ public:
   }
 
   void update() {
-    KeyEvent ev = Keyboard::read();
+    KeyEvent kb_ev = Keyboard::read();
 
-    if (ev.scancode != 0 && ev.keytype != KeyType::None) {
+    if (kb_ev.scancode != 0 && kb_ev.keytype != KeyType::None) {
 
       if (dialog_manager.has_active()) {
 
         // Key event gets routed to the dialog manager.
-        dialog_manager.route_key(ev);
+        dialog_manager.route_key(kb_ev);
 
-      } else if (handle_key(ev)) {
+      } else if (handle_key(kb_ev)) {
 
         // Desktop handled it.
 
       } else {
 
         // Key event gets routed to the window manager.
-        window_manager.route_key(ev);
+        window_manager.route_key(kb_ev);
       }
+    }
+
+    /* This will be refactored later into an priority event stream to prevent
+     both the desktop and the app from receiving the mouse event (the keyboard
+     priority event stream is already implemented) */
+    MouseEvent mouse_ev = Mouse::read();
+
+    if (mouse_ev.click_type != ClickType::NONE) {
+      for (int i = 0; i < icon_count; i++) {
+
+        if ((window_manager.get_focused() &&
+             window_manager.get_focused()->contains(Mouse::get_x(),
+                                                    Mouse::get_y())) ||
+            window_manager.any_window_contains(Mouse::get_x(),
+                                               Mouse::get_y())) {
+          window_manager.route_mouse_event(mouse_ev);
+        } else if (handle_mouse_event(mouse_ev)) {
+          // desktop handled it
+        }
+      }
+    } else {
     }
 
     window_manager.update();
@@ -131,6 +130,7 @@ public:
 
     Wallpaper::draw_selected_wallpaper();
 
+    update_icons();
     draw_icons();
 
     window_manager.render();
@@ -141,9 +141,8 @@ public:
 
     Graphics::draw_cursor(Mouse::get_x(), Mouse::get_y());
 
-    // Temporary mouse diagnostics.
-    // Remove this once mouse movement works.
-    draw_mouse_debug();
+    MouseEvent ev = Mouse::read();
+    handle_mouse_event(ev);
 
     Graphics::present();
   }
@@ -271,6 +270,12 @@ public:
     }
   }
 
+  void update_icons() {
+    for (int i = 0; i < icon_count; i++) {
+      icons[i].update();
+    }
+  }
+
   void add_icon(const char *label, u32 x, u32 y) {
 
     if (icon_count >= MAX_DESKTOP_APPS)
@@ -323,6 +328,40 @@ public:
     selected_icon--;
   }
 
+  bool handle_mouse_event(const MouseEvent &ev) {
+
+    if (ev.click_type == ClickType::NONE)
+      return false;
+
+    if (icon_count > 0) {
+
+      for (int i = 0; i < icon_count; i++) {
+        if (ev.click_type == ClickType::LEFT_CLICK && icons[i].hovered() &&
+            selected_icon != i) {
+          selected_icon = i;
+          icons[i].select();
+          return true;
+        } else if (ev.click_type == ClickType::LEFT_CLICK &&
+                   selected_icon == i && icons[i].hovered() &&
+                   icons[i].launchable() && last_launched_app != i) {
+          launch_app(icons[selected_icon]);
+          icons[i].make_unlaunchable();
+          selected_icon = INVALID_ICON_INDEX;
+          last_launched_app = i;
+          icons[i].unselect();
+          return true;
+        } else if (ev.click_type == ClickType::LEFT_CLICK &&
+                   selected_icon == i && icons[i].hovered() &&
+                   !icons[i].launchable()) {
+          icons[i].make_launchable();
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   bool handle_key(const KeyEvent &ev) {
 
     if (ev.keytype == KeyType::ArrowRight) {
@@ -335,13 +374,15 @@ public:
       return true;
     }
 
-    if (ev.keytype == KeyType::Enter ||
-        (ev.keytype == KeyType::Char && ev.scancode == 'o')) {
+    if (icon_count > 0) {
 
-      if (icon_count > 0)
+      if (ev.keytype == KeyType::Enter ||
+          (ev.keytype == KeyType::Char && ev.scancode == 'o')) {
         launch_app(icons[selected_icon]);
+        selected_icon = INVALID_ICON_INDEX;
 
-      return true;
+        return true;
+      }
     }
 
     if (ev.keytype == KeyType::Char && ev.scancode == 'w') {
@@ -358,13 +399,10 @@ public:
     while (1) {
 
       update();
-
       u32 now = Timer::get_ticks();
 
       if (now - last_frame_tick >= FRAME_TICKS) {
-
         last_frame_tick = now;
-
         render();
       }
 

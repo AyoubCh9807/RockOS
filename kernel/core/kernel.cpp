@@ -73,6 +73,7 @@ extern "C" void kernel_main(u64 mb_addr) {
   Multiboot2::fill_tags(mb_addr);
 
   Mouse::init();
+  Mouse::set_coords(Multiboot2::framebuffer.width / 2, Multiboot2::framebuffer.height / 2);
 
   Asm::sti(); /*
                * Filesystem
