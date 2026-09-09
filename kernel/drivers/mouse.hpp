@@ -7,12 +7,12 @@
 #include "../shared/types.hpp"
 #include "../utils/math_utils.hpp"
 
-enum class ClickType { LEFT_CLICK, RIGHT_CLICK, MIDDLE_CLICK, NONE };
 enum class MouseButton { LEFT_BUTTON, RIGHT_BUTTON, MIDDLE_BUTTON, NONE };
+enum class MouseEventType { MOVE, PRESS, RELEASE, NONE };
 
 struct MouseEvent {
-  ClickType click_type; // eg LEFT_CLICK / RIGHT_CLICK / MIDDLE_CLICK
-  bool is_pressed;      // true if the buton is down, false otherwise
+  MouseButton button_type;   // eg LEFT_CLICK / RIGHT_CLICK / MIDDLE_CLICK
+  MouseEventType event_type; // eg MOVE / PRESS / RELEASE
 };
 
 class Mouse {
@@ -170,16 +170,27 @@ public:
     new_x = MathUtils::clamp(new_x, 0, (int)Multiboot2::framebuffer.width - 1);
     new_y = MathUtils::clamp(new_y, 0, (int)Multiboot2::framebuffer.height - 1);
 
+    MouseEventType type;
+
+    if (new_x != x || new_y != y)
+      type = MouseEventType::MOVE;
+
     set_coords(new_x, new_y);
 
-    // Adding more entrophy for better unprectibility
+    // Adding more entrophy for better unprectibility of our Random::next()
     if (Timer::get_ticks() % (new_x + new_y + 1) == 0) {
       Random::add_entropy(Timer::ticks ^
                           ((new_x * new_y + 1) % (new_x + new_y + 1) + 1) / 10);
     }
-    push(MouseEvent(get_event_click_type(flags),
-                    is_button_down(click_type_to_mouse_button(
-                        get_event_click_type(flags)))));
+
+    if (is_any_button_down())
+      type = MouseEventType::PRESS;
+    else if (type != MouseEventType::MOVE)
+      type = MouseEventType::RELEASE;
+    else
+      type = MouseEventType::NONE;
+
+    push(MouseEvent(get_event_mouse_button(flags), type));
   }
 
   static int get_x() { return x; }
@@ -190,6 +201,12 @@ public:
     if (index < 0 || index >= 3)
       return 0;
   } */
+
+  static constexpr bool is_any_button_down() {
+    return is_button_down(MouseButton::LEFT_BUTTON) ||
+           is_button_down(MouseButton::RIGHT_BUTTON) ||
+           is_button_down(MouseButton::MIDDLE_BUTTON);
+  }
 
   static constexpr bool is_button_down(MouseButton b) {
     switch (b) {
@@ -222,39 +239,24 @@ public:
     }
   }
 
-  static constexpr ClickType get_event_click_type(u8 flags) {
+  static constexpr MouseButton get_event_mouse_button(u8 flags) {
     if (is_flag_active(flags, Flags::LEFT_BUTTON)) {
-      return ClickType::LEFT_CLICK;
+      return MouseButton::LEFT_BUTTON;
     }
     if (is_flag_active(flags, Flags::RIGHT_BUTTON)) {
-      return ClickType::RIGHT_CLICK;
+      return MouseButton::RIGHT_BUTTON;
     }
     if (is_flag_active(flags, Flags::MIDDLE_BUTTON)) {
-      return ClickType::MIDDLE_CLICK;
+      return MouseButton::MIDDLE_BUTTON;
     }
-    return ClickType::NONE;
+    return MouseButton::NONE;
   }
   static constexpr MouseEvent read() {
     if (tail == head)
-      return {ClickType::NONE, 0};
+      return {MouseButton::NONE, MouseEventType::NONE};
     MouseEvent ev = buffer[tail];
     tail = (tail + 1) % MOUSE_RING_BUFFER_SIZE;
     return ev;
-  }
-
-  static constexpr MouseButton click_type_to_mouse_button(ClickType c) {
-    switch (c) {
-    case ClickType::LEFT_CLICK:
-      return MouseButton::LEFT_BUTTON;
-    case ClickType::RIGHT_CLICK:
-      return MouseButton::RIGHT_BUTTON;
-    case ClickType::MIDDLE_CLICK:
-      return MouseButton::MIDDLE_BUTTON;
-    case ClickType::NONE:
-      return MouseButton::NONE;
-    }
-
-    return MouseButton::NONE;
   }
 };
 

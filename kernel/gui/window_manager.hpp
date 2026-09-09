@@ -15,6 +15,7 @@ constexpr int FRAME_TICKS = 2; // arnd 50fps
 constexpr int MAX_WINDOWS = 32;
 
 constexpr u32 HEAP_SAFETY_MARGIN = 2 * 1024 * 1024; // 2 MiB
+constexpr int ALL_WINDOW_DESTRUCTION_CONSECUTIVE_ATTEMPS = 5;
 
 class WindowManager {
 private:
@@ -186,6 +187,13 @@ public:
     // owns the final frame presentation
   }
 
+  void destroy_all_windows() {
+    for(int i = 0; i < count; i++) {
+      destroy_window(windows[i]);
+    } 
+    if(focused_window) destroy_window(focused_window);
+  }
+
   void route_key(const KeyEvent &ev) {
     if (!focused_window)
       return;
@@ -196,9 +204,8 @@ public:
     }
 
     // Kill all of the windows with ctrl + k
-    if(ev.scancode == 'k' && Keyboard::is_ctrl_down()) {
-      for(int i = 0; i < count; i++) destroy_window(windows[i]);
-      if(focused_window) destroy_window(focused_window);
+    if (ev.scancode == 'k' && Keyboard::is_ctrl_down()) {
+      for(int i = 0; i < ALL_WINDOW_DESTRUCTION_CONSECUTIVE_ATTEMPS; i++) destroy_all_windows();
       return;
     }
 
@@ -220,7 +227,8 @@ public:
     } */
 
     for (int i = 0; i < count; i++) {
-      if (windows[i] != focused_window && ev.is_pressed && ev.click_type == ClickType::LEFT_CLICK &&
+      bool is_left_click_down = ev.button_type == MouseButton::LEFT_BUTTON && ev.event_type == MouseEventType::PRESS;
+      if (windows[i] != focused_window && is_left_click_down &&
           windows[i]->contains(Mouse::get_x(), Mouse::get_y())) {
         focused_window = windows[i];
         redraw_all();
@@ -243,6 +251,7 @@ public:
   void redraw_all() {
     for (int i = 0; i < count; i++)
       apps[i]->on_draw(*windows[i]);
+
   }
 
   void update() {
@@ -294,8 +303,9 @@ public:
   }
 
   constexpr bool any_window_contains(int x, int y) {
-    for(int i = 0; i < count; i++) {
-      if(windows[i]->contains(x, y)) return true;
+    for (int i = 0; i < count; i++) {
+      if (windows[i]->contains(x, y))
+        return true;
     }
     return false;
   }

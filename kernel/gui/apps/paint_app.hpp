@@ -90,5 +90,10 @@ public:
     draw(win);
   }
 
-  void on_mouse_event(MouseEvent &ev) { return; }
+  void on_mouse_event(Window& win, MouseEvent &ev) {
+    bool is_left_button_pressed = ev.event_type == MouseEventType::PRESS && ev.button_type == MouseButton::LEFT_BUTTON;
+    if(is_left_button_pressed) {
+      replace_pixel(win, current_color);
+    }
+  }
 };

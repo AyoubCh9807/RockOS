@@ -31,8 +31,8 @@ public:
   }
 
   void on_mouse_event(MouseEvent &ev) {
-    
-    if (ev.click_type == ClickType::LEFT_CLICK) {
+
+    if (ev.button_type == MouseButton::LEFT_BUTTON) {
       current_phrase = Generator::random_phrase(foolish_phrases);
     }
   }

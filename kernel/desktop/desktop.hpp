@@ -106,7 +106,8 @@ public:
      priority event stream is already implemented) */
     MouseEvent mouse_ev = Mouse::read();
 
-    if (mouse_ev.click_type != ClickType::NONE) {
+    if (mouse_ev.button_type == MouseButton::LEFT_BUTTON &&
+        mouse_ev.event_type == MouseEventType::PRESS) {
       for (int i = 0; i < icon_count; i++) {
 
         if ((window_manager.get_focused() &&
@@ -330,29 +331,29 @@ public:
 
   bool handle_mouse_event(const MouseEvent &ev) {
 
-    if (ev.click_type == ClickType::NONE)
+    if (ev.button_type == MouseButton::NONE)
       return false;
 
     if (icon_count > 0) {
 
       for (int i = 0; i < icon_count; i++) {
-        if (ev.click_type == ClickType::LEFT_CLICK && icons[i].hovered() &&
+        bool is_pressing_left_click = ev.event_type == MouseEventType::PRESS && ev.button_type == MouseButton::LEFT_BUTTON;
+        if (is_pressing_left_click && icons[i].hovered() &&
             selected_icon != i) {
           selected_icon = i;
           icons[i].select();
           return true;
-        } else if (ev.click_type == ClickType::LEFT_CLICK &&
-                   selected_icon == i && icons[i].hovered() &&
-                   icons[i].launchable() && last_launched_app != i) {
+        } else if (is_pressing_left_click && selected_icon == i &&
+                   icons[i].hovered() && icons[i].launchable() &&
+                   last_launched_app != i) {
           launch_app(icons[selected_icon]);
           icons[i].make_unlaunchable();
           selected_icon = INVALID_ICON_INDEX;
           last_launched_app = i;
           icons[i].unselect();
           return true;
-        } else if (ev.click_type == ClickType::LEFT_CLICK &&
-                   selected_icon == i && icons[i].hovered() &&
-                   !icons[i].launchable()) {
+        } else if (is_pressing_left_click && selected_icon == i &&
+                   icons[i].hovered() && !icons[i].launchable()) {
           icons[i].make_launchable();
           return true;
         }
