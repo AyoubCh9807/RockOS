@@ -73,7 +73,8 @@ extern "C" void kernel_main(u64 mb_addr) {
   Multiboot2::fill_tags(mb_addr);
 
   Mouse::init();
-  Mouse::set_coords(Multiboot2::framebuffer.width / 2, Multiboot2::framebuffer.height / 2);
+  Mouse::set_coords(Multiboot2::framebuffer.width / 2,
+                    Multiboot2::framebuffer.height / 2);
 
   Asm::sti(); /*
                * Filesystem
@@ -120,15 +121,34 @@ extern "C" void kernel_main(u64 mb_addr) {
 
   Desktop desktop(wm, window_app_reg, dialog_manager);
 
-  desktop.add_icon("Counter", 20, 20);
-  desktop.add_icon("Dice", 20, 60);
-  desktop.add_icon("DVD", 20, 100);
-  desktop.add_icon("Clock", 20, 140);
-  desktop.add_icon("Tyrant", 20, 180);
-  desktop.add_icon("Matrix", 20, 220);
-  desktop.add_icon("About", 20, 260);
-  desktop.add_icon("Settings", 20, 300);
+  const char *app_names[] = {
+      "Counter",  "Dice",      "DVD",      "Clock", "Tyrant",  "Matrix",
+      "About",    "Settings",
 
+      "Rock AI",  "Files",     "Terminal", "Amp",   "Tuner",   "Metronome",
+      "Playlist", "Radio",     "Lyrics",   "Mixer", "Browser", "Rock Store",
+      "Vinyl",    "Recorder",  "Drums",    "REC",   "Lock",    "Trash",
+      "Updater",  "Equalizer", "Pick",     "Help",  "Stage"};
+  ;
+
+  constexpr u32 START_X = 20;
+  constexpr u32 START_Y = 20;
+  constexpr u32 SPACING = 70;
+  constexpr u32 MAX_X = 630;
+
+  u32 x = START_X;
+  u32 y = START_Y;
+
+  for (const char *name : app_names) {
+    desktop.add_icon(name, x, y);
+
+    x += SPACING;
+
+    if (x >= MAX_X) {
+      x = START_X;
+      y += SPACING;
+    }
+  }
   desktop.init();
 
   desktop.run();

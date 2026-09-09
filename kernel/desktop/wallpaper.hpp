@@ -15,13 +15,27 @@ private:
     INFERNO,
     BLOOD_MOON,
     BROKEN_HEART,
+    AMP_STACK,
+    EQUALIZER,
+    GUITAR,
+    HEADPHONE_SKULL,
+    VINYL,
+    SPEAKER_WALL,
+    MOSHPIT,
+    STAGE_LIGHTS,
+    RAVEN,
+    BARBED_WIRE,
+    DARK_CASTLE,
+    DRUM_KIT,
+    MIC_STAND,
+    NOTES_RAIN,
     FIRST = CHAINS,
-    LAST = BROKEN_HEART,
-    COUNT = 10
+    LAST = NOTES_RAIN,
+    COUNT = LAST + 1
   };
 
   static inline WallpaperVariant current_wallpaper = WallpaperVariant::CHAINS;
-  static constexpr u32 WALLPAPER_COUNT = 10;
+  static constexpr u32 WALLPAPER_COUNT = static_cast<u32>(WallpaperVariant::COUNT);
 
 public:
   static void select_next_wallpaper() {
@@ -66,6 +80,48 @@ public:
     case WallpaperVariant::BROKEN_HEART:
       draw_broken_heart();
       break;
+    case WallpaperVariant::AMP_STACK:
+      draw_amp_stack();
+      break;
+    case WallpaperVariant::EQUALIZER:
+      draw_equalizer();
+      break;
+    case WallpaperVariant::GUITAR:
+      draw_guitar();
+      break;
+    case WallpaperVariant::HEADPHONE_SKULL:
+      draw_headphone_skull();
+      break;
+    case WallpaperVariant::VINYL:
+      draw_vinyl();
+      break;
+    case WallpaperVariant::SPEAKER_WALL:
+      draw_speaker_wall();
+      break;
+    case WallpaperVariant::MOSHPIT:
+      draw_moshpit();
+      break;
+    case WallpaperVariant::STAGE_LIGHTS:
+      draw_stage_lights();
+      break;
+    case WallpaperVariant::RAVEN:
+      draw_raven();
+      break;
+    case WallpaperVariant::BARBED_WIRE:
+      draw_barbed_wire();
+      break;
+    case WallpaperVariant::DARK_CASTLE:
+      draw_dark_castle();
+      break;
+    case WallpaperVariant::DRUM_KIT:
+      draw_drum_kit();
+      break;
+    case WallpaperVariant::MIC_STAND:
+      draw_mic_stand();
+      break;
+    case WallpaperVariant::NOTES_RAIN:
+      draw_notes_rain();
+      break;
     default:
       break;
     }
@@ -73,9 +129,6 @@ public:
 
 public:
   Wallpaper() {}
-
-
-
 
   void draw() { draw_selected_wallpaper(); }
 };

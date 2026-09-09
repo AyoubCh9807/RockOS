@@ -390,6 +390,11 @@ public:
       return true;
     }
 
+    if (ev.keytype == KeyType::Char && ev.scancode == 'c') {
+      Cursor::select_next_cursor();
+      return true;
+    }
+
     return false;
   }
 

@@ -3,6 +3,7 @@
 #include "multiboot2.hpp"
 
 #include "../kernel/data/font.hpp"
+#include "../kernel/desktop/cursor.hpp"
 #include "../kernel/shared/types.hpp"
 #include "graphic_colors.hpp"
 
@@ -37,9 +38,6 @@ inline void put_pixel(u32 x, u32 y, u32 color) {
 
   Framebuffer &fb = Multiboot2::framebuffer;
 
-  if (!back_buffer)
-    return;
-
   if (x >= fb.width || y >= fb.height)
     return;
 
@@ -47,27 +45,27 @@ inline void put_pixel(u32 x, u32 y, u32 color) {
 }
 
 inline void clear(u32 color) {
-  if (!Multiboot2::framebuffer.valid || !back_buffer)
+  if (!Multiboot2::framebuffer.valid)
     return;
 
   Framebuffer &fb = Multiboot2::framebuffer;
   u32 total_size = fb.width * fb.height;
 
-  for (u64 i = 0; i < total_size; i++) {
+  for (u32 i = 0; i < total_size; i++) {
     back_buffer[i] = color;
   }
 }
 
 inline void draw_rect(u32 x, u32 y, u32 w, u32 h, u32 color) {
-  for (int i = x; i < x + w; i++) {
-    for (int j = y; j < y + h; j++) {
+  for (u32 i = x; i < x + w; i++) {
+    for (u32 j = y; j < y + h; j++) {
       put_pixel(i, j, color);
     }
   }
 }
 
 inline void draw_line(u32 x, u32 y, u32 w, u32 color) {
-  for (int i = x; i < x + w; i++) {
+  for (u32 i = x; i < x + w; i++) {
     put_pixel(i, y, color);
   }
 }
@@ -145,9 +143,6 @@ inline void present() {
   if (!Multiboot2::framebuffer.valid)
     return;
 
-  if (!back_buffer)
-    return;
-
   Framebuffer &fb = Multiboot2::framebuffer;
 
   if (fb.bpp != 32)
@@ -164,26 +159,14 @@ inline void present() {
   }
 }
 
-static void draw_cursor(int x, int y) {
-  // The cursor is drawn relative to its tip at (x, y).
-  static constexpr int cursor[] = {
-      0, 0,
-
-      0, 1,  1, 1,  2, 1,  3, 1,  0, 2,  1, 2,  3, 2,  4, 2,  0, 3,
-      1, 3,  4, 3,  5, 3,  0, 4,  1, 4,  2, 4,  3, 4,  0, 5,  1, 5,
-      2, 5,  3, 5,  4, 5,  0, 6,  1, 6,  2, 6,  0, 7,  1, 7,  2, 7,
-      3, 7,  4, 7,  0, 8,  1, 8,  2, 8,  4, 8,  5, 8,  0, 9,  1, 9,
-      2, 9,  2, 10, 3, 10, 4, 10, 3, 11, 4, 11, 5, 11, 4, 12, 5, 12,
-      6, 12, 5, 13, 6, 13, 7, 13, 6, 14, 7, 14, 7, 15, 8, 15,
-  };
-  constexpr int point_count = sizeof(cursor) / sizeof(cursor[0]) / 2;
-
-  for (int i = 0; i < point_count; ++i) {
-    int px = x + cursor[i * 2];
-    int py = y + cursor[i * 2 + 1];
-
-    put_pixel(px, py, WHITE);
-  }
+// Draws a cursor bitmap from cursor.hpp (RockCursors::ARROW, ::HORNS, etc.)
+// at the given tip position. Replaces the old hardcoded point-list cursor:
+// this one is data-driven off the same 0xAARRGGBB / 0-alpha-transparent
+// format used everywhere else in Graphics, so any bitmap in RockCursors::ALL
+// works here without special-casing.
+inline void draw_cursor(u32 x, u32 y) {
+  draw_image(Cursor::get_current_cursor_bitmap()->pixels, x, y, Cursor::WIDTH,
+             Cursor::HEIGHT);
 }
 
 } // namespace Graphics
