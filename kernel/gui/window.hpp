@@ -15,6 +15,13 @@ class Window {
 private:
   u32 *pixels;
 
+  int restore_x = 0;
+  int restore_y = 0;
+  int restore_width = 0;
+  int restore_height = 0;
+
+  bool maximized = false;
+
   static constexpr int CHAR_WIDTH = 8;
   static constexpr int CHAR_HEIGHT = 8;
 
@@ -54,7 +61,69 @@ public:
 
   void minimize() { minimized = true; }
 
-  void restore() { minimized = false; }
+  void maximize(int screen_width, int screen_height, int taskbar_height) {
+    if (maximized || minimized)
+      return;
+
+    const int new_width = screen_width;
+    const int new_height = screen_height - taskbar_height;
+
+    u32 *new_pixels = new u32[new_width * new_height];
+
+    if (!new_pixels)
+      return;
+
+    restore_x = x;
+    restore_y = y;
+    restore_width = width;
+    restore_height = height;
+
+    delete[] pixels;
+
+    pixels = new_pixels;
+    width = new_width;
+    height = new_height;
+
+    x = 0;
+    y = 0;
+
+    clear(0x000000);
+
+    maximized = true;
+  }
+
+  void restore() {
+    if (!maximized)
+      return;
+
+    x = restore_x;
+    y = restore_y;
+
+    resize(restore_width, restore_height);
+
+    maximized = false;
+  }
+
+  bool is_maximized() const { return maximized; }
+  bool resize(int new_width, int new_height) {
+    if (new_width <= 0 || new_height <= 0)
+      return false;
+
+    u32 *new_pixels = new u32[new_width * new_height];
+
+    if (!new_pixels)
+      return false;
+
+    delete[] pixels;
+
+    pixels = new_pixels;
+    width = new_width;
+    height = new_height;
+
+    clear(0x000000);
+
+    return true;
+  }
 
   void clear(u32 color) {
     for (int i = 0; i < width * height; i++)

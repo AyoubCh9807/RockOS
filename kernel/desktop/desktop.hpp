@@ -108,17 +108,14 @@ public:
 
     if (mouse_ev.button_type == MouseButton::LEFT_BUTTON &&
         mouse_ev.event_type == MouseEventType::PRESS) {
-      for (int i = 0; i < icon_count; i++) {
 
-        if ((window_manager.get_focused() &&
-             window_manager.get_focused()->contains(Mouse::get_x(),
-                                                    Mouse::get_y())) ||
-            window_manager.any_window_contains(Mouse::get_x(),
-                                               Mouse::get_y())) {
-          window_manager.route_mouse_event(mouse_ev);
-        } else if (handle_mouse_event(mouse_ev)) {
-          // desktop handled it
-        }
+      if ((window_manager.get_focused() &&
+           window_manager.get_focused()->contains(Mouse::get_x(),
+                                                  Mouse::get_y())) ||
+          window_manager.any_window_contains(Mouse::get_x(), Mouse::get_y())) {
+        window_manager.route_mouse_event(mouse_ev);
+      } else {
+        handle_mouse_event(mouse_ev);
       }
     } else {
     }
@@ -142,9 +139,6 @@ public:
 
     Graphics::draw_cursor(Mouse::get_x(), Mouse::get_y());
 
-    MouseEvent ev = Mouse::read();
-    handle_mouse_event(ev);
-
     Graphics::present();
   }
 
@@ -153,8 +147,6 @@ public:
   void draw_taskbar() {
     u32 width = Multiboot2::framebuffer.width;
     u32 height = Multiboot2::framebuffer.height;
-
-    constexpr u32 TASKBAR_HEIGHT = 64;
 
     u32 taskbar_y = height - TASKBAR_HEIGHT;
 
@@ -337,7 +329,9 @@ public:
     if (icon_count > 0) {
 
       for (int i = 0; i < icon_count; i++) {
-        bool is_pressing_left_click = ev.event_type == MouseEventType::PRESS && ev.button_type == MouseButton::LEFT_BUTTON;
+        bool is_pressing_left_click =
+            ev.event_type == MouseEventType::PRESS &&
+            ev.button_type == MouseButton::LEFT_BUTTON;
         if (is_pressing_left_click && icons[i].hovered() &&
             selected_icon != i) {
           selected_icon = i;

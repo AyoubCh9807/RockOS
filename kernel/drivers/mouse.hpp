@@ -36,6 +36,7 @@ private:
   inline static int y = 0;
 
   inline static u8 mouse_flags = 0;
+  inline static bool was_down = false;
 
   static constexpr auto MOUSE_RING_BUFFER_SIZE = 256;
 
@@ -170,27 +171,38 @@ public:
     new_x = MathUtils::clamp(new_x, 0, (int)Multiboot2::framebuffer.width - 1);
     new_y = MathUtils::clamp(new_y, 0, (int)Multiboot2::framebuffer.height - 1);
 
-    MouseEventType type;
-
-    if (new_x != x || new_y != y)
-      type = MouseEventType::MOVE;
+    bool moved = (new_x != x || new_y != y);
 
     set_coords(new_x, new_y);
 
-    // Adding more entrophy for better unprectibility of our Random::next()
+    // Adding more entropy for better unpredictability of our Random::next()
     if (Timer::get_ticks() % (new_x + new_y + 1) == 0) {
       Random::add_entropy(Timer::ticks ^
                           ((new_x * new_y + 1) % (new_x + new_y + 1) + 1) / 10);
     }
 
-    if (is_any_button_down())
-      type = MouseEventType::PRESS;
-    else if (type != MouseEventType::MOVE)
-      type = MouseEventType::RELEASE;
-    else
-      type = MouseEventType::NONE;
+    // Edge-triggered: only emit PRESS on the down-transition and RELEASE
+    // on the up-transition, instead of re-emitting PRESS on every packet
+    // while a button is held (which was flooding the ring buffer and
+    // causing repeated route_mouse_event calls per physical click).
+    bool now_down = is_any_button_down();
 
-    push(MouseEvent(get_event_mouse_button(flags), type));
+    MouseEventType type;
+
+    if (now_down && !was_down) {
+      type = MouseEventType::PRESS;
+    } else if (!now_down && was_down) {
+      type = MouseEventType::RELEASE;
+    } else if (moved) {
+      type = MouseEventType::MOVE;
+    } else {
+      type = MouseEventType::NONE;
+    }
+
+    was_down = now_down;
+
+    if (type != MouseEventType::NONE)
+      push(MouseEvent(get_event_mouse_button(flags), type));
   }
 
   static int get_x() { return x; }

@@ -25,6 +25,8 @@ constexpr int WINDOW_BUTTON_MARGIN = 3;
 constexpr int WINDOW_CHAR_WIDTH = 8;
 constexpr int WINDOW_CHAR_HEIGHT = 8;
 
+static constexpr int TASKBAR_HEIGHT = 64;
+
 class WindowManager {
 private:
   Window *windows[MAX_WINDOWS]{};
@@ -187,9 +189,12 @@ private:
       break;
 
     case Window::Button::MAXIMIZE:
-      // Real resizing can be implemented here later.
+      if (win->is_maximized())
+        win->restore();
+      else
+        win->maximize(Multiboot2::framebuffer.width, Multiboot2::framebuffer.height, TASKBAR_HEIGHT);
+      redraw(win);
       break;
-
     case Window::Button::MINIMIZE:
       win->minimize();
       break;
