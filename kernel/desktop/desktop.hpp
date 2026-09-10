@@ -6,6 +6,7 @@
 #include "../gui/window_app_registry.hpp"
 #include "../gui/window_manager.hpp"
 
+#include "app_launcher.hpp"
 #include "desktop_icon.hpp"
 #include "wallpaper.hpp"
 
@@ -22,6 +23,7 @@ private:
   WindowManager &window_manager;
   WindowAppRegistry &window_app_registry;
   DialogManager &dialog_manager;
+  AppLauncher &app_launcher;
 
   DesktopIcon icons[MAX_DESKTOP_APPS];
 
@@ -66,9 +68,9 @@ private:
 
 public:
   Desktop(WindowManager &wm, WindowAppRegistry &window_app_registry,
-          DialogManager &dialog_manager)
+          DialogManager &dialog_manager, AppLauncher &app_launcher)
       : window_manager(wm), window_app_registry(window_app_registry),
-        dialog_manager(dialog_manager) {}
+        dialog_manager(dialog_manager), app_launcher(app_launcher) {}
 
   void init() {
     clear();
@@ -90,7 +92,11 @@ public:
         // Key event gets routed to the dialog manager.
         dialog_manager.route_key(kb_ev);
 
-      } else if (handle_key(kb_ev)) {
+      } else if (app_launcher.is_open()) {
+        app_launcher.handle_key(kb_ev);
+      }
+
+      else if (handle_key(kb_ev)) {
 
         // Desktop handled it.
 
@@ -134,6 +140,9 @@ public:
     window_manager.render();
 
     dialog_manager.render();
+
+    if (app_launcher.is_open())
+      app_launcher.draw();
 
     draw_taskbar();
 
@@ -387,6 +396,11 @@ public:
 
     if (ev.keytype == KeyType::Char && ev.scancode == 'c') {
       Cursor::select_next_cursor();
+      return true;
+    }
+
+    if (ev.keytype == KeyType::Char && ev.scancode == 'a') {
+      app_launcher.open();
       return true;
     }
 

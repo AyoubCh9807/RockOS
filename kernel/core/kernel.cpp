@@ -119,7 +119,9 @@ extern "C" void kernel_main(u64 mb_addr) {
 
   DialogManager dialog_manager;
 
-  Desktop desktop(wm, window_app_reg, dialog_manager);
+  AppLauncher app_launcher(wm, window_app_reg, dialog_manager);
+
+  Desktop desktop(wm, window_app_reg, dialog_manager, app_launcher);
 
   const char *app_names[] = {
       "Counter",  "Dice",      "DVD",      "Clock", "Tyrant",  "Matrix",

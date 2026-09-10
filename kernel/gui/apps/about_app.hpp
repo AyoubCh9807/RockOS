@@ -1,3 +1,4 @@
+#pragma once
 #include "../window.hpp"
 #include "../window_app.hpp"
 

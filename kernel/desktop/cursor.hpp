@@ -1,3 +1,5 @@
+#pragma once
+
 #include "cursor_bitmaps.hpp"
 
 namespace Cursor {

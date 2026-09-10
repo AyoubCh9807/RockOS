@@ -1,3 +1,4 @@
+#pragma once
 #include "../../boot/graphics.hpp"
 #include "../shared/types.hpp"
 

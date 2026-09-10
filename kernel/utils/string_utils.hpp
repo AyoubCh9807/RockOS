@@ -230,6 +230,27 @@ inline bool contains(const char *str, char c) {
   return false;
 }
 
+inline bool contains(const char *str, const char *query) {
+  if (!str || !query)
+    return false;
+
+  if (query[0] == '\0')
+    return true;
+
+  for (int i = 0; str[i] != '\0'; i++) {
+    int j = 0;
+
+    while (str[i + j] != '\0' && query[j] != '\0' && str[i + j] == query[j]) {
+      j++;
+    }
+
+    if (query[j] == '\0')
+      return true;
+  }
+
+  return false;
+}
+
 inline void print_number_into(char *buf, int cap, int n) {
   if (!buf || cap <= 0)
     return;
@@ -490,26 +511,57 @@ static void reverse(const char *str, char *buf) {
   buf[length] = '\0';
 }
 
-static void uppercase(char* str) {
+static void uppercase(char *str) {
   int l = strlen(str);
-  if(l <= 0) return;
-  for(int i = 0; i < l; i++) {
-    if('a' <= str[i] && str[i] <= 'z') {
+  if (l <= 0)
+    return;
+  for (int i = 0; i < l; i++) {
+    if ('a' <= str[i] && str[i] <= 'z') {
       // 97 -> 65
       str[i] -= 32;
     }
-  } 
+  }
 }
 
-static void lowercase(char* str) {
+static void lowercase(char *str) {
   int l = strlen(str);
-  if(l <= 0) return;
-  for(int i = 0; i < l; i++) {
-    if('A' <= str[i] && str[i] <= 'Z') {
+  if (l <= 0)
+    return;
+  for (int i = 0; i < l; i++) {
+    if ('A' <= str[i] && str[i] <= 'Z') {
       // 65 -> 97
       str[i] += 32;
     }
-  } 
+  }
+}
+
+static char to_lower(char c) {
+  if ('A' <= c && c <= 'Z')
+    c += 32;
+
+  return c;
+}
+
+inline bool contains_ignore_case(const char *str, const char *query) {
+  if (!str || !query)
+    return false;
+
+  if (query[0] == '\0')
+    return true;
+
+  for (int i = 0; str[i] != '\0'; i++) {
+    int j = 0;
+
+    while (str[i + j] != '\0' && query[j] != '\0' &&
+           to_lower(str[i + j]) == to_lower(query[j])) {
+      j++;
+    }
+
+    if (query[j] == '\0')
+      return true;
+  }
+
+  return false;
 }
 
 } // namespace StringUtils
