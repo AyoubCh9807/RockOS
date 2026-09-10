@@ -13,6 +13,7 @@ nasm -f elf64 boot/loader.s -o loader.o
 CPPFLAGS="-Ikernel \
 -ffreestanding \
 -O2 \
+-w \
 -fno-exceptions \
 -fno-rtti \
 -fno-use-cxa-atexit \

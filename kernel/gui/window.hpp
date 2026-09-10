@@ -18,16 +18,25 @@ private:
   static constexpr int CHAR_WIDTH = 8;
   static constexpr int CHAR_HEIGHT = 8;
 
+  static constexpr int TITLE_BAR_HEIGHT = 24;
+  static constexpr int WINDOW_BUTTON_SIZE = 18;
+  static constexpr int WINDOW_BUTTON_GAP = 2;
+  static constexpr int WINDOW_BUTTON_MARGIN = 3;
+
 public:
   int x, y;
   int width, height;
   const char *title;
+
+  enum class Button { NONE, MINIMIZE, MAXIMIZE, CLOSE };
 
   /* Higher draws on top. WindowManager keeps windows sorted by this
      when compositing and when picking which window gets focus. */
   int z_order;
 
   bool focused;
+
+  bool minimized = false;
 
   Window(int x, int y, int width, int height, const char *title)
       : x(x), y(y), width(width), height(height), title(title), z_order(0),
@@ -42,6 +51,10 @@ public:
   }
 
   ~Window() { delete[] pixels; }
+
+  void minimize() { minimized = true; }
+
+  void restore() { minimized = false; }
 
   void clear(u32 color) {
     for (int i = 0; i < width * height; i++)
@@ -94,16 +107,6 @@ public:
     }
   }
 
-  void draw_border(int thickness, u32 color) {
-    // Top and bottom
-    draw_rect(0, 0, width, thickness, color);
-    draw_rect(0, height - thickness, width, thickness, color);
-
-    // Left and right
-    draw_rect(0, 0, thickness, height, color);
-    draw_rect(width - thickness, 0, thickness, height, color);
-  }
-
   constexpr bool contains(u32 mouse_x, u32 mouse_y) const {
     if (!pixels)
       return false;
@@ -111,7 +114,6 @@ public:
     return mouse_x >= x && mouse_x < x + width && mouse_y >= y &&
            mouse_y < y + height;
   }
-
 
   const u32 *get_buffer() const { return pixels; }
 };

@@ -19,7 +19,6 @@ public:
   void draw(Window &win) {
     win.clear(fill_color);
 
-    win.draw_border(2, Colors::WHITE);
     char buf[64];
     StringUtils::snprintf(buf, sizeof(buf), "Your current count: %d", count);
 

@@ -22,7 +22,6 @@ public:
   void draw(Window &win) {
     win.clear(fill_color);
 
-    win.draw_border(2, Colors::WHITE);
 
     char buf[128];
     StringUtils::snprintf(buf, sizeof(buf), "Your current roll is %d",

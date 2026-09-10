@@ -55,8 +55,6 @@ public:
   void draw(Window &win) {
     win.clear(fill_color);
 
-    win.draw_border(2, Colors::WHITE);
-
     win.draw_string(bouncing_string, x, y, string_color);
   }
 
