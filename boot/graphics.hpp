@@ -12,9 +12,6 @@ namespace Graphics {
 constexpr u32 MAX_WIDTH = 1920;
 constexpr u32 MAX_HEIGHT = 1080;
 
-static inline u32 SCREEN_WIDTH = 0;
-static inline u32 SCREEN_HEIGHT = 0;
-
 inline u32 back_buffer[MAX_WIDTH * MAX_HEIGHT];
 inline u64 back_buffer_size = 0;
 
@@ -29,9 +26,6 @@ inline bool init_back_buffer() {
 
   if (fb.width > MAX_WIDTH || fb.height > MAX_HEIGHT)
     return false;
-
-  SCREEN_WIDTH = fb.width;
-  SCREEN_HEIGHT = fb.height;
 
   back_buffer_size = static_cast<u64>(fb.width) * fb.height;
 

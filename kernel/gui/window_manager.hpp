@@ -27,6 +27,13 @@ constexpr int WINDOW_CHAR_HEIGHT = 8;
 
 static constexpr int TASKBAR_HEIGHT = 64;
 
+// Edge snapping
+static constexpr int SNAP_THRESHOLD = 24;
+
+// Double-click detection on the title bar.
+// Timer::get_ticks() runs at TIMER_HZ (100 Hz), so 40 ticks = 400 ms.
+static constexpr u32 TITLEBAR_DOUBLE_CLICK_TICKS = 40;
+
 class WindowManager {
 private:
   Window *windows[MAX_WINDOWS]{};
@@ -36,8 +43,52 @@ private:
 
   Window *focused_window = nullptr;
 
+  bool dragging = false;
+  Window *dragged_window = nullptr;
+
+  int drag_offset_x = 0;
+  int drag_offset_y = 0;
+
+  // Double-click state
+  Window *last_titlebar_click_window = nullptr;
+  u32 last_titlebar_click_tick = 0;
+
+  // Z-order management
+  // Normalizes z values to 0..count-1 so they never grow without bound.
+  void compact_z_order() {
+    for (int z = 0; z < count; z++) {
+      Window *next = nullptr;
+
+      for (int i = 0; i < count; i++) {
+        if (windows[i]->z_order != z)
+          continue;
+
+        next = windows[i];
+        break;
+      }
+
+      if (!next) {
+        int best = 0x7fffffff;
+
+        for (int i = 0; i < count; i++) {
+          if (windows[i]->z_order > z && windows[i]->z_order < best)
+            best = windows[i]->z_order;
+        }
+
+        for (int i = 0; i < count; i++) {
+          if (windows[i]->z_order == best) {
+            windows[i]->z_order = z;
+            break;
+          }
+        }
+      }
+    }
+  }
+
   void raise_to_front(Window *win) {
-    int max_z = 0;
+    compact_z_order();
+
+    int max_z = -1;
 
     for (int i = 0; i < count; i++) {
       if (windows[i]->z_order > max_z)
@@ -46,6 +97,30 @@ private:
 
     win->z_order = max_z + 1;
   }
+
+  Window *window_at(int x, int y) {
+    Window *best = nullptr;
+    int best_z = -1;
+
+    for (int i = 0; i < count; i++) {
+      Window *win = windows[i];
+
+      if (win->minimized)
+        continue;
+
+      if (!win->contains(x, y))
+        continue;
+
+      if (win->z_order > best_z) {
+        best_z = win->z_order;
+        best = win;
+      }
+    }
+
+    return best;
+  }
+
+  // Primitives
 
   void draw_rect(int x, int y, int width, int height, u32 color) {
     for (int py = y; py < y + height; py++) {
@@ -170,13 +245,34 @@ private:
     return Window::Button::NONE;
   }
 
-  void draw_chrome(Window *win) {
+  bool title_bar_contains(Window *win, int local_x, int local_y) {
     if (!win || win->minimized)
-      return;
+      return false;
 
-    draw_title_bar(win);
+    if (local_x < 0 || local_x >= win->width)
+      return false;
 
-    draw_border(win, WINDOW_BORDER_THICKNESS, Colors::WHITE);
+    if (local_y < 0 || local_y >= WINDOW_TITLE_BAR_HEIGHT)
+      return false;
+
+    return true;
+  }
+
+  bool client_area_contains(Window *win, int local_x, int local_y) {
+    if (!win || win->minimized)
+      return false;
+
+    if (local_x < WINDOW_BORDER_THICKNESS ||
+        local_x >= win->width - WINDOW_BORDER_THICKNESS)
+      return false;
+
+    const int client_top = WINDOW_TITLE_BAR_HEIGHT + WINDOW_BORDER_THICKNESS;
+
+    if (local_y < client_top ||
+        local_y >= win->height - WINDOW_BORDER_THICKNESS)
+      return false;
+
+    return true;
   }
 
   void handle_window_button(Window *win, Window::Button button) {
@@ -189,14 +285,15 @@ private:
       break;
 
     case Window::Button::MAXIMIZE:
-      if (win->is_maximized())
-        win->restore();
-      else
-        win->maximize(Multiboot2::framebuffer.width, Multiboot2::framebuffer.height, TASKBAR_HEIGHT);
-      redraw(win);
+      toggle_maximize(win);
       break;
+
     case Window::Button::MINIMIZE:
       win->minimize();
+
+      // Focus falls through to the next visible window.
+      if (focused_window == win)
+        focus(topmost_visible_window());
       break;
 
     case Window::Button::NONE:
@@ -204,14 +301,131 @@ private:
     }
   }
 
+  void toggle_maximize(Window *win) {
+    if (win->is_maximized())
+      win->restore();
+    else
+      win->maximize(Multiboot2::framebuffer.width,
+                    Multiboot2::framebuffer.height, TASKBAR_HEIGHT);
+
+    redraw(win);
+  }
+
+  Window *topmost_visible_window() {
+    Window *best = nullptr;
+    int best_z = -1;
+
+    for (int i = 0; i < count; i++) {
+      if (windows[i]->minimized)
+        continue;
+
+      if (windows[i]->z_order > best_z) {
+        best_z = windows[i]->z_order;
+        best = windows[i];
+      }
+    }
+
+    return best;
+  }
+
+  void clamp_window_position(Window *win) {
+    if (!win)
+      return;
+
+    const int screen_width = Multiboot2::framebuffer.width;
+    const int screen_height = Multiboot2::framebuffer.height;
+
+    const int max_x = screen_width - win->width;
+    const int max_y = screen_height - TASKBAR_HEIGHT - win->height;
+
+    if (win->x < 0)
+      win->x = 0;
+
+    if (win->y < 0)
+      win->y = 0;
+
+    if (win->x > max_x)
+      win->x = max_x;
+
+    if (win->y > max_y)
+      win->y = max_y;
+  }
+
+  // Magnetic edge snapping while dragging.
+  void apply_snap(Window *win) {
+    if (!win)
+      return;
+
+    const int screen_width = Multiboot2::framebuffer.width;
+    const int screen_height = Multiboot2::framebuffer.height;
+    const int max_y = screen_height - TASKBAR_HEIGHT - win->height;
+
+    if (win->x < SNAP_THRESHOLD)
+      win->x = 0;
+    else if (screen_width - (win->x + win->width) < SNAP_THRESHOLD)
+      win->x = screen_width - win->width;
+
+    if (win->y < SNAP_THRESHOLD)
+      win->y = 0;
+    else if (max_y - win->y < SNAP_THRESHOLD)
+      win->y = max_y;
+  }
+
+  void remove_oldest_window() {
+    if (count == 0)
+      return;
+
+    destroy_window(windows[0]);
+  }
+
+  void draw_focus_border(Window *win) {
+    if (!win || win->minimized)
+      return;
+
+    constexpr int BORDER = 3;
+    constexpr u32 COLOR = Colors::RED;
+
+    for (int x = 0; x < win->width; x++) {
+      for (int i = 0; i < BORDER; i++)
+        Graphics::put_pixel(win->x + x, win->y + i, COLOR);
+    }
+
+    for (int x = 0; x < win->width; x++) {
+      for (int i = 0; i < BORDER; i++)
+        Graphics::put_pixel(win->x + x, win->y + win->height - 1 - i, COLOR);
+    }
+
+    for (int y = 0; y < win->height; y++) {
+      for (int i = 0; i < BORDER; i++)
+        Graphics::put_pixel(win->x + i, win->y + y, COLOR);
+    }
+
+    for (int y = 0; y < win->height; y++) {
+      for (int i = 0; i < BORDER; i++)
+        Graphics::put_pixel(win->x + win->width - 1 - i, win->y + y, COLOR);
+    }
+  }
+
 public:
   WindowManager() : last_refresh_tick(Timer::get_ticks()) {}
 
-  Window *create_window(IWindowApp *app, int x, int y, int width, int height) {
+  Window *create_window(IWindowApp *app, int client_x, int client_y,
+                        int client_width, int client_height) {
+    // Calculate total window size including borders and title bar
+    const int total_width = client_width + (2 * WINDOW_BORDER_THICKNESS);
+    const int total_height =
+        client_height + WINDOW_TITLE_BAR_HEIGHT + (2 * WINDOW_BORDER_THICKNESS);
+
+    // Adjust starting position so the *client* area starts where requested
+    const int win_x = client_x - WINDOW_BORDER_THICKNESS;
+    const int win_y =
+        client_y - WINDOW_TITLE_BAR_HEIGHT - WINDOW_BORDER_THICKNESS;
 
     while (true) {
-      if (heap.get_used() + HEAP_SAFETY_MARGIN < heap.get_size()) {
-        Window *win = new Window(x, y, width, height, app->name());
+      if (count < MAX_WINDOWS &&
+          heap.get_used() + HEAP_SAFETY_MARGIN < heap.get_size()) {
+        Window *win =
+            new Window(win_x, win_y, total_width, total_height, app->name());
 
         if (win) {
           windows[count] = win;
@@ -257,6 +471,14 @@ public:
       apps[i]->on_destroy(*win);
       delete win;
 
+      if (dragged_window == win) {
+        dragging = false;
+        dragged_window = nullptr;
+      }
+
+      if (last_titlebar_click_window == win)
+        last_titlebar_click_window = nullptr;
+
       for (int j = i; j < count - 1; j++) {
         windows[j] = windows[j + 1];
         apps[j] = apps[j + 1];
@@ -278,16 +500,8 @@ public:
           }
         }
 
-        if (!previous) {
-          for (int j = 0; j < count; j++) {
-            if (windows[j]->minimized)
-              continue;
-
-            if (!previous || windows[j]->z_order > previous->z_order) {
-              previous = windows[j];
-            }
-          }
-        }
+        if (!previous)
+          previous = topmost_visible_window();
 
         focus(previous);
       }
@@ -324,130 +538,6 @@ public:
       app->on_draw(*win);
   }
 
-  void render() {
-    Window *ordered[MAX_WINDOWS];
-
-    for (int i = 0; i < count; i++)
-      ordered[i] = windows[i];
-
-    for (int i = 1; i < count; i++) {
-      Window *key = ordered[i];
-      int j = i - 1;
-
-      while (j >= 0 && ordered[j]->z_order > key->z_order) {
-        ordered[j + 1] = ordered[j];
-        j--;
-      }
-
-      ordered[j + 1] = key;
-    }
-
-    for (int i = 0; i < count; i++) {
-      Window *win = ordered[i];
-
-      if (win->minimized)
-        continue;
-
-      for (int ly = 0; ly < win->height; ly++) {
-        for (int lx = 0; lx < win->width; lx++) {
-          const u32 color = win->get_pixel(lx, ly);
-
-          Graphics::put_pixel(win->x + lx, win->y + ly, color);
-        }
-      }
-
-      draw_title_bar(win);
-
-      draw_border(win, WINDOW_BORDER_THICKNESS, Colors::WHITE);
-    }
-
-    if (focused_window && !focused_window->minimized)
-      draw_focus_border(focused_window);
-  }
-
-  void destroy_all_windows() {
-    while (count > 0)
-      destroy_window(windows[0]);
-  }
-
-  void route_key(const KeyEvent &ev) {
-    if (!focused_window)
-      return;
-
-    if (ev.scancode == (int)'x') {
-      destroy_window(focused_window);
-      return;
-    }
-
-    if (ev.scancode == 'k' && Keyboard::is_ctrl_down()) {
-      destroy_all_windows();
-      return;
-    }
-
-    IWindowApp *app = app_for(focused_window);
-
-    if (!app)
-      return;
-
-    app->on_key(*focused_window, ev);
-    redraw(focused_window);
-  }
-
-  void route_mouse_event(const MouseEvent &ev) {
-    const bool is_left_click = ev.button_type == MouseButton::LEFT_BUTTON &&
-                               ev.event_type == MouseEventType::PRESS;
-
-    if (is_left_click) {
-      Window *clicked_window = nullptr;
-
-      int highest_z = -1;
-
-      for (int i = 0; i < count; i++) {
-        Window *win = windows[i];
-
-        if (win->minimized)
-          continue;
-
-        if (!win->contains(Mouse::get_x(), Mouse::get_y()))
-          continue;
-
-        if (win->z_order > highest_z) {
-          highest_z = win->z_order;
-          clicked_window = win;
-        }
-      }
-
-      if (clicked_window) {
-        focus(clicked_window);
-        raise_to_front(clicked_window);
-        redraw_all();
-
-        const int local_x = Mouse::get_x() - clicked_window->x;
-
-        const int local_y = Mouse::get_y() - clicked_window->y;
-
-        const Window::Button button =
-            title_bar_button(clicked_window, local_x, local_y);
-
-        if (button != Window::Button::NONE) {
-          handle_window_button(clicked_window, button);
-          return;
-        }
-      }
-    }
-
-    if (!focused_window || focused_window->minimized)
-      return;
-
-    IWindowApp *app = app_for(focused_window);
-
-    if (!app)
-      return;
-
-    app->on_mouse_event(*focused_window, ev);
-    redraw(focused_window);
-  }
-
   void redraw_all() {
     for (int i = 0; i < count; i++) {
       if (windows[i]->minimized)
@@ -466,50 +556,198 @@ public:
     }
   }
 
-  void remove_oldest_window() {
-    if (count == 0)
-      return;
-
-    destroy_window(windows[0]);
+  void destroy_all_windows() {
+    while (count > 0)
+      destroy_window(windows[0]);
   }
 
-  void draw_focus_border(Window *win) {
-    if (!win || win->minimized)
-      return;
+  void render() {
+    Window *ordered[MAX_WINDOWS];
 
-    constexpr int BORDER = 3;
-    constexpr u32 COLOR = Colors::RED;
+    for (int i = 0; i < count; i++)
+      ordered[i] = windows[i];
 
-    for (int x = 0; x < win->width; x++) {
-      for (int i = 0; i < BORDER; i++)
-        Graphics::put_pixel(win->x + x, win->y + i, COLOR);
+    // Insertion sort by z_order, back to front.
+    for (int i = 1; i < count; i++) {
+      Window *key = ordered[i];
+      int j = i - 1;
+
+      while (j >= 0 && ordered[j]->z_order > key->z_order) {
+        ordered[j + 1] = ordered[j];
+        j--;
+      }
+
+      ordered[j + 1] = key;
     }
 
-    for (int x = 0; x < win->width; x++) {
-      for (int i = 0; i < BORDER; i++)
-        Graphics::put_pixel(win->x + x, win->y + win->height - 1 - i, COLOR);
-    }
-
-    for (int y = 0; y < win->height; y++) {
-      for (int i = 0; i < BORDER; i++)
-        Graphics::put_pixel(win->x + i, win->y + y, COLOR);
-    }
-
-    for (int y = 0; y < win->height; y++) {
-      for (int i = 0; i < BORDER; i++)
-        Graphics::put_pixel(win->x + win->width - 1 - i, win->y + y, COLOR);
-    }
-  }
-
-  constexpr bool any_window_contains(int x, int y) {
     for (int i = 0; i < count; i++) {
-      if (windows[i]->minimized)
+      Window *win = ordered[i];
+
+      if (win->minimized)
         continue;
 
-      if (windows[i]->contains(x, y))
-        return true;
+      const int client_offset_x = WINDOW_BORDER_THICKNESS;
+      const int client_offset_y =
+          WINDOW_TITLE_BAR_HEIGHT + WINDOW_BORDER_THICKNESS;
+
+      for (int ly = 0;
+           ly < win->height - client_offset_y - WINDOW_BORDER_THICKNESS; ly++) {
+        for (int lx = 0; lx < win->width - (2 * WINDOW_BORDER_THICKNESS);
+             lx++) {
+          const u32 color = win->get_pixel(lx, ly);
+          Graphics::put_pixel(win->x + client_offset_x + lx,
+                              win->y + client_offset_y + ly, color);
+        }
+      }
+
+      draw_title_bar(win);
+      draw_border(win, WINDOW_BORDER_THICKNESS, Colors::WHITE);
     }
 
-    return false;
+    if (focused_window && !focused_window->minimized)
+      draw_focus_border(focused_window);
   }
+
+  void route_key(const KeyEvent &ev) {
+    if (!focused_window)
+      return;
+
+    if (ev.scancode == (int)'x') {
+      destroy_window(focused_window);
+      return;
+    }
+
+    if (ev.scancode == 'k' && Keyboard::is_ctrl_down()) {
+      destroy_all_windows();
+      return;
+    }
+
+    // Ctrl+ArrowUp / Ctrl+ArrowDown to maximize/restore.
+    if (Keyboard::is_ctrl_down() &&
+        (ev.keytype == KeyType::ArrowUp || ev.keytype == KeyType::ArrowDown)) {
+      toggle_maximize(focused_window);
+      return;
+    }
+
+    IWindowApp *app = app_for(focused_window);
+
+    if (!app)
+      return;
+
+    app->on_key(*focused_window, ev);
+    redraw(focused_window);
+  }
+
+  void route_mouse_event(const MouseEvent &ev) {
+    const int mouse_x = Mouse::get_x();
+    const int mouse_y = Mouse::get_y();
+
+    const bool is_left_press = ev.button_type == MouseButton::LEFT_BUTTON &&
+                               ev.event_type == MouseEventType::PRESS;
+
+    const bool is_left_release = ev.button_type == MouseButton::LEFT_BUTTON &&
+                                 ev.event_type == MouseEventType::RELEASE;
+
+    const bool is_move = ev.event_type == MouseEventType::MOVE;
+
+    if (is_left_press) {
+      Window *clicked_window = window_at(mouse_x, mouse_y);
+
+      if (clicked_window) {
+        if (focused_window != clicked_window) {
+          focus(clicked_window);
+          raise_to_front(clicked_window);
+          redraw_all();
+        }
+
+        const int local_x = mouse_x - clicked_window->x;
+        const int local_y = mouse_y - clicked_window->y;
+
+        const Window::Button button =
+            title_bar_button(clicked_window, local_x, local_y);
+
+        if (button != Window::Button::NONE) {
+          handle_window_button(clicked_window, button);
+          return;
+        }
+
+        if (title_bar_contains(clicked_window, local_x, local_y)) {
+          // Double-click on the title bar toggles maximize.
+          // Timer ticks at TIMER_HZ (100 Hz) so: 40 ticks = 400 ms.
+          const u32 now = (u32)Timer::get_ticks();
+
+          if (last_titlebar_click_window == clicked_window &&
+              now - last_titlebar_click_tick <= TITLEBAR_DOUBLE_CLICK_TICKS) {
+            last_titlebar_click_window = nullptr;
+            toggle_maximize(clicked_window);
+            return;
+          }
+
+          last_titlebar_click_window = clicked_window;
+          last_titlebar_click_tick = now;
+
+          if (!clicked_window->is_maximized()) {
+            dragging = true;
+            dragged_window = clicked_window;
+
+            drag_offset_x = local_x;
+            drag_offset_y = local_y;
+          }
+
+          return;
+        }
+
+        // Clicks on the border / chrome are swallowed (no app event).
+        if (!client_area_contains(clicked_window, local_x, local_y))
+          return;
+
+        IWindowApp *app = app_for(clicked_window);
+
+        if (app) {
+          app->on_mouse_event(*clicked_window, ev);
+          redraw(clicked_window);
+        }
+
+        return;
+      }
+
+      // Clicked desktop: drop focus.
+      focus(nullptr);
+      return;
+    }
+
+    if (is_left_release) {
+      dragging = false;
+      dragged_window = nullptr;
+    }
+
+    if (dragging && dragged_window && is_move) {
+      Window *win = dragged_window;
+
+      win->x = mouse_x - drag_offset_x;
+      win->y = mouse_y - drag_offset_y;
+
+      clamp_window_position(win);
+      apply_snap(win);
+
+      redraw_all();
+      return;
+    }
+
+    // Deliver move/release to the window under the cursor.
+    Window *hovered = window_at(mouse_x, mouse_y);
+
+    if (!hovered)
+      return;
+
+    IWindowApp *app = app_for(hovered);
+
+    if (!app)
+      return;
+
+    app->on_mouse_event(*hovered, ev);
+    redraw(hovered);
+  }
+
+  bool any_window_contains(int x, int y) { return window_at(x, y) != nullptr; }
 };

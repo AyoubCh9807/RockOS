@@ -123,7 +123,10 @@ public:
       } else {
         handle_mouse_event(mouse_ev);
       }
-    } else {
+
+    } else if (mouse_ev.event_type == MouseEventType::MOVE ||
+               mouse_ev.event_type == MouseEventType::RELEASE) {
+      window_manager.route_mouse_event(mouse_ev);
     }
 
     window_manager.update();

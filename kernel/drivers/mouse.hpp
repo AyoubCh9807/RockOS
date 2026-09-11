@@ -37,10 +37,11 @@ private:
 
   inline static u8 mouse_flags = 0;
   inline static bool was_down = false;
+  inline static u8 was_down_flags = 0;
 
   static constexpr auto MOUSE_RING_BUFFER_SIZE = 256;
 
-  // Circular buffer implementation (must be static for header-only classes)
+  // Circular buffer implementation for header-only 
   inline static MouseEvent buffer[MOUSE_RING_BUFFER_SIZE];
   inline static int head = 0;
   inline static int tail = 0;
@@ -181,28 +182,38 @@ public:
                           ((new_x * new_y + 1) % (new_x + new_y + 1) + 1) / 10);
     }
 
-    // Edge-triggered: only emit PRESS on the down-transition and RELEASE
+    // only emit PRESS on the down-transition and RELEASE
     // on the up-transition, instead of re-emitting PRESS on every packet
     // while a button is held (which was flooding the ring buffer and
     // causing repeated route_mouse_event calls per physical click).
     bool now_down = is_any_button_down();
 
     MouseEventType type;
+    MouseButton button;
 
     if (now_down && !was_down) {
       type = MouseEventType::PRESS;
+      button = get_event_mouse_button(
+          flags); // buttons are down now
     } else if (!now_down && was_down) {
       type = MouseEventType::RELEASE;
+      button = get_event_mouse_button(
+          was_down_flags); // use the flags from BEFORE release
     } else if (moved) {
       type = MouseEventType::MOVE;
+      button = MouseButton::NONE;
     } else {
       type = MouseEventType::NONE;
+      button = MouseButton::NONE;
     }
+
+    if (now_down)
+      was_down_flags = flags;
 
     was_down = now_down;
 
     if (type != MouseEventType::NONE)
-      push(MouseEvent(get_event_mouse_button(flags), type));
+      push(MouseEvent(button, type));
   }
 
   static int get_x() { return x; }
