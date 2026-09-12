@@ -674,10 +674,11 @@ public:
         if (title_bar_contains(clicked_window, local_x, local_y)) {
           // Double-click on the title bar toggles maximize.
           // Timer ticks at TIMER_HZ (100 Hz) so: 40 ticks = 400 ms.
-          const u32 now = (u32)Timer::get_ticks();
+          const int now = ev.tick; // this was originally: (u32)Timer::get_ticks()
 
           if (last_titlebar_click_window == clicked_window &&
-              now - last_titlebar_click_tick <= TITLEBAR_DOUBLE_CLICK_TICKS) {
+              now - last_titlebar_click_tick <=
+                  (int)TITLEBAR_DOUBLE_CLICK_TICKS) {
             last_titlebar_click_window = nullptr;
             toggle_maximize(clicked_window);
             return;
@@ -738,6 +739,16 @@ public:
     Window *hovered = window_at(mouse_x, mouse_y);
 
     if (!hovered)
+      return;
+
+    const int hovered_local_x = mouse_x - hovered->x;
+    const int hovered_local_y = mouse_y - hovered->y;
+
+    // Mirror the PRESS path: chrome (title bar / border) never reaches
+    // the app. Without this, ending a title-bar drag with a RELEASE
+    // (or hovering the title bar during a MOVE) gets forwarded to the
+    // app as if it happened inside the client area.
+    if (!client_area_contains(hovered, hovered_local_x, hovered_local_y))
       return;
 
     IWindowApp *app = app_for(hovered);

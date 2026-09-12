@@ -13,6 +13,7 @@ enum class MouseEventType { MOVE, PRESS, RELEASE, NONE };
 struct MouseEvent {
   MouseButton button_type;   // eg LEFT_CLICK / RIGHT_CLICK / MIDDLE_CLICK
   MouseEventType event_type; // eg MOVE / PRESS / RELEASE
+  int tick = 0;
 };
 
 class Mouse {
@@ -41,7 +42,7 @@ private:
 
   static constexpr auto MOUSE_RING_BUFFER_SIZE = 256;
 
-  // Circular buffer implementation for header-only 
+  // Circular buffer implementation for header-only
   inline static MouseEvent buffer[MOUSE_RING_BUFFER_SIZE];
   inline static int head = 0;
   inline static int tail = 0;
@@ -193,8 +194,7 @@ public:
 
     if (now_down && !was_down) {
       type = MouseEventType::PRESS;
-      button = get_event_mouse_button(
-          flags); // buttons are down now
+      button = get_event_mouse_button(flags); // buttons are down now
     } else if (!now_down && was_down) {
       type = MouseEventType::RELEASE;
       button = get_event_mouse_button(
@@ -213,7 +213,7 @@ public:
     was_down = now_down;
 
     if (type != MouseEventType::NONE)
-      push(MouseEvent(button, type));
+      push(MouseEvent{button, type, Timer::get_ticks()});
   }
 
   static int get_x() { return x; }
@@ -255,6 +255,19 @@ public:
   }
 
   static constexpr void push(MouseEvent ev) {
+
+    // NOTE:: This is Coalescing consecutive MOVE events: during a fast drag, movement
+    // packets can arrive far faster than the main loop drains the
+    // queue. Only the most recent position matters, so overwrite the
+    // last queued MOVE instead of piling up stale ones behind it.
+    if (ev.event_type == MouseEventType::MOVE && head != tail) {
+      int last = (head - 1 + MOUSE_RING_BUFFER_SIZE) % MOUSE_RING_BUFFER_SIZE;
+      if (buffer[last].event_type == MouseEventType::MOVE) {
+        buffer[last] = ev;
+        return;
+      }
+    }
+
     int next_head = (head + 1) % MOUSE_RING_BUFFER_SIZE;
     if (next_head != tail) {
       buffer[head] = ev;

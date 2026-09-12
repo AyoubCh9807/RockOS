@@ -10,6 +10,8 @@
 #include "desktop_icon.hpp"
 #include "wallpaper.hpp"
 
+#include "../data/characters/damian.hpp"
+
 #include "../drivers/mouse.hpp"
 
 static constexpr auto MAX_DESKTOP_APPS = 256;
@@ -42,6 +44,8 @@ private:
   inline static auto SCREEN_WIDTH = Multiboot2::framebuffer.width;
 
   inline static auto SCREEN_HEIGHT = Multiboot2::framebuffer.height;
+
+  inline static u32 *damian_pixels = nullptr;
 
   void draw_background() { Graphics::clear(background_color); }
 
@@ -80,6 +84,8 @@ public:
 
     if (dialog)
       dialog_manager.show(dialog);
+
+    damian_pixels = DamianSprite::decode(); // ~1.1MB heap allocation, once
   }
 
   void update() {
@@ -139,6 +145,8 @@ public:
 
     update_icons();
     draw_icons();
+
+    // draw_damian();
 
     window_manager.render();
 
@@ -425,5 +433,21 @@ public:
 
       Kernel::halt();
     }
+  }
+
+  // in draw_damian(), use the decoded buffer instead of DamianSprite::PIXELS
+  // directly
+  void draw_damian() {
+    if (!damian_pixels)
+      return;
+
+    const u32 screen_w = Multiboot2::framebuffer.width;
+    const u32 screen_h = Multiboot2::framebuffer.height;
+
+    const int x = screen_w - DamianSprite::WIDTH - 16;
+    const int y = screen_h - TASKBAR_HEIGHT - DamianSprite::HEIGHT;
+
+    Graphics::draw_image(damian_pixels, x, y, DamianSprite::WIDTH,
+                         DamianSprite::HEIGHT);
   }
 };

@@ -345,32 +345,54 @@ public:
 
     return result * sign;
   }
-};
 
-namespace StringUtils {
-  inline String format(const char *fmt, ...) {
-    if (!fmt)
+  String substr(size_t index, size_t count = (size_t)-1) const {
+    if (!data_ || index >= size_)
       return String("");
 
-    char stack_buf[256];
-    va_list args;
-    va_start(args, fmt);
-    int len = vsnprintf(stack_buf, sizeof(stack_buf), fmt, args);
-    va_end(args);
-
-    if (len > 0 && (size_t)len < sizeof(stack_buf))
-      return String(stack_buf);
+    // Determine actual length to copy
+    size_t available = size_ - index;
+    size_t len = (count < available) ? count : available;
 
     String result;
     result.ensure_capacity(len + 1);
     if (!result.data_)
       return String("");
 
-    va_start(args, fmt);
-    vsnprintf(result.data_, len + 1, fmt, args);
-    va_end(args);
-
+    for (size_t i = 0; i < len; i++) {
+      result.data_[i] = data_[index + i];
+    }
+    result.data_[len] = '\0';
     result.size_ = len;
+
     return result;
   }
+};
+
+namespace StringUtils {
+inline String format(const char *fmt, ...) {
+  if (!fmt)
+    return String("");
+
+  char stack_buf[256];
+  va_list args;
+  va_start(args, fmt);
+  int len = vsnprintf(stack_buf, sizeof(stack_buf), fmt, args);
+  va_end(args);
+
+  if (len > 0 && (size_t)len < sizeof(stack_buf))
+    return String(stack_buf);
+
+  String result;
+  result.ensure_capacity(len + 1);
+  if (!result.data_)
+    return String("");
+
+  va_start(args, fmt);
+  vsnprintf(result.data_, len + 1, fmt, args);
+  va_end(args);
+
+  result.size_ = len;
+  return result;
 }
+} // namespace StringUtils

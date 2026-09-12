@@ -1,4 +1,33 @@
 #pragma once
+
+#ifdef HOST_BUILD
+
+// ---------------------------------------------------------------------
+// Host-only path: the kernel's real heap is a fixed-address allocator
+// that assumes it owns a 32MB region of physical memory sitting right
+// after the kernel image (__kernel_end onward). That doesn't mean
+// anything in a normal userspace process, so on the host we just hand
+// kmalloc/kfree off to the real system allocator instead. vector.hpp and
+// string.hpp only ever call kmalloc()/kfree()/get_used(), so this is a
+// drop-in swap for them.
+// ---------------------------------------------------------------------
+#include "../shared/types.hpp"
+#include <cstdlib>
+#include <cstring> // in case vector.hpp/string.hpp use memset/memcpy without including this themselves
+
+inline void *kmalloc(size_t size) { return std::malloc(size); }
+
+inline void kfree(void *ptr) { std::free(ptr); }
+
+inline const size_t get_used() { return 0; } // not tracked on host
+
+static constexpr u32 MB = 1024 * 1024;
+
+#else
+
+// ---------------------------------------------------------------------
+// Kernel path: unchanged from your original file.
+// ---------------------------------------------------------------------
 #include "../events/allocation_train.hpp"
 #include "../shared/types.hpp"
 
@@ -157,3 +186,5 @@ inline void kfree(void *ptr) { heap.kfree(ptr); }
 inline const size_t get_used() { return heap.get_used(); }
 
 static constexpr u32 MB = 1024 * 1024;
+
+#endif

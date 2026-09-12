@@ -43,3 +43,7 @@ void operator delete[](void *ptr, size_t) noexcept {
 void *operator new(size_t size) { return kmalloc(size); }
 
 void *operator new[](size_t size) { return kmalloc(size); }
+
+void *operator new(size_t, void *address) noexcept { return address; }
+
+void operator delete(void *, void *) noexcept {}
