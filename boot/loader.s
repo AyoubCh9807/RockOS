@@ -152,7 +152,28 @@ long_mode:
     mov ss, ax
 
     ; Switch to our 64-bit stack.
+    ; stack_space is 16-byte aligned (see .bss) and KERNEL_STACK_SIZE
+    ; is a multiple of 16, so rsp is 16-byte aligned here, as the
+    ; System V AMD64 ABI requires at a call site.
     mov rsp, stack_space + KERNEL_STACK_SIZE
+
+    ; Enable SSE before any C++ code runs, since the compiler is free
+    ; to emit SSE/XMM instructions (float/double math, struct copies,
+    ; vectorized code) anywhere, including in kernel_main's prologue.
+    ;
+    ; CR0.EM (bit 2) = 0  -> disable "emulate FPU", i.e. allow real
+    ;                        x87/SSE instructions instead of faulting.
+    ; CR0.MP (bit 1) = 1  -> monitor co-processor, required alongside EM=0.
+    mov rax, cr0
+    and ax, 0xFFFB
+    or ax, 0x2
+    mov cr0, rax
+
+    ; CR4.OSFXSR    (bit 9)  -> OS supports FXSAVE/FXRSTOR, unlocks SSE.
+    ; CR4.OSXMMEXCPT (bit 10) -> OS handles unmasked SIMD FP exceptions (#XM).
+    mov rax, cr4
+    or rax, (3 << 9)
+    mov cr4, rax
 
     ; Pass the Multiboot2 information address to kernel_main.
     ;
@@ -178,6 +199,17 @@ long_mode:
 ; These functions are referenced by the C++ IDT code (kernel/core/idt.hpp).
 ; Interrupts must remain disabled until the IDT and PIC
 ; have been configured by the kernel.
+;
+; Every stub below saves/restores the SSE/x87 state with FXSAVE/FXRSTOR
+; in addition to the GPRs. This is required once SSE is enabled: if an
+; interrupt fires while kernel code (e.g. AI model inference) has live
+; values in xmm0-xmm15, and the handler itself - or code the compiler
+; generates for it - touches SSE state, it will silently clobber those
+; registers without this save/restore.
+;
+; FXSAVE/FXRSTOR require a 512-byte buffer that is 16-byte aligned.
+; We reserve the space first, before pushing GPRs, so the alignment
+; math stays simple.
 
 global default_stub
 global timer_stub
@@ -212,8 +244,28 @@ timer_stub:
     push r14
     push r15
 
+    ; rdi must be captured HERE, before the fxsave buffer is carved out,
+    ; so it still points at the top of the 15-GPR block this handler's
+    ; C++ side expects.
     mov rdi, rsp
+
+    ; Protect the interrupted task's SSE/x87 state strictly around the
+    ; C call. This buffer must NOT wrap the CR3/RSP switch below:
+    ; next_resume_rsp is computed elsewhere assuming the stack frame
+    ; ends exactly after the 15 GPR pushes above. Wrapping fxsave/fxrstor
+    ; around the whole stub (as an earlier version of this file did)
+    ; shifts that frame by 512 bytes relative to what the resume logic
+    ; expects, so the pops below read the wrong memory and iretq faults
+    ; on a garbage return frame. Bracketing tightly around just the call
+    ; keeps rsp exactly where it was before this block once we're done,
+    ; leaving the switch logic untouched.
+    sub rsp, 512
+    fxsave [rsp]
+
     call c_timer_handler
+
+    fxrstor [rsp]
+    add rsp, 512
 
     mov al, 0x20
     out 0x20, al
@@ -261,8 +313,14 @@ keyboard_stub:
     push r14
     push r15
 
+    sub rsp, 512
+    fxsave [rsp]
+
     ; c++ reads the keyboard scancode from port 0x60.
     call c_keyboard_handler
+
+    fxrstor [rsp]
+    add rsp, 512
 
     ; tell the master pic that irq1 has been handled.
     mov al, 0x20
@@ -305,8 +363,14 @@ mouse_stub:
     push r14
     push r15
 
+    sub rsp, 512
+    fxsave [rsp]
+
     ; c++ reads the mouse event from port 0x60.
     call c_mouse_handler
+
+    fxrstor [rsp]
+    add rsp, 512
 
     ; tell both the master and the slave pics that irq12 has been handled.
     mov al, 0x20
@@ -333,10 +397,11 @@ mouse_stub:
 
 
 ; Page fault (#PF, vector 14). The CPU pushes a 32-bit (zero-extended
-; to 64-bit) error code before this fires. We save all GPRs, pass a
-; pointer to them (plus the error code sitting right above) to C++
-; for logging, then halt. This does NOT attempt to recover/resume -
-; it's a debugging aid until real fault handling exists.
+; to 64-bit) error code before this fires. We save all GPRs and the
+; SSE/x87 state, pass a pointer to the GPR block (plus the error code
+; sitting right above it) to C++ for logging, then halt. This does
+; NOT attempt to recover/resume - it's a debugging aid until real
+; fault handling exists.
 pagefault_stub:
 
     push rax
@@ -355,10 +420,15 @@ pagefault_stub:
     push r14
     push r15
 
+    ; Capture the GPR-block pointer BEFORE carving out the fxsave buffer,
+    ; so it points where c_pagefault_handler expects (error code and
+    ; fault RIP sitting exactly 15 and 16 u64 slots above it).
     mov rdi, rsp
-        ; I REMOVED THIS FOR TESTING PURPOSES
 
-    ; call c_pagefault_handler
+    sub rsp, 512
+    fxsave [rsp]
+
+    call c_pagefault_handler
 
 pagefault_hang:
     cli
@@ -386,9 +456,15 @@ gpfault_stub:
     push r14
     push r15
 
+    ; Same reasoning as pagefault_stub: capture rdi before the fxsave
+    ; buffer shifts rsp, so c_gpfault_handler's saved_regs[15] (error
+    ; code) lands where it's supposed to.
     mov rdi, rsp
-    ; I REMOVED THIS FOR TESTING PURPOSES
-    ; call c_gpfault_handler
+
+    sub rsp, 512
+    fxsave [rsp]
+
+    call c_gpfault_handler
 
 gpfault_hang:
     cli
@@ -480,7 +556,7 @@ multiboot_info:
 
 align 16
 
-KERNEL_STACK_SIZE equ 16384
+KERNEL_STACK_SIZE equ 65536
 
 stack_space:
 

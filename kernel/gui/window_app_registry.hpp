@@ -7,6 +7,7 @@
 #include "apps/dice_app.hpp"
 #include "apps/dvd_app.hpp"
 #include "apps/matrix_app.hpp"
+#include "apps/rock_ai.hpp"
 #include "apps/tyrant_app.hpp"
 #include "apps/about_app.hpp"
 #include "apps/settings_app.hpp"
@@ -27,11 +28,12 @@ private:
   DvdApp dvd;
   AboutApp about;
   SettingsApp settings;
+  RockAIApp rock_ai;
 
   int count = 0;
 
 public:
-  WindowAppRegistry() : counter(), tyrant(), clock(), dice(), matrix(), dvd(), about() {}
+  WindowAppRegistry() : counter(), tyrant(), clock(), dice(), matrix(), dvd(), about(), settings(), rock_ai() {}
 
   void register_app(IWindowApp *app) {
     if (count >= MAX_WINDOW_APPS)
@@ -49,6 +51,7 @@ public:
     register_app(&dvd);
     register_app(&about);
     register_app(&settings);
+    register_app(&rock_ai);
   }
 
 

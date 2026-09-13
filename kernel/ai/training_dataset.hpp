@@ -4,10 +4,13 @@
 #include "../containers/vector.hpp"
 
 #include "intent_classifier.hpp"
+#include "vocabulary.hpp"
+#include "tokenizer.hpp"
 
 template <typename LabelType> struct TrainingExample {
   String text;
   LabelType label;
+
 
   TrainingExample() = default;
 
@@ -18,9 +21,20 @@ template <typename LabelType> class TrainingDataset {
 private:
   Vector<TrainingExample<LabelType>> examples;
 
+  Vocabulary& vocab;
+  Tokenizer& tokenizer;
+
+
 public:
+
+  TrainingDataset(Tokenizer& tokenizer, Vocabulary& vocab) : vocab(vocab), tokenizer(tokenizer) {}
+
   void add(String text, LabelType label) {
     examples.push_back(TrainingExample<LabelType>(text, label));
+    Vector<Token>& tokens = tokenizer.tokenize(text);
+    for(auto& t : tokens) {
+      vocab.add(t.content);
+    }
   }
 
   int size() const { return examples.size(); }

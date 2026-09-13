@@ -167,6 +167,17 @@ public:
     feed_forward_norm.apply_gradients(learning_rate);
   }
 
+  // Aggregates gradient pointers from all four submodules so Trainer can
+  // fold this whole layer into one combined global-norm clip across the
+  // entire network (embedding + every layer + classifier), computed
+  // once right before apply_gradients() runs anywhere.
+  void collect_gradients(Vector<Vector<float> *> &out) {
+    attention.collect_gradients(out);
+    attention_norm.collect_gradients(out);
+    feed_forward.collect_gradients(out);
+    feed_forward_norm.collect_gradients(out);
+  }
+
   int parameter_count() const {
     return attention.parameter_count() + attention_norm.parameter_count() +
            feed_forward.parameter_count() + feed_forward_norm.parameter_count();

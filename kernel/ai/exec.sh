@@ -1,20 +1,30 @@
 #!/usr/bin/env bash
-#
-# Builds both the trainer and evaluator host binaries.
-# Lives in my_os/kernel/ai/ - run it from right there:
-#
-#   ./train.sh
-#
-set -e  # stop immediately if any command fails
 
-cd "$(dirname "$0")"  # make sure we're always running from kernel/ai/
+set -e
 
-echo "== Compiling main.cpp (Trainer) =="
-g++ -std=c++20 -O0 -g -fsanitize=address -Wall -DHOST_BUILD main.cpp -o train
+cd "$(dirname "$0")"
 
-echo "== Compiling evaluate.cpp (Evaluator) =="
-g++ -std=c++20 -O0 -g -fsanitize=address -Wall -DHOST_BUILD evaluate.cpp -o evaluate
+echo "== Compiling optimized trainer =="
+g++ -std=c++20 -O3 -march=native -flto -Wall \
+    -DHOST_BUILD \
+    main.cpp \
+    -o train
+
+echo "== Compiling debug evaluator =="
+g++ -std=c++20 -O0 -g -fsanitize=address -Wall \
+    -DHOST_BUILD \
+    evaluate.cpp \
+    -o evaluate
+
+echo "== Compiling optimized model to header =="
+g++ -std=c++20 -O3 -march=native -flto -Wall \
+    -DHOST_BUILD \
+    model_to_header.cpp \
+    -o model_to_header
 
 echo "== Build complete! =="
-echo "To train the model, run:     ./train"
-echo "To evaluate the model, run:  ./evaluate"
+echo "Train:    ./train"
+echo "Evaluate: ./evaluate"
+echo "Save weights to model: ./model_to_header rock_ai.model rock_ai_weights.hpp [array_name]"
+
+

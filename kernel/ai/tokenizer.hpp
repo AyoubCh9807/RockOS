@@ -22,6 +22,66 @@ enum class AIIntent {
   HELP
 };
 
+/* 
+ *enum class AIIntent {
+  UNKNOWN,
+
+  // Conversation
+  GREETING,
+  GOODBYE,
+  THANKS,
+  HELP,
+
+  // Launching / controlling things
+  OPEN_APP,
+  CLOSE_APP,
+  SWITCH_APP,
+
+  // Files
+  FIND_FILE,
+  OPEN_FILE,
+  CREATE_FILE,
+  DELETE_FILE,
+  RENAME_FILE,
+  MOVE_FILE,
+
+  // System information
+  MEMORY_USAGE,
+  CPU_USAGE,
+  DISK_USAGE,
+  SYSTEM_INFO,
+  UPTIME,
+  TIME,
+
+  // Desktop
+  CHANGE_WALLPAPER,
+  OPEN_SETTINGS,
+
+  // Media
+  PLAY_MUSIC,
+  PAUSE_MUSIC,
+  NEXT_TRACK,
+  PREVIOUS_TRACK,
+  VOLUME_UP,
+  VOLUME_DOWN,
+  MUTE,
+
+  // Useful OS actions
+  TAKE_SCREENSHOT,
+  LOCK_SCREEN,
+  SHUTDOWN,
+  RESTART,
+
+  // Search
+  SEARCH_FILES,
+  SEARCH_SYSTEM,
+
+  // Confirmation
+  CONFIRM,
+  CANCEL
+};
+ * */
+
 class Tokenizer {
 private:
   Vector<Token> tokens;

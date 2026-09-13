@@ -9,6 +9,24 @@ private:
   static constexpr int INPUT_DIMENSION = 128;
   static constexpr int ATTENTION_DIMENSION = 128;
 
+  // Same reasoning as IntentClassifier: without decay, these weights
+  // (and therefore attention scores) can grow unbounded over many
+  // epochs, and exp() in the softmax below will eventually overflow.
+  static constexpr float WEIGHT_DECAY = 0.01f;
+
+  // Clamping the scaled scores keeps exp() safely inside float32 range
+  // no matter how large the weights get, as a hard backstop alongside
+  // decay.
+  static constexpr float MAX_SCORE_MAGNITUDE = 30.0f;
+
+  // Max L2 norm allowed for any single gradient vector before it's
+  // applied. Without this, a single unlucky step can push weights far
+  // enough that logits/scores saturate on every future example (the
+  // "everything is -0 or 9.21034 forever" failure mode) or overflow
+  // outright. Weight decay alone is a gentle pull, not a hard limit -
+  // this is the hard limit.
+  static constexpr float GRADIENT_CLIP = 1.0f;
+
   Vector<float> query_weights;
   Vector<float> key_weights;
   Vector<float> value_weights;
@@ -59,6 +77,26 @@ private:
     return d_input;
   }
 
+  // Clips a gradient vector in place so its L2 norm never exceeds
+  // max_norm. Same policy as Trainer::clip_gradient, duplicated here so
+  // every parameter gradient in this module gets bounded, not just the
+  // classifier's output gradient.
+  static void clip_gradient(Vector<float> &grad, float max_norm) {
+    float norm_sq = 0.0f;
+
+    for (int i = 0; i < grad.size(); i++)
+      norm_sq += grad[i] * grad[i];
+
+    float norm = MathUtils::sqrt(norm_sq);
+
+    if (norm > max_norm && norm > 0.0f) {
+      float scale = max_norm / norm;
+
+      for (int i = 0; i < grad.size(); i++)
+        grad[i] *= scale;
+    }
+  }
+
 public:
   SelfAttention() {
     constexpr int WEIGHT_COUNT = INPUT_DIMENSION * ATTENTION_DIMENSION;
@@ -102,6 +140,11 @@ public:
   Vector<Vector<float>> attention_scores;
   Vector<Vector<float>> attention_weights;
 
+  // Parallel to attention_scores: 1.0 where a score was NOT clamped,
+  // 0.0 where it was. Same straight-through-gradient reasoning as
+  // IntentClassifier's cached_clip_mask.
+  Vector<Vector<float>> score_clip_mask;
+
   float dot_product(const Vector<float> &a, const Vector<float> &b) {
     float sum = 0.0f;
 
@@ -115,19 +158,32 @@ public:
                                   const Vector<Vector<float>> &keys) {
 
     attention_scores.clear();
+    score_clip_mask.clear();
 
     for (int i = 0; i < queries.size(); i++) {
       Vector<float> scores;
+      Vector<float> mask_row;
 
       for (int j = 0; j < keys.size(); j++) {
         float score = dot_product(queries[i], keys[j]);
 
         score /= MathUtils::sqrt(128.0f);
 
+        if (score > MAX_SCORE_MAGNITUDE) {
+          score = MAX_SCORE_MAGNITUDE;
+          mask_row.push_back(0.0f);
+        } else if (score < -MAX_SCORE_MAGNITUDE) {
+          score = -MAX_SCORE_MAGNITUDE;
+          mask_row.push_back(0.0f);
+        } else {
+          mask_row.push_back(1.0f);
+        }
+
         scores.push_back(score);
       }
 
       attention_scores.push_back(scores);
+      score_clip_mask.push_back(mask_row);
     }
   }
 
@@ -199,8 +255,6 @@ public:
 
     int seq_len = d_attention_output.size();
 
-    // Backward through the weighted value sum.
-
     Vector<Vector<float>> d_weights_matrix;
 
     for (int i = 0; i < seq_len; i++) {
@@ -240,8 +294,6 @@ public:
       }
     }
 
-    // Backward through attention softmax.
-
     Vector<Vector<float>> d_scores;
 
     for (int i = 0; i < seq_len; i++) {
@@ -254,14 +306,15 @@ public:
       Vector<float> row;
       row.resize(seq_len, 0.0f);
 
+      // Straight-through estimator: pass gradient through unchanged
+      // rather than gating it to zero at the clamp (see IntentClassifier
+      // for the full explanation of why gating creates dead zones).
       for (int j = 0; j < seq_len; j++) {
         row[j] = attention_weights[i][j] * (d_weights_matrix[i][j] - dot_sum);
       }
 
       d_scores.push_back(row);
     }
-
-    // Backward through scaled dot-product attention.
 
     float scale =
         1.0f / MathUtils::sqrt(static_cast<float>(ATTENTION_DIMENSION));
@@ -297,8 +350,6 @@ public:
       }
     }
 
-    // Backward through Q, K and V projections.
-
     Vector<Vector<float>> d_input;
 
     for (int i = 0; i < seq_len; i++) {
@@ -325,6 +376,20 @@ public:
     return d_input;
   }
 
+  // Pushes pointers to this module's own gradient vectors into out, so
+  // Trainer can include them when computing one combined L2 norm across
+  // the WHOLE network's gradients (embedding + every layer + classifier)
+  // and scale everything down together if that combined norm is too
+  // large. Per-vector clipping in apply_gradients() below only bounds
+  // each individual vector in isolation - it can't catch the case where
+  // many vectors are each fine on their own but their combined effect
+  // on the network still pushes things too far in one step.
+  void collect_gradients(Vector<Vector<float> *> &out) {
+    out.push_back(&d_query_weights);
+    out.push_back(&d_key_weights);
+    out.push_back(&d_value_weights);
+  }
+
   void zero_grad() {
     for (int i = 0; i < d_query_weights.size(); i++) {
 
@@ -343,19 +408,28 @@ public:
   }
 
   void apply_gradients(float learning_rate) {
-    for (int i = 0; i < query_weights.size(); i++) {
+    // Bound each gradient's L2 norm before it ever touches the weights.
+    // This is what was missing before: WEIGHT_DECAY below only pulls
+    // weights gently toward zero every step, it does not cap how much
+    // a single bad/large gradient can push them in one step.
+    clip_gradient(d_query_weights, GRADIENT_CLIP);
+    clip_gradient(d_key_weights, GRADIENT_CLIP);
+    clip_gradient(d_value_weights, GRADIENT_CLIP);
 
-      query_weights[i] -= learning_rate * d_query_weights[i];
+    // Same decoupled-in-formula L2 decay pattern as IntentClassifier.
+    for (int i = 0; i < query_weights.size(); i++) {
+      query_weights[i] -=
+          learning_rate * (d_query_weights[i] + WEIGHT_DECAY * query_weights[i]);
     }
 
     for (int i = 0; i < key_weights.size(); i++) {
-
-      key_weights[i] -= learning_rate * d_key_weights[i];
+      key_weights[i] -=
+          learning_rate * (d_key_weights[i] + WEIGHT_DECAY * key_weights[i]);
     }
 
     for (int i = 0; i < value_weights.size(); i++) {
-
-      value_weights[i] -= learning_rate * d_value_weights[i];
+      value_weights[i] -=
+          learning_rate * (d_value_weights[i] + WEIGHT_DECAY * value_weights[i]);
     }
   }
 

@@ -21,11 +21,7 @@ CPPFLAGS="-Ikernel \
 -nostdlib \
 -fno-builtin \
 -mno-red-zone \
--mno-mmx \
--mno-sse \
--mno-sse2 \
--mno-80387 \
--mgeneral-regs-only"
+-mno-mmx"
 
 # 64-bit kernel
 g++ -m64 -c kernel/core/kernel.cpp -o kernel.o $CPPFLAGS

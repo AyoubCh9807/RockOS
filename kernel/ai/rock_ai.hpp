@@ -3,6 +3,17 @@
 #include "../containers/string.hpp"
 #include "../containers/vector.hpp"
 
+#include "embedding.hpp"
+#include "intent_classifier.hpp"
+#include "positional_encoder.hpp"
+#include "rock_ai_model.hpp"
+#include "rock_ai_weights.hpp"
+#include "tokenizer.hpp"
+#include "training_dataset.hpp"
+#include "transform_layer.hpp"
+#include "transformer_input.hpp"
+#include "vocabulary.hpp"
+
 enum class AIResponseType { ACTION, TEXT };
 
 class AIRequest {
@@ -51,32 +62,174 @@ public:
 class RockAI {
 
 private:
+  Vocabulary &vocab;
+  Tokenizer tokenizer;
+
+  TrainingDataset<IntentClassifier::Intent> dataset;
+
+  Embedding embedding;
+  PositionalEncoder pos_encoder;
+
+  TransformerInput transformer_input;
+
+  TransformerLayer layer;
+
+  Vector<TransformerLayer *> layers;
+
+  IntentClassifier classifier;
+
   AIRequest current_request;
   AIResponse current_response;
 
-  AIResponse process_request(const AIRequest &request) {
-    if (request.text() == "hello") {
-      return AITextResponse("Rock OS AI online. What are we breaking today?");
+  bool loaded = false;
+
+private:
+  IntentClassifier::Intent classify(const String &text) {
+
+    Vector<Token> &tokens = tokenizer.tokenize(text);
+
+    if (tokens.size() == 0)
+      return IntentClassifier::Intent::UNKNOWN;
+
+    transformer_input.build(tokens);
+
+    Vector<Vector<float>> sequence = transformer_input.get();
+
+    for (int i = 0; i < layers.size(); i++) {
+
+      sequence = layers[i]->forward(sequence);
     }
 
-    if (request.text() == "who are you") {
-      return AITextResponse("I'm Rock AI. Small brain. Loud personality.");
-    }
+    return classifier.predict(sequence);
+  }
 
-    if (request.text() == "help") {
-      return AITextResponse("Try: hello, who are you, help");
-    }
+  const char *intent_name(IntentClassifier::Intent intent) const {
 
-    return AITextResponse("I don't understand that yet.", false);
+    switch (intent) {
+
+    case IntentClassifier::Intent::GREETING:
+      return "GREETING";
+
+    case IntentClassifier::Intent::MEMORY_USAGE:
+      return "MEMORY_USAGE";
+
+    case IntentClassifier::Intent::TIME:
+      return "TIME";
+
+    case IntentClassifier::Intent::UPTIME:
+      return "UPTIME";
+
+    case IntentClassifier::Intent::OPEN_APP:
+      return "OPEN_APP";
+
+    case IntentClassifier::Intent::CLOSE_WINDOW:
+      return "CLOSE_WINDOW";
+
+    case IntentClassifier::Intent::MINIMIZE_WINDOW:
+      return "MINIMIZE_WINDOW";
+
+    case IntentClassifier::Intent::HELP:
+      return "HELP";
+
+    default:
+      return "UNKNOWN";
+    }
+  }
+
+  AIResponse generate_response(IntentClassifier::Intent intent) {
+
+    switch (intent) {
+
+    case IntentClassifier::Intent::GREETING:
+      return AITextResponse("Yo! What's up? 🤘");
+
+    case IntentClassifier::Intent::MEMORY_USAGE:
+      return AIActionResponse("You want to check memory usage.");
+
+    case IntentClassifier::Intent::TIME:
+      return AIActionResponse("You want to know the time.");
+
+    case IntentClassifier::Intent::UPTIME:
+      return AIActionResponse(
+          "You want to know how long Rock OS has been running.");
+
+    case IntentClassifier::Intent::OPEN_APP:
+      return AIActionResponse("You want to open an app.");
+
+    case IntentClassifier::Intent::CLOSE_WINDOW:
+      return AIActionResponse("You want to close a window.");
+
+    case IntentClassifier::Intent::MINIMIZE_WINDOW:
+      return AIActionResponse("You want to minimize a window.");
+
+    case IntentClassifier::Intent::HELP:
+      return AITextResponse("I can help you control Rock OS.");
+
+    default:
+      return AITextResponse("I don't understand that yet.", false);
+    }
   }
 
 public:
-  RockAI() = default;
+  RockAI(Vocabulary &vocabulary)
+      : vocab(vocabulary), tokenizer(vocab), dataset(tokenizer, vocab),
+        embedding(ROCK_AI_WEIGHTS_VOCABULARY_SIZE),
+        transformer_input(embedding, pos_encoder) {
 
-  void send_request(const AIRequest &request) {
-    current_request = request;
-    current_response = process_request(current_request);
+    /*
+     * The dataset owns the training examples and
+     * registering them rebuilds the same vocabulary
+     * used when the model was trained.
+     */
+
+    dataset.register_examples();
+
+    if (vocab.size() != static_cast<int>(ROCK_AI_WEIGHTS_VOCABULARY_SIZE)) {
+
+      return;
+    }
+
+    layers.push_back(&layer);
+
+    loaded = RockAIModel::load(embedding, layers, classifier);
   }
 
+  bool is_ready() const { return loaded; }
+
+  void send_request(const AIRequest &request) {
+
+    current_request = request;
+
+    if (!loaded) {
+
+      current_response = AITextResponse("Rock AI isn't loaded.", false);
+
+      return;
+    }
+
+    IntentClassifier::Intent intent = classify(request.text());
+
+    current_response = generate_response(intent);
+  }
+
+  void send_request(const char *text) {
+
+    AIRequest request(text);
+
+    send_request(request);
+  }
+
+  const AIRequest &get_request() const { return current_request; }
+
   const AIResponse &get_response() const { return current_response; }
-}; 
+
+  IntentClassifier::Intent get_intent() {
+
+    if (!loaded)
+      return IntentClassifier::Intent::UNKNOWN;
+
+    return classify(current_request.text());
+  }
+
+  const char *get_intent_name() { return intent_name(get_intent()); }
+};

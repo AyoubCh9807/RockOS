@@ -3,6 +3,8 @@
 #include "../memory/heap.hpp"
 #include "../shared/types.hpp"
 
+#include <new>
+
 constexpr int DEFAULT_VECTOR_REALLOCATION_INCREMENT = 24;
 
 template <typename T>
