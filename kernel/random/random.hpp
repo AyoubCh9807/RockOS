@@ -64,9 +64,6 @@ public:
 
 #else
 
-// ---------------------------------------------------------------------
-// Kernel path: unchanged from your original file.
-// ---------------------------------------------------------------------
 #include "../core/timer.hpp"
 #include "../crypto/sha256.hpp"
 

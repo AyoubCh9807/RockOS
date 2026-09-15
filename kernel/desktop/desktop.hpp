@@ -379,12 +379,14 @@ public:
 
   bool handle_key(const KeyEvent &ev) {
 
-    if (ev.keytype == KeyType::ArrowRight) {
+    // Ctrl + ArrowRight to select next icon
+    if (ev.keytype == KeyType::ArrowRight && Keyboard::is_ctrl_down()) {
       select_next_icon();
       return true;
     }
 
-    if (ev.keytype == KeyType::ArrowLeft) {
+    // Ctrl + ArrowLeft to select previous icon
+    if (ev.keytype == KeyType::ArrowLeft && Keyboard::is_ctrl_down()) {
       select_prev_icon();
       return true;
     }
@@ -400,17 +402,23 @@ public:
       }
     }
 
-    if (ev.keytype == KeyType::Char && ev.scancode == 'w') {
+    // Ctrl + W to change into the next wallpaper
+    if (ev.keytype == KeyType::Char && ev.scancode == 'w' &&
+        Keyboard::is_ctrl_down()) {
       Wallpaper::select_next_wallpaper();
       return true;
     }
 
-    if (ev.keytype == KeyType::Char && ev.scancode == 'c') {
+    // Ctrl + M to select next cursor
+    if (ev.keytype == KeyType::Char && ev.scancode == 'm' &&
+        Keyboard::is_ctrl_down()) {
       Cursor::select_next_cursor();
       return true;
     }
 
-    if (ev.keytype == KeyType::Char && ev.scancode == 'a') {
+    // Ctrl + A to open app launcher
+    if (ev.keytype == KeyType::Char && ev.scancode == 'a' &&
+        Keyboard::is_ctrl_down()) {
       app_launcher.open();
       return true;
     }

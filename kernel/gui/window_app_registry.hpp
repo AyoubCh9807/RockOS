@@ -7,10 +7,10 @@
 #include "apps/dice_app.hpp"
 #include "apps/dvd_app.hpp"
 #include "apps/matrix_app.hpp"
-#include "apps/rock_ai.hpp"
 #include "apps/tyrant_app.hpp"
 #include "apps/about_app.hpp"
 #include "apps/settings_app.hpp"
+#include "apps/rock_ai_app.hpp"
 
 #include "window_app.hpp"
 
