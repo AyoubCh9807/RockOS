@@ -189,43 +189,57 @@ public:
     Graphics::draw_string("close", right - 42, footer_y + 10, Colors::GRAY);
   }
 
-  void handle_key(const KeyEvent &event) {
-    if (event.keytype == KeyType::Enter) {
+  bool handle_key(const KeyEvent &event) {
+    if (event.keytype == KeyType::Enter ||
+        (event.scancode == 'o' && Keyboard::is_ctrl_down())) {
       open_selected_app();
-
-    } else if (event.keytype == KeyType::Escape || event.scancode == 'x') {
-      close();
-
-    } else if (event.keytype == KeyType::ArrowDown) {
-      select_next_app();
-
-    } else if (event.keytype == KeyType::ArrowUp) {
-      select_prev_app();
-
-    } else if (event.keytype == KeyType::Char) {
-      if (query_length + 1 >= MAX_QUERY_LENGTH)
-        return;
-
-      char c[2] = {(char)event.scancode, '\0'};
-
-      StringUtils::append(query, c);
-      query_length++;
-
-      selected_app = 0;
-      visible_start = 0;
-      update_filtered_apps();
-
-    } else if (event.keytype == KeyType::BackSpace) {
-      if (query_length == 0)
-        return;
-
-      query[query_length - 1] = '\0';
-      query_length--;
-
-      selected_app = 0;
-      visible_start = 0;
-      update_filtered_apps();
+      return true;
     }
+
+    if (event.keytype == KeyType::Escape ||
+        (event.scancode == 'x' && Keyboard::is_ctrl_down())) {
+      close();
+      return true;
+    }
+
+    if (event.keytype == KeyType::ArrowDown) {
+      select_next_app();
+      return true;
+    }
+
+    if (event.keytype == KeyType::ArrowUp) {
+      select_prev_app();
+      return true;
+    }
+
+    if (event.keytype == KeyType::Char) {
+      if (query_length >= MAX_QUERY_LENGTH - 1)
+        return true;
+
+      query[query_length++] = static_cast<char>(event.scancode);
+      query[query_length] = '\0';
+
+      selected_app = 0;
+      visible_start = 0;
+      update_filtered_apps();
+
+      return true;
+    }
+
+    if (event.keytype == KeyType::BackSpace) {
+      if (query_length == 0)
+        return true;
+
+      query[--query_length] = '\0';
+
+      selected_app = 0;
+      visible_start = 0;
+      update_filtered_apps();
+
+      return true;
+    }
+
+    return false;
   }
 
   void handle_mouse(const MouseEvent &event) { return; };

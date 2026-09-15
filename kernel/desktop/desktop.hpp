@@ -393,13 +393,16 @@ public:
 
     if (icon_count > 0) {
 
+      // Enter / Ctrl + L to launch currently selected app
       if (ev.keytype == KeyType::Enter ||
-          (ev.keytype == KeyType::Char && ev.scancode == 'o')) {
+          (ev.keytype == KeyType::Char && ev.scancode == 'l' && Keyboard::is_ctrl_down())) {
         launch_app(icons[selected_icon]);
         selected_icon = INVALID_ICON_INDEX;
 
         return true;
       }
+
+      if(app_launcher.is_open() && app_launcher.handle_key(ev)) return true;
     }
 
     // Ctrl + W to change into the next wallpaper
