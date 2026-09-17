@@ -10,6 +10,8 @@
 #include "desktop_icon.hpp"
 #include "wallpaper.hpp"
 
+#include "../utils/debugger.hpp"
+
 #include "../data/characters/damian.hpp"
 
 #include "../drivers/mouse.hpp"
@@ -94,28 +96,22 @@ public:
     if (kb_ev.scancode != 0 && kb_ev.keytype != KeyType::None) {
 
       if (dialog_manager.has_active()) {
-
-        // Key event gets routed to the dialog manager.
         dialog_manager.route_key(kb_ev);
+      }
 
-      } else if (app_launcher.is_open()) {
+      else if (app_launcher.is_open()) {
         app_launcher.handle_key(kb_ev);
       }
 
-      else if (handle_key(kb_ev)) {
-
-        // Desktop handled it.
-
-      } else {
-
-        // Key event gets routed to the window manager.
+      else if (window_manager.get_focused()) {
         window_manager.route_key(kb_ev);
+      }
+
+      else {
+        handle_key(kb_ev);
       }
     }
 
-    /* This will be refactored later into an priority event stream to prevent
-     both the desktop and the app from receiving the mouse event (the keyboard
-     priority event stream is already implemented) */
     MouseEvent mouse_ev = Mouse::read();
 
     if (mouse_ev.button_type == MouseButton::LEFT_BUTTON &&
@@ -125,13 +121,16 @@ public:
            window_manager.get_focused()->contains(Mouse::get_x(),
                                                   Mouse::get_y())) ||
           window_manager.any_window_contains(Mouse::get_x(), Mouse::get_y())) {
+
         window_manager.route_mouse_event(mouse_ev);
+
       } else {
         handle_mouse_event(mouse_ev);
       }
 
     } else if (mouse_ev.event_type == MouseEventType::MOVE ||
                mouse_ev.event_type == MouseEventType::RELEASE) {
+
       window_manager.route_mouse_event(mouse_ev);
     }
 
@@ -156,6 +155,8 @@ public:
       app_launcher.draw();
 
     draw_taskbar();
+
+    Debugger::render();
 
     Graphics::draw_cursor(Mouse::get_x(), Mouse::get_y());
 
@@ -395,14 +396,16 @@ public:
 
       // Enter / Ctrl + L to launch currently selected app
       if (ev.keytype == KeyType::Enter ||
-          (ev.keytype == KeyType::Char && ev.scancode == 'l' && Keyboard::is_ctrl_down())) {
+          (ev.keytype == KeyType::Char && ev.scancode == 'l' &&
+           Keyboard::is_ctrl_down())) {
         launch_app(icons[selected_icon]);
         selected_icon = INVALID_ICON_INDEX;
 
         return true;
       }
 
-      if(app_launcher.is_open() && app_launcher.handle_key(ev)) return true;
+      if (app_launcher.is_open() && app_launcher.handle_key(ev))
+        return true;
     }
 
     // Ctrl + W to change into the next wallpaper

@@ -2,7 +2,6 @@
 
 #ifdef HOST_BUILD
 
-// ---------------------------------------------------------------------
 // Host-only path: the kernel's real heap is a fixed-address allocator
 // that assumes it owns a 32MB region of physical memory sitting right
 // after the kernel image (__kernel_end onward). That doesn't mean
@@ -10,7 +9,6 @@
 // kmalloc/kfree off to the real system allocator instead. vector.hpp and
 // string.hpp only ever call kmalloc()/kfree()/get_used(), so this is a
 // drop-in swap for them.
-// ---------------------------------------------------------------------
 #include "../shared/types.hpp"
 #include <cstdlib>
 #include <cstring> // in case vector.hpp/string.hpp use memset/memcpy without including this themselves

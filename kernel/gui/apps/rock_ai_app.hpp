@@ -3,6 +3,10 @@
 #include "../../../boot/graphics.hpp"
 #include "../../ai/rock_ai.hpp"
 
+#include "../../core/rtc.hpp"
+#include "../../core/timer.hpp"
+#include "../../memory/heap.hpp"
+
 #include "../window.hpp"
 #include "../window_app.hpp"
 
@@ -90,9 +94,7 @@ private:
     win.draw_rect(x + width - 1, y, 1, height, border);
   }
 
-  void add_message(bool from_user, const char *text) {
-    // Keep the conversation bounded so the app does not grow
-    // indefinitely as the user keeps chatting.
+  void add_message(bool from_user, const char *text, Window *win = nullptr) {
     if (message_count == MAX_MESSAGES) {
       for (int i = 1; i < MAX_MESSAGES; i++)
         messages[i - 1] = messages[i];
@@ -105,7 +107,10 @@ private:
     copy_text(message.text, text, INPUT_LENGTH);
     message.from_user = from_user;
 
-    scroll = 0;
+    if (win)
+      scroll_to_bottom(*win);
+    else
+      scroll = message_count > 0 ? message_count - 1 : 0;
   }
 
   int wrap_text(const char *text, char lines[][INPUT_LENGTH], int max_lines,
@@ -218,17 +223,114 @@ private:
     y += bubble_height + MESSAGE_GAP;
   }
 
-  void draw_messages(Window &win) {
-    int y = HEADER_HEIGHT + 10;
+  int message_height(const Message &message, Window &win) const {
+    const int content_width = win.width - 40;
+    const int max_chars = (content_width - MESSAGE_PADDING * 2) / CHAR_W;
+
+    char lines[16][INPUT_LENGTH];
+
+    const int line_count = wrap_text(message.text, lines, 16, max_chars);
+
+    if (line_count == 0)
+      return 0;
+
+    const int bubble_height = line_count * (CHAR_H + 4) + MESSAGE_PADDING * 2;
+
+    return bubble_height + MESSAGE_GAP;
+  }
+
+  int visible_message_count(Window &win, int start) const {
     const int bottom = INPUT_Y - 10;
+    const int available_height = bottom - (HEADER_HEIGHT + 10);
+
+    int used_height = 0;
+    int count = 0;
+
+    for (int i = start; i < message_count; i++) {
+      const int height = message_height(messages[i], win);
+
+      if (used_height + height > available_height)
+        break;
+
+      used_height += height;
+      count++;
+    }
+
+    return count;
+  }
+
+  void clamp_scroll(Window &win) {
+    if (message_count <= 0) {
+      scroll = 0;
+      return;
+    }
+
+    if (scroll < 0)
+      scroll = 0;
+
+    if (scroll >= message_count)
+      scroll = message_count - 1;
+
+    // Make sure the final messages can actually fit.
+    while (scroll > 0 && visible_message_count(win, scroll) == 0) {
+      scroll--;
+    }
+  }
+
+  void scroll_up(Window &win, int amount = 1) {
+    scroll -= amount;
+
+    if (scroll < 0)
+      scroll = 0;
+
+    clamp_scroll(win);
+  }
+
+  void scroll_down(Window &win, int amount = 1) {
+    scroll += amount;
+
+    if (scroll >= message_count)
+      scroll = message_count - 1;
+
+    clamp_scroll(win);
+  }
+
+  void scroll_to_bottom(Window &win) {
+    if (message_count == 0) {
+      scroll = 0;
+      return;
+    }
+
+    scroll = message_count - 1;
+
+    while (scroll > 0) {
+      const int count = visible_message_count(win, scroll - 1);
+
+      if (count <= 0)
+        break;
+
+      if (scroll - 1 + count < message_count)
+        break;
+
+      scroll--;
+    }
+  }
+
+  void draw_messages(Window &win) {
+    const int top = HEADER_HEIGHT + 10;
+    const int bottom = INPUT_Y - 10;
+
+    int y = top;
 
     for (int i = scroll; i < message_count; i++) {
       const int previous_y = y;
 
       draw_message(messages[i], win, y);
 
-      if (previous_y >= bottom || y > bottom)
+      // The message did not fit.
+      if (previous_y >= bottom || y > bottom) {
         break;
+      }
     }
   }
 
@@ -260,22 +362,99 @@ private:
     }
   }
 
+  void handle_intent(const AIResponse &res, Window &win) {
+    if (res.type() != AIResponseType::ACTION)
+      return;
+
+    char message[INPUT_LENGTH];
+
+    switch (res.get_intent()) {
+    case IntentClassifier::Intent::MEMORY_USAGE: {
+      const u32 used = heap.get_used();
+
+      if (used < 1024) {
+        StringUtils::snprintf(
+            message, INPUT_LENGTH,
+            "Lemme check that for ya... Oh! Rock OS is currently using %d B.",
+            (int)used);
+      } else if (used < 1024 * 1024) {
+        const u32 used_kb = used / 1024;
+
+        StringUtils::snprintf(
+            message, INPUT_LENGTH,
+            "Lemme check that for ya... Oh! Rock OS is currently using %d KB.",
+            (int)used_kb);
+      } else {
+        const u32 used_mb = used / (1024 * 1024);
+
+        StringUtils::snprintf(
+            message, INPUT_LENGTH,
+            "Lemme check that for ya... Oh! Rock OS is currently using %d MB.",
+            (int)used_mb);
+      }
+
+      add_message(false, message, &win);
+      break;
+    }
+
+    case IntentClassifier::Intent::TIME: {
+      char time[64];
+
+      RTC::get_full_time_into(time, sizeof(time));
+
+      StringUtils::snprintf(
+          message, INPUT_LENGTH,
+          "Let ME check the clock your highness... It's %s right now.", time);
+
+      add_message(false, message, &win);
+      break;
+    }
+
+    case IntentClassifier::Intent::UPTIME: {
+      char uptime[64];
+
+      Timer::get_formatted_time_into(uptime, sizeof(uptime));
+
+      StringUtils::snprintf(message, INPUT_LENGTH,
+                            "You have been exhausting me for %s NONSTOP.",
+                            uptime);
+
+      add_message(false, message, &win);
+      break;
+    }
+
+    case IntentClassifier::Intent::OPEN_APP:
+    case IntentClassifier::Intent::CLOSE_WINDOW:
+    case IntentClassifier::Intent::MINIMIZE_WINDOW:
+      // Handled later by the desktop/window manager.
+      break;
+
+    default:
+      break;
+    }
+  }
+
   void submit(Window &win) {
     if (input_length == 0)
       return;
 
     input[input_length] = '\0';
 
-    add_message(true, input);
+    add_message(true, input, &win);
 
     ai.send_request(input);
 
     const AIResponse &response = ai.get_response();
 
-    add_message(false, response.text().c_str());
+    if (response.type() == AIResponseType::TEXT)
+      add_message(false, response.text().c_str(), &win);
+
+    handle_intent(response, win);
 
     input_length = 0;
     input[0] = '\0';
+
+    scroll_to_bottom(win);
   }
 
 public:
@@ -315,14 +494,16 @@ public:
     }
 
     if (event.keytype == KeyType::Enter) {
+      Debugger::log(Debugger::DebugType::GRAPHICS, "ENTER WAS PRESSED");
       submit(win);
       return;
     }
 
     if (event.keytype == KeyType::Char) {
-      if (input_length < INPUT_LENGTH - 1) {
+      if (input_length < MAX_INPUT - 1) {
         input[input_length++] = event.scancode;
         input[input_length] = '\0';
+        Debugger::log_number(Debugger::DebugType::GRAPHICS, event.scancode);
       }
     }
   }
