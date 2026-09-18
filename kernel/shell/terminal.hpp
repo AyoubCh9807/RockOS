@@ -35,15 +35,15 @@ public:
                          Colors::pick_random_color());
   }
 
-  void cd(char *path) {
+  bool cd(char *path) {
     if (!path)
-      return;
+      return false;
     u32 inode = fs.resolve_path(path);
     if (inode == INVALID_INODE) {
-      terminal_utils.print("directory not found", 0xFFFFFF);
-      return;
+      return false;
     }
     terminal_reg.current_dir = inode;
+    return true;
   }
 
   inline CommandResult parse(char *str, char **args, int max_args) {

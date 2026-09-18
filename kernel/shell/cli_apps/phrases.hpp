@@ -19,8 +19,6 @@ private:
     term.print(Generator::random_phrase(reboot_phrases),
                 Colors::pick_random_color());
     term.print("\n\n  press 'r' for another, 'q' to quit", 0x888888);
-    term.render();
-
 }
 
 public:

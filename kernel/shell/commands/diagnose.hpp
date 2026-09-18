@@ -17,7 +17,7 @@ public:
   CommandResult execute(int argc, char **argv) {
 
     for (int i = 0; i < DIAGNOSTIC_FIELD_COUNT; i++) {
-      terminal_utils.print(Colors::WHITE, "%s: %s\n", diagnostic_labels[i],
+      terminal_utils.print_formatted(Colors::WHITE, "%s: %s\n", diagnostic_labels[i],
                            diagnostic_values[i]);
     }
 

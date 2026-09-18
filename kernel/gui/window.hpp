@@ -12,8 +12,14 @@
    process, the process just needs to hand pixels to the kernel
    somehow (a syscall), it never needs direct framebuffer access. */
 class Window {
+
+  static constexpr int WINDOW_TITLE_BAR_HEIGHT = 24;
+
 private:
   u32 *pixels;
+
+  int border_thickness = 2;
+  u32 border_color = Colors::GOLD;
 
   int restore_x = 0;
   int restore_y = 0;
@@ -185,4 +191,15 @@ public:
   }
 
   const u32 *get_buffer() const { return pixels; }
+
+  const int get_width() const { return width; }
+  const int get_height() const { return height; }
+  int get_client_width() const { return width - 2 * border_thickness; }
+
+  int get_client_height() const {
+    return height - WINDOW_TITLE_BAR_HEIGHT - 2 * border_thickness;
+  }
+
+  constexpr int get_border_thickness() const { return border_thickness; }
+  constexpr u32 get_border_color() const { return border_color; }
 };

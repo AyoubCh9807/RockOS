@@ -15,7 +15,6 @@ public:
   void draw(Window &win) {
     win.clear(fill_color);
 
-    win.draw_border(2, Colors::WHITE);
   }
 
   void on_draw(Window &win) override { draw(win); }

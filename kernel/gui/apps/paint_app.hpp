@@ -56,7 +56,6 @@ public:
   void draw(Window &win) {
     win.clear(fill_color);
 
-    win.draw_border(2, Colors::WHITE);
     win.set_pixel(pixel.x, pixel.y, current_color);
   }
 

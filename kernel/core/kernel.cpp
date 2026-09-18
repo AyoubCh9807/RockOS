@@ -145,7 +145,8 @@ extern "C" void kernel_main(u64 mb_addr) {
 
   terminal.fill_registry();
 
-  terminal_utils.print(Generator::random_phrase(reboot_phrases), 0xFFFFFF);
+  ShellHistory shell_history;
+  Shell shell(terminal, shell_history);
 
   /*
    * GUI test.
@@ -155,8 +156,9 @@ extern "C" void kernel_main(u64 mb_addr) {
    * while the GUI is active.
    */
 
+
   WindowManager wm;
-  WindowAppRegistry window_app_reg;
+  WindowAppRegistry window_app_reg(terminal, shell);
 
   window_app_reg.fill_registry();
 

@@ -16,8 +16,9 @@ constexpr int MAX_WINDOWS = 32;
 
 constexpr u32 HEAP_SAFETY_MARGIN = 2 * 1024 * 1024;
 
-constexpr int WINDOW_BORDER_THICKNESS = 2;
 constexpr int WINDOW_TITLE_BAR_HEIGHT = 24;
+
+constexpr int WINDOW_BORDER_THICKNESS = 2;
 constexpr int WINDOW_BUTTON_SIZE = 18;
 constexpr int WINDOW_BUTTON_GAP = 2;
 constexpr int WINDOW_BUTTON_MARGIN = 3;
@@ -601,7 +602,7 @@ public:
       }
 
       draw_title_bar(win);
-      draw_border(win, WINDOW_BORDER_THICKNESS, Colors::WHITE);
+      draw_border(win, win->get_border_thickness(), win->get_border_color());
     }
 
     if (focused_window && !focused_window->minimized)
@@ -674,7 +675,8 @@ public:
         if (title_bar_contains(clicked_window, local_x, local_y)) {
           // Double-click on the title bar toggles maximize.
           // Timer ticks at TIMER_HZ (100 Hz) so: 40 ticks = 400 ms.
-          const int now = ev.tick; // this was originally: (u32)Timer::get_ticks()
+          const int now =
+              ev.tick; // this was originally: (u32)Timer::get_ticks()
 
           if (last_titlebar_click_window == clicked_window &&
               now - last_titlebar_click_tick <=

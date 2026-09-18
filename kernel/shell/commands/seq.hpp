@@ -24,9 +24,6 @@ public:
     int line_length = 0;
 
     int columns = 20;
-    if (TerminalUtils::get_global_terminal_instance()) {
-      columns = TerminalUtils::get_global_terminal_instance()->get_columns();
-    }
 
     if (argc >= 4 && StringUtils::strcmp(argv[3], "-i") == 0) {
       end += 1;

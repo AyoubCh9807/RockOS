@@ -48,13 +48,13 @@ private:
     const u32 C_GRAY = Colors::GRAY;
     const u32 C_DGRAY = 0x888888;
 
-    const int cols = term.get_columns();
+    const int cols = 50;
 
     auto next_line = [&](u32 color) {
       int col = term.get_cursor_position() % cols;
       int pad = cols - col;
       for (int i = 0; i < pad; i++)
-        term.putchar(TerminalUtils::Cell(' ', color));
+        term.putchar((' ', color));
     };
 
     term.clear();
@@ -103,19 +103,19 @@ private:
       if (pad < 0)
         pad = 0;
       for (int s = 0; s < pad; s++)
-        term.putchar(TerminalUtils::Cell(' ', C_TEXT));
+        term.putchar((' ', C_TEXT));
 
       int bar_w = 10;
       int filled = (p.cpu * bar_w) / 100;
       u32 bar_c = (p.cpu < 30) ? C_LOW : (p.cpu < 70) ? C_MED : C_HIGH;
 
-      term.putchar(TerminalUtils::Cell('[', C_TEXT));
+      term.putchar(('[', C_TEXT));
       for (int b = 0; b < bar_w; b++) {
         char ch = (b < filled) ? '#' : ' ';
         u32 c = (b < filled) ? bar_c : C_TEXT;
-        term.putchar(TerminalUtils::Cell(ch, c));
+        term.putchar((ch, c));
       }
-      term.putchar(TerminalUtils::Cell(']', C_TEXT));
+      term.putchar((']', C_TEXT));
       next_line(C_TEXT);
     }
 
@@ -130,9 +130,6 @@ private:
     term.print_formatted(C_DGRAY, "cpu: %d%%  |  ", Timer::get_cpu_usage());
     term.print("press 'q' to quit", C_DGRAY);
     next_line(C_TEXT);
-
-    term.render();
-    TerminalUtils::update_status_bar();
 
     /* Small pause so a frame is actually visible instead of flashing
        by instantly. This does not make top auto-refresh on its own,
@@ -167,7 +164,5 @@ public:
   void on_exit() override {
     auto term = terminal_utils;
     term.clear();
-    term.render();
-    TerminalUtils::update_status_bar();
   }
 };

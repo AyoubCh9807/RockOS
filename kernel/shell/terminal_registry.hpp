@@ -8,6 +8,7 @@
 #include "commands/cat.hpp"
 #include "commands/cd.hpp"
 #include "commands/clear.hpp"
+#include "commands/crystal.hpp"
 #include "commands/damian.hpp"
 #include "commands/date.hpp"
 #include "commands/dirname.hpp"
@@ -30,6 +31,7 @@
 #include "commands/rev.hpp"
 #include "commands/rm.hpp"
 #include "commands/rmdir.hpp"
+#include "commands/rtop.hpp"
 #include "commands/seq.hpp"
 #include "commands/touch.hpp"
 #include "commands/tyrant.hpp"
@@ -37,8 +39,6 @@
 #include "commands/uptime.hpp"
 #include "commands/wc.hpp"
 #include "commands/write.hpp"
-#include "commands/rtop.hpp"
-#include "commands/crystal.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -118,12 +118,12 @@ public:
         touch(fs, current_dir), rm(fs, current_dir), rmdir(fs, current_dir),
         cat(fs, current_dir), write(fs, current_dir), wc(fs, current_dir),
         grep(fs, current_dir), append(fs, current_dir), head(fs, current_dir),
-        env(environment), date(), heaptest(), seq(), dirname(), rev(),
-        crystal(), rtop(), fortune(), whoami(terminal_utils), repeat(terminal_utils),
-        upper(terminal_utils), lower(terminal_utils), length(terminal_utils),
-        calc(), motd(), rockfetch(terminal_utils), ascii(terminal_utils),
-        stats(terminal_utils), mood(), void_cmd(terminal_utils), lore(),
-        diagnose(terminal_utils) {}
+        env(environment), date(terminal_utils), heaptest(), seq(), dirname(),
+        rev(), crystal(terminal_utils), rtop(terminal_utils), fortune(),
+        whoami(terminal_utils), repeat(terminal_utils), upper(terminal_utils),
+        lower(terminal_utils), length(terminal_utils), calc(), motd(),
+        rockfetch(terminal_utils), ascii(terminal_utils), stats(terminal_utils),
+        mood(), void_cmd(terminal_utils), lore(), diagnose(terminal_utils) {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 

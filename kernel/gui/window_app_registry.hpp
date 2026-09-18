@@ -2,15 +2,16 @@
 
 #include "../utils/string_utils.hpp"
 
+#include "apps/about_app.hpp"
 #include "apps/clock_app.hpp"
 #include "apps/counter_app.hpp"
 #include "apps/dice_app.hpp"
 #include "apps/dvd_app.hpp"
 #include "apps/matrix_app.hpp"
-#include "apps/tyrant_app.hpp"
-#include "apps/about_app.hpp"
-#include "apps/settings_app.hpp"
 #include "apps/rock_ai_app.hpp"
+#include "apps/settings_app.hpp"
+#include "apps/terminal_app.hpp"
+#include "apps/tyrant_app.hpp"
 
 #include "window_app.hpp"
 
@@ -29,11 +30,14 @@ private:
   AboutApp about;
   SettingsApp settings;
   RockAIApp rock_ai;
+  TerminalApp terminal;
 
   int count = 0;
 
 public:
-  WindowAppRegistry() : counter(), tyrant(), clock(), dice(), matrix(), dvd(), about(), settings(), rock_ai() {}
+  WindowAppRegistry(Terminal &term, Shell &shell)
+      : counter(), tyrant(), clock(), dice(), matrix(), dvd(), about(),
+        settings(), rock_ai(), terminal(term, shell) {}
 
   void register_app(IWindowApp *app) {
     if (count >= MAX_WINDOW_APPS)
@@ -52,8 +56,8 @@ public:
     register_app(&about);
     register_app(&settings);
     register_app(&rock_ai);
+    register_app(&terminal);
   }
-
 
   IWindowApp *find(const char *name) {
     for (int i = 0; i < count; i++) {
