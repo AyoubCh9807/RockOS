@@ -50,12 +50,14 @@
 #include "commands/stats.hpp"
 #include "commands/void.hpp"
 #include "commands/whoami.hpp"
+#include "commands/rockai.hpp"
 
 constexpr int MAX_TERMINAL_COMMANDS = 256;
 
 class TerminalRegistry {
 private:
   ICommand *commands[MAX_TERMINAL_COMMANDS]{};
+  RockAI& ai;
 
   RebootCommand reboot;
   ClearCommand clear;
@@ -103,6 +105,7 @@ private:
   VoidCommand void_cmd;
   LoreCommand lore;
   DiagnoseCommand diagnose;
+  AICommand rockai;
 
   int count = 0;
 
@@ -110,8 +113,8 @@ public:
   u32 &current_dir;
 
   TerminalRegistry(TerminalUtils &terminal_utils, FileSystem &fs,
-                   u32 &current_dir, Environment &environment)
-      : current_dir(current_dir), reboot(), clear(terminal_utils),
+                   u32 &current_dir, Environment &environment, RockAI& ai)
+      : current_dir(current_dir), ai(ai), reboot(), clear(terminal_utils),
         echo(environment, terminal_utils), uptime(), help(),
         ls(fs, current_dir), mkdir(fs, current_dir), pwd(fs, current_dir),
         tyrant(), damian(), garrick(), random(), cd(fs, current_dir),
@@ -123,7 +126,7 @@ public:
         whoami(terminal_utils), repeat(terminal_utils), upper(terminal_utils),
         lower(terminal_utils), length(terminal_utils), calc(), motd(),
         rockfetch(terminal_utils), ascii(terminal_utils), stats(terminal_utils),
-        mood(), void_cmd(terminal_utils), lore(), diagnose(terminal_utils) {}
+        mood(), void_cmd(terminal_utils), lore(), diagnose(terminal_utils), rockai(ai) {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 
@@ -174,6 +177,7 @@ public:
     register_command(&void_cmd);
     register_command(&lore);
     register_command(&diagnose);
+    register_command(&rockai);
 
     //    Debugger::log("loaded %d commands successfully!\n", count);
   }

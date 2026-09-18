@@ -564,4 +564,36 @@ inline bool contains_ignore_case(const char *str, const char *query) {
   return false;
 }
 
+static int join(char *output, int max_length, int argc, char **argv,
+                const char *separator) {
+  if (!output || max_length <= 0 || !argv || !separator)
+    return 0;
+
+  int position = 0;
+
+  for (int i = 0; i < argc; i++) {
+    if (i > 0) {
+      for (const char *c = separator; *c; c++) {
+        if (position >= max_length - 1)
+          break;
+
+        output[position++] = *c;
+      }
+    }
+
+    for (const char *c = argv[i]; *c; c++) {
+      if (position >= max_length - 1)
+        break;
+
+      output[position++] = *c;
+    }
+
+    if (position >= max_length - 1)
+      break;
+  }
+
+  output[position] = '\0';
+  return position;
+}
+
 } // namespace StringUtils

@@ -7,12 +7,12 @@
 #include "intent_classifier.hpp"
 // #include "model_io.hpp"
 #include "positional_encoder.hpp"
+#include "rock_ai_model.hpp"
 #include "token.hpp"
 #include "tokenizer.hpp"
 #include "training_dataset.hpp"
 #include "transform_layer.hpp"
 #include "transformer_input.hpp"
-#include "rock_ai_model.hpp"
 
 enum class AIResponseType { ACTION, TEXT };
 
@@ -142,32 +142,31 @@ private:
     switch (intent) {
 
     case IntentClassifier::Intent::GREETING:
-      return AITextResponse("Yo! What's up? 🤘", intent);
+      return AITextResponse("Yo! What's up?", intent);
 
     case IntentClassifier::Intent::MEMORY_USAGE:
-      return AIActionResponse("You want to check memory usage.", intent);
+      return AIActionResponse("", intent);
 
     case IntentClassifier::Intent::TIME:
-      return AIActionResponse("You want to know the time.", intent);
+      return AIActionResponse("", intent);
 
     case IntentClassifier::Intent::UPTIME:
-      return AIActionResponse(
-          "You want to know how long Rock OS has been running.", intent);
+      return AIActionResponse("", intent);
 
     case IntentClassifier::Intent::OPEN_APP:
-      return AIActionResponse("You want to open an app.", intent);
+      return AIActionResponse("", intent);
 
     case IntentClassifier::Intent::CLOSE_WINDOW:
-      return AIActionResponse("You want to close a window.", intent);
+      return AIActionResponse("", intent);
 
     case IntentClassifier::Intent::MINIMIZE_WINDOW:
-      return AIActionResponse("You want to minimize a window.", intent);
+      return AIActionResponse("", intent);
 
     case IntentClassifier::Intent::HELP:
       return AITextResponse("I can help you control Rock OS.", intent);
 
     default:
-      return AITextResponse("I don't understand that yet.", intent, false);
+      return AITextResponse("I don't understand that yet. Still learning, lil guy", intent, false);
     }
   }
 

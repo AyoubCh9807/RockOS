@@ -136,7 +136,10 @@ extern "C" void kernel_main(u64 mb_addr) {
 
   Environment env(terminal_utils);
 
-  TerminalRegistry terminal_registry(terminal_utils, fs, current_dir, env);
+  Vocabulary ai_vocab;
+  RockAI ai(ai_vocab);
+
+  TerminalRegistry terminal_registry(terminal_utils, fs, current_dir, env, ai);
 
   CliAppRegistry cli_app_registry(terminal_utils);
 
@@ -155,7 +158,6 @@ extern "C" void kernel_main(u64 mb_addr) {
    * Shell/process testing below therefore remains unreachable
    * while the GUI is active.
    */
-
 
   WindowManager wm;
   WindowAppRegistry window_app_reg(terminal, shell);
