@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../random/random.hpp"
 #include "wallpaper_methods.hpp"
 
 class Wallpaper {
@@ -35,7 +36,8 @@ private:
   };
 
   static inline WallpaperVariant current_wallpaper = WallpaperVariant::CHAINS;
-  static constexpr u32 WALLPAPER_COUNT = static_cast<u32>(WallpaperVariant::COUNT);
+  static constexpr u32 WALLPAPER_COUNT =
+      static_cast<u32>(WallpaperVariant::COUNT);
 
 public:
   static void select_next_wallpaper() {
@@ -46,6 +48,28 @@ public:
     }
 
     current_wallpaper = static_cast<WallpaperVariant>(next_val);
+  }
+
+  static void select_prev_wallpaper() {
+    u32 prev_val = static_cast<u32>(current_wallpaper) - 1;
+
+    if (prev_val < static_cast<u32>(WallpaperVariant::FIRST)) {
+      prev_val = static_cast<u32>(WallpaperVariant::LAST);
+    }
+
+    current_wallpaper = static_cast<WallpaperVariant>(prev_val);
+  }
+
+  static void select_random_wallpaper() {
+    int wallpaper_count = static_cast<int>(WallpaperVariant::COUNT);
+    int random_wallpaper = Random::next() % wallpaper_count;
+    if (random_wallpaper < 0)
+      random_wallpaper *= -1;
+
+    WallpaperVariant random_wallpaper_variant =
+        static_cast<WallpaperVariant>(random_wallpaper);
+
+    current_wallpaper = random_wallpaper_variant;
   }
 
   static void draw_selected_wallpaper() {

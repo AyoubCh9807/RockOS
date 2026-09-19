@@ -464,4 +464,5 @@ public:
     Graphics::draw_image(damian_pixels, x, y, DamianSprite::WIDTH,
                          DamianSprite::HEIGHT);
   }
+
 };

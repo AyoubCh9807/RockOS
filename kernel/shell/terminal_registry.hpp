@@ -3,6 +3,8 @@
 #include "../data/command_descriptions.hpp"
 #include "../data/shell_commands.hpp"
 #include "../utils/string_utils.hpp"
+
+
 #include "commands/append.hpp"
 #include "commands/calc.hpp"
 #include "commands/cat.hpp"
@@ -51,6 +53,7 @@
 #include "commands/void.hpp"
 #include "commands/whoami.hpp"
 #include "commands/rockai.hpp"
+#include "commands/wallpaper.hpp"
 
 constexpr int MAX_TERMINAL_COMMANDS = 256;
 
@@ -106,6 +109,7 @@ private:
   LoreCommand lore;
   DiagnoseCommand diagnose;
   AICommand rockai;
+  WallpaperCommand wallpaper;
 
   int count = 0;
 
@@ -126,7 +130,7 @@ public:
         whoami(terminal_utils), repeat(terminal_utils), upper(terminal_utils),
         lower(terminal_utils), length(terminal_utils), calc(), motd(),
         rockfetch(terminal_utils), ascii(terminal_utils), stats(terminal_utils),
-        mood(), void_cmd(terminal_utils), lore(), diagnose(terminal_utils), rockai(ai) {}
+        mood(), void_cmd(terminal_utils), lore(), diagnose(terminal_utils), rockai(ai), wallpaper() {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 
@@ -178,6 +182,7 @@ public:
     register_command(&lore);
     register_command(&diagnose);
     register_command(&rockai);
+    register_command(&wallpaper);
 
     //    Debugger::log("loaded %d commands successfully!\n", count);
   }

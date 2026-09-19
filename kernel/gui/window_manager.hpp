@@ -613,17 +613,20 @@ public:
     if (!focused_window)
       return;
 
-    if (ev.scancode == (int)'x') {
+    // Ctrl + x to kill the current window
+    if (ev.scancode == 'x' && Keyboard::is_ctrl_down()) {
       destroy_window(focused_window);
       return;
     }
 
-    if (ev.scancode == 'k' && Keyboard::is_ctrl_down()) {
+    // Ctrl + Shift + k to kill all windows
+    if (ev.scancode == 'k' && Keyboard::is_ctrl_down() &&
+        Keyboard::is_shift_down()) {
       destroy_all_windows();
       return;
     }
 
-    // Ctrl+ArrowUp / Ctrl+ArrowDown to maximize/restore.
+    // Ctrl + ArrowUp / Ctrl + ArrowDown to maximize/restore.
     if (Keyboard::is_ctrl_down() &&
         (ev.keytype == KeyType::ArrowUp || ev.keytype == KeyType::ArrowDown)) {
       toggle_maximize(focused_window);
