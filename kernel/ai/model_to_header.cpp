@@ -35,11 +35,10 @@ struct Header {
 };
 
 constexpr uint32_t EXPECTED_MAGIC = 0x524F434B;
-constexpr uint32_t EXPECTED_VERSION = 1;
+// Bumped in lockstep with ModelIO::VERSION: version-2 files also carry
+// EntityClassifier's weights after IntentClassifier's.
+constexpr uint32_t EXPECTED_VERSION = 2;
 
-// Uppercases and replaces anything that isn't [A-Z0-9_] with '_', so a
-// user-supplied array name is always safe to drop straight into a C++
-// header.
 std::string sanitize_identifier(const std::string &raw) {
   std::string out;
   out.reserve(raw.size());
@@ -68,8 +67,6 @@ std::string sanitize_identifier(const std::string &raw) {
   return out;
 }
 
-// Writes a float as valid C++ source while preserving enough precision
-// for an exact float32 round-trip.
 void write_float_literal(std::ostream &out, float value) {
 
   if (value == 0.0f) {
@@ -82,7 +79,6 @@ void write_float_literal(std::ostream &out, float value) {
 
   out << value;
 
-  // Make sure the literal is explicitly a floating-point literal.
   out << "f";
 }
 
@@ -156,7 +152,10 @@ int main(int argc, char **argv) {
         << header.version
         << " (this tool understands version "
         << EXPECTED_VERSION
-        << ")\n";
+        << "). If this file predates the entity classifier, retrain "
+           "with the current main.cpp to produce a version-"
+        << EXPECTED_VERSION
+        << " file first.\n";
 
     return 1;
   }
@@ -180,7 +179,6 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // Make sure there isn't unexpected trailing data.
   in.peek();
 
   if (!in.eof()) {
@@ -252,10 +250,10 @@ int main(int argc, char **argv) {
 
   out
       << "// on each component, in the same "
-         "embedding -> layers -> classifier\n";
+         "embedding -> layers -> intent classifier ->\n";
 
   out
-      << "// order ModelIO::load() uses.\n";
+      << "// entity classifier order ModelIO::load() uses.\n";
 
   out
       << "inline constexpr uint32_t "

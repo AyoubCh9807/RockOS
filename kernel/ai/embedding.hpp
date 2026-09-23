@@ -4,6 +4,8 @@
 #include "../utils/math_utils.hpp"
 #include "../random/random.hpp"
 
+#include <cmath>
+
 class Embedding {
 private:
   static constexpr int EMBEDDING_DIMENSION = 128;
@@ -21,6 +23,21 @@ private:
   // matching how it's applied below.
   static constexpr float GRADIENT_CLIP = 1.0f;
 
+  // Small L2 penalty applied during apply_gradients(), same pattern as
+  // every other trainable module (SelfAttention, FeedForwardNetwork,
+  // LayerNorm's gamma, IntentClassifier). This was previously missing
+  // here: GRADIENT_CLIP above only bounds how much a single step can
+  // move an embedding row, it does nothing to stop rows from drifting
+  // upward indefinitely over many epochs if their gradient keeps
+  // pointing the same way on average (e.g. frequently-occurring
+  // tokens). Since every downstream layer (attention, feed-forward,
+  // layer norm, classifier) reads directly from this table, an
+  // inflating embedding row re-triggers saturation everywhere else even
+  // after those modules' own weights are well-regularized - this is
+  // what let the model still diverge around epoch ~110 even after
+  // clipping/decay were correctly in place everywhere else.
+  static constexpr float WEIGHT_DECAY = 0.01f;
+
   static float random_weight(float limit) {
     u32 value = Random::next();
 
@@ -33,6 +50,12 @@ private:
   // max_norm. Same policy as Trainer::clip_gradient, duplicated here so
   // the embedding table's gradient gets bounded too, not just the
   // classifier's output gradient.
+  //
+  // NaN-safety: comparisons against NaN are always false in C++, so the
+  // old "if (norm > max_norm)" silently did nothing when norm was NaN -
+  // a corrupted gradient sailed straight through "clipping" untouched.
+  // We now explicitly detect non-finite norms first and zero the whole
+  // vector in that case, since there's no sane scale factor to apply.
   static void clip_gradient(Vector<float> &grad, float max_norm) {
     float norm_sq = 0.0f;
 
@@ -40,6 +63,13 @@ private:
       norm_sq += grad[i] * grad[i];
 
     float norm = MathUtils::sqrt(norm_sq);
+
+    if (!std::isfinite(norm)) {
+      for (int i = 0; i < grad.size(); i++)
+        grad[i] = 0.0f;
+
+      return;
+    }
 
     if (norm > max_norm && norm > 0.0f) {
       float scale = max_norm / norm;
@@ -112,11 +142,16 @@ public:
     // Bound the gradient's L2 norm before it ever touches the
     // embedding table. Without this, a token that shows up often in one
     // batch (or one with skewed gradients) can push its embedding row -
-    // and everything downstream that reads it - out to extreme values.
+    // and everything downstream that reads it - out to extreme values
+    // in a single step.
     clip_gradient(d_matrix, GRADIENT_CLIP);
 
+    // Same decoupled-in-formula L2 decay pattern as every other module
+    // in this model. This is what actually caps long-term drift across
+    // many epochs - GRADIENT_CLIP above only bounds a single step.
     for (int i = 0; i < matrix.size(); i++)
-      matrix[i] -= learning_rate * d_matrix[i];
+      matrix[i] -=
+          learning_rate * (d_matrix[i] + WEIGHT_DECAY * matrix[i]);
   }
 
   void update_weights(

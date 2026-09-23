@@ -3,49 +3,23 @@
 #include "../containers/vector.hpp"
 #include "../random/random.hpp"
 #include "../utils/math_utils.hpp"
+#include "intent_classifier.hpp"
 
 #include <cmath>
 
-class IntentClassifier {
+// Second prediction head over the same pooled transformer output
+// IntentClassifier reads. Predicts *which entity* (app/window) a command
+// refers to, independently of intent. Kept as its own class rather than
+// folded into IntentClassifier so the two heads have fully independent
+// weights/gradients/loss - Trainer combines them at the trunk boundary
+// (see Trainer::train_on_example).
+class EntityClassifier {
 public:
-  enum class Intent {
-    UNKNOWN,
-
-    GREETING,
-    MEMORY_USAGE,
-    TIME,
-    UPTIME,
-
-    OPEN_APP,
-    CLOSE_WINDOW,
-    MINIMIZE_WINDOW,
-
-    HELP,
-
-    COUNT
-  };
-
-  // FIX: COUNT used to sit before TYRANT/SETTINGS/MUSIC_PLAYER, so
-  // static_cast<int>(Entity::COUNT) was 6 instead of 9 - any output layer
-  // sized off Entity::COUNT (see EntityClassifier) would never have been
-  // able to represent those three entities at all. COUNT now comes last,
-  // like every other enum in this file.
-  enum class Entity : u8 {
-    NONE,
-    CALCULATOR,
-    MATRIX,
-    TERMINAL,
-    BROWSER,
-    ROCK_AI,
-    TYRANT,
-    SETTINGS,
-    MUSIC_PLAYER,
-    COUNT
-  };
+  using Entity = IntentClassifier::Entity;
 
 private:
   static constexpr int INPUT_DIMENSION = 128;
-  static constexpr int OUTPUT_DIMENSION = static_cast<int>(Intent::COUNT);
+  static constexpr int OUTPUT_DIMENSION = static_cast<int>(Entity::COUNT);
 
   static constexpr float WEIGHT_DECAY = 0.01f;
   static constexpr float MAX_LOGIT_MAGNITUDE = 20.0f;
@@ -86,7 +60,7 @@ private:
   }
 
 public:
-  IntentClassifier() {
+  EntityClassifier() {
     weights.reserve(INPUT_DIMENSION * OUTPUT_DIMENSION);
     bias.reserve(OUTPUT_DIMENSION);
 
@@ -131,17 +105,17 @@ public:
     Vector<float> logits;
     logits.reserve(OUTPUT_DIMENSION);
 
-    for (int intent = 0; intent < OUTPUT_DIMENSION; intent++) {
+    for (int entity = 0; entity < OUTPUT_DIMENSION; entity++) {
       float sum = 0.0f;
 
       for (int dimension = 0; dimension < INPUT_DIMENSION; dimension++) {
 
-        int weight_index = dimension * OUTPUT_DIMENSION + intent;
+        int weight_index = dimension * OUTPUT_DIMENSION + entity;
 
         sum += pooled[dimension] * weights[weight_index];
       }
 
-      sum += bias[intent];
+      sum += bias[entity];
 
       if (!std::isfinite(sum)) {
         sum = MAX_LOGIT_MAGNITUDE;
@@ -162,11 +136,11 @@ public:
     return logits;
   }
 
-  Intent predict(const Vector<Vector<float>> &sequence) {
+  Entity predict(const Vector<Vector<float>> &sequence) {
     Vector<float> logits = classify(sequence);
 
     if (logits.size() == 0)
-      return Intent::UNKNOWN;
+      return Entity::NONE;
 
     int best_index = 0;
 
@@ -175,7 +149,7 @@ public:
         best_index = i;
     }
 
-    return static_cast<Intent>(best_index);
+    return static_cast<Entity>(best_index);
   }
 
   Vector<float> softmax(const Vector<float> &logits) {
@@ -200,9 +174,9 @@ public:
   }
 
   Vector<float> gradient_from_label(const Vector<float> &logits,
-                                    Intent true_intent) {
+                                    Entity true_entity) {
     Vector<float> probs = softmax(logits);
-    int label = static_cast<int>(true_intent);
+    int label = static_cast<int>(true_entity);
 
     Vector<float> d_logits;
     d_logits.resize(probs.size(), 0.0f);
@@ -217,21 +191,21 @@ public:
     Vector<float> gated;
     gated.resize(OUTPUT_DIMENSION, 0.0f);
 
-    for (int intent = 0; intent < OUTPUT_DIMENSION; intent++) {
-      float direction = cached_clip_direction[intent];
-      float g = d_logits[intent];
+    for (int entity = 0; entity < OUTPUT_DIMENSION; entity++) {
+      float direction = cached_clip_direction[entity];
+      float g = d_logits[entity];
 
       if (direction > 0.0f && g < 0.0f)
         g = 0.0f;
       else if (direction < 0.0f && g > 0.0f)
         g = 0.0f;
 
-      gated[intent] = g;
+      gated[entity] = g;
 
-      d_bias[intent] += g;
+      d_bias[entity] += g;
 
       for (int dimension = 0; dimension < INPUT_DIMENSION; dimension++) {
-        int weight_index = dimension * OUTPUT_DIMENSION + intent;
+        int weight_index = dimension * OUTPUT_DIMENSION + entity;
         d_weights[weight_index] += cached_pooled[dimension] * g;
       }
     }
@@ -241,9 +215,9 @@ public:
 
     for (int dimension = 0; dimension < INPUT_DIMENSION; dimension++) {
       float sum = 0.f;
-      for (int intent = 0; intent < OUTPUT_DIMENSION; intent++) {
-        int weight_index = dimension * OUTPUT_DIMENSION + intent;
-        sum += gated[intent] * weights[weight_index];
+      for (int entity = 0; entity < OUTPUT_DIMENSION; entity++) {
+        int weight_index = dimension * OUTPUT_DIMENSION + entity;
+        sum += gated[entity] * weights[weight_index];
       }
       d_pooled[dimension] = sum;
     }

@@ -4,6 +4,8 @@
 #include "../random/random.hpp"
 #include "../utils/math_utils.hpp"
 
+#include <cmath>
+
 class SelfAttention {
 private:
   static constexpr int INPUT_DIMENSION = 128;
@@ -81,6 +83,12 @@ private:
   // max_norm. Same policy as Trainer::clip_gradient, duplicated here so
   // every parameter gradient in this module gets bounded, not just the
   // classifier's output gradient.
+  //
+  // NaN-safety: comparisons against NaN are always false in C++, so the
+  // old "if (norm > max_norm)" silently did nothing when norm was NaN -
+  // a corrupted gradient sailed straight through "clipping" untouched.
+  // We now explicitly detect non-finite norms first and zero the whole
+  // vector in that case, since there's no sane scale factor to apply.
   static void clip_gradient(Vector<float> &grad, float max_norm) {
     float norm_sq = 0.0f;
 
@@ -88,6 +96,13 @@ private:
       norm_sq += grad[i] * grad[i];
 
     float norm = MathUtils::sqrt(norm_sq);
+
+    if (!std::isfinite(norm)) {
+      for (int i = 0; i < grad.size(); i++)
+        grad[i] = 0.0f;
+
+      return;
+    }
 
     if (norm > max_norm && norm > 0.0f) {
       float scale = max_norm / norm;
@@ -140,10 +155,18 @@ public:
   Vector<Vector<float>> attention_scores;
   Vector<Vector<float>> attention_weights;
 
-  // Parallel to attention_scores: 1.0 where a score was NOT clamped,
-  // 0.0 where it was. Same straight-through-gradient reasoning as
-  // IntentClassifier's cached_clip_mask.
-  Vector<Vector<float>> score_clip_mask;
+  // Direction each score was clamped in during the forward pass:
+  //   0.0  -> not clamped, gradient flows through untouched
+  //  +1.0  -> clamped at the HIGH boundary (MAX_SCORE_MAGNITUDE)
+  //  -1.0  -> clamped at the LOW boundary (-MAX_SCORE_MAGNITUDE)
+  //
+  // Same reasoning as IntentClassifier::cached_clip_direction: a plain
+  // binary mask blocks corrective gradient along with runaway gradient,
+  // which can permanently freeze an attention score once it saturates.
+  // Storing direction lets backward() allow gradient that pulls a
+  // saturated score back into range, while still blocking gradient that
+  // would push it further past the boundary.
+  Vector<Vector<float>> score_clip_direction;
 
   float dot_product(const Vector<float> &a, const Vector<float> &b) {
     float sum = 0.0f;
@@ -158,32 +181,41 @@ public:
                                   const Vector<Vector<float>> &keys) {
 
     attention_scores.clear();
-    score_clip_mask.clear();
+    score_clip_direction.clear();
 
     for (int i = 0; i < queries.size(); i++) {
       Vector<float> scores;
-      Vector<float> mask_row;
+      Vector<float> direction_row;
 
       for (int j = 0; j < keys.size(); j++) {
         float score = dot_product(queries[i], keys[j]);
 
         score /= MathUtils::sqrt(128.0f);
 
-        if (score > MAX_SCORE_MAGNITUDE) {
+        // NaN-safety: a non-finite score used to fall through to the
+        // "else" branch below (both ">" and "<" comparisons against
+        // NaN are false), so it was treated as perfectly normal and
+        // passed unclamped into the softmax. Treat it the same as a
+        // high-side saturation: clamp it and mark direction so
+        // corrective gradient can still pull it back down.
+        if (!std::isfinite(score)) {
           score = MAX_SCORE_MAGNITUDE;
-          mask_row.push_back(0.0f);
+          direction_row.push_back(1.0f);
+        } else if (score > MAX_SCORE_MAGNITUDE) {
+          score = MAX_SCORE_MAGNITUDE;
+          direction_row.push_back(1.0f);
         } else if (score < -MAX_SCORE_MAGNITUDE) {
           score = -MAX_SCORE_MAGNITUDE;
-          mask_row.push_back(0.0f);
+          direction_row.push_back(-1.0f);
         } else {
-          mask_row.push_back(1.0f);
+          direction_row.push_back(0.0f);
         }
 
         scores.push_back(score);
       }
 
       attention_scores.push_back(scores);
-      score_clip_mask.push_back(mask_row);
+      score_clip_direction.push_back(direction_row);
     }
   }
 
@@ -306,11 +338,22 @@ public:
       Vector<float> row;
       row.resize(seq_len, 0.0f);
 
-      // Straight-through estimator: pass gradient through unchanged
-      // rather than gating it to zero at the clamp (see IntentClassifier
-      // for the full explanation of why gating creates dead zones).
+      // Direction-aware straight-through estimator: block gradient only
+      // when it would push an already-saturated score further past the
+      // boundary it hit; allow gradient that pulls it back into range.
+      // See score_clip_direction and IntentClassifier::backward for the
+      // full reasoning - a plain binary mask here permanently freezes
+      // any attention pair that ever saturates.
       for (int j = 0; j < seq_len; j++) {
-        row[j] = attention_weights[i][j] * (d_weights_matrix[i][j] - dot_sum);
+        float raw = attention_weights[i][j] * (d_weights_matrix[i][j] - dot_sum);
+        float direction = score_clip_direction[i][j];
+
+        if (direction > 0.0f && raw < 0.0f)
+          raw = 0.0f;
+        else if (direction < 0.0f && raw > 0.0f)
+          raw = 0.0f;
+
+        row[j] = raw;
       }
 
       d_scores.push_back(row);

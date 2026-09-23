@@ -4,6 +4,8 @@
 #include "../random/random.hpp"
 #include "../utils/math_utils.hpp"
 
+#include <cmath>
+
 class FeedForwardNetwork {
 private:
   static constexpr int INPUT_DIMENSION = 128;
@@ -39,6 +41,12 @@ private:
   // max_norm. Same policy as Trainer::clip_gradient, duplicated here so
   // every parameter gradient in this module gets bounded, not just the
   // classifier's output gradient.
+  //
+  // NaN-safety: comparisons against NaN are always false in C++, so the
+  // old "if (norm > max_norm)" silently did nothing when norm was NaN -
+  // a corrupted gradient sailed straight through "clipping" untouched.
+  // We now explicitly detect non-finite norms first and zero the whole
+  // vector in that case, since there's no sane scale factor to apply.
   static void clip_gradient(Vector<float> &grad, float max_norm) {
     float norm_sq = 0.0f;
 
@@ -46,6 +54,13 @@ private:
       norm_sq += grad[i] * grad[i];
 
     float norm = MathUtils::sqrt(norm_sq);
+
+    if (!std::isfinite(norm)) {
+      for (int i = 0; i < grad.size(); i++)
+        grad[i] = 0.0f;
+
+      return;
+    }
 
     if (norm > max_norm && norm > 0.0f) {
       float scale = max_norm / norm;

@@ -1,22 +1,29 @@
 #include "embedding.hpp"
+#include "entity_classifier.hpp"
 #include "intent_classifier.hpp"
 #include "model_io.hpp"
 #include "positional_encoder.hpp"
 #include "tokenizer.hpp"
 #include "training_dataset.hpp"
 #include "transform_layer.hpp"
-#include "vocabulary.hpp"
 #include "transformer_input.hpp"
+#include "vocabulary.hpp"
 
 #include <iostream>
 
-static IntentClassifier::Intent predict(
+struct Prediction {
+  IntentClassifier::Intent intent;
+  IntentClassifier::Entity entity;
+};
+
+static Prediction predict(
     const char *text,
     Tokenizer &tokenizer,
     Embedding &embedding,
     PositionalEncoder &pos_encoder,
     Vector<TransformerLayer *> &layers,
-    IntentClassifier &classifier) {
+    IntentClassifier &classifier,
+    EntityClassifier &entity_classifier) {
 
   String phrase(text);
 
@@ -24,7 +31,7 @@ static IntentClassifier::Intent predict(
       tokenizer.tokenize(phrase);
 
   if (tokens.size() == 0)
-    return IntentClassifier::Intent::UNKNOWN;
+    return {IntentClassifier::Intent::UNKNOWN, IntentClassifier::Entity::NONE};
 
   TransformerInput input(
       embedding,
@@ -39,7 +46,11 @@ static IntentClassifier::Intent predict(
     sequence =
         layers[i]->forward(sequence);
 
-  return classifier.predict(sequence);
+  // Both heads predict off the same final sequence, independently.
+  IntentClassifier::Intent intent = classifier.predict(sequence);
+  IntentClassifier::Entity entity = entity_classifier.predict(sequence);
+
+  return {intent, entity};
 }
 
 static const char *intent_name(
@@ -76,8 +87,43 @@ static const char *intent_name(
   }
 }
 
+static const char *entity_name(
+    IntentClassifier::Entity entity) {
+
+  switch (entity) {
+
+  case IntentClassifier::Entity::CALCULATOR:
+    return "CALCULATOR";
+
+  case IntentClassifier::Entity::MATRIX:
+    return "MATRIX";
+
+  case IntentClassifier::Entity::TERMINAL:
+    return "TERMINAL";
+
+  case IntentClassifier::Entity::BROWSER:
+    return "BROWSER";
+
+  case IntentClassifier::Entity::ROCK_AI:
+    return "ROCK_AI";
+
+  case IntentClassifier::Entity::TYRANT:
+    return "TYRANT";
+
+  case IntentClassifier::Entity::SETTINGS:
+    return "SETTINGS";
+
+  case IntentClassifier::Entity::MUSIC_PLAYER:
+    return "MUSIC_PLAYER";
+
+  default:
+    return "NONE";
+  }
+}
+
 static void respond(
-    IntentClassifier::Intent intent) {
+    IntentClassifier::Intent intent,
+    IntentClassifier::Entity entity) {
 
   switch (intent) {
 
@@ -103,17 +149,17 @@ static void respond(
 
   case IntentClassifier::Intent::OPEN_APP:
     std::cout
-        << "Rock AI: You want to open an app.\n";
+        << "Rock AI: You want to open " << entity_name(entity) << ".\n";
     break;
 
   case IntentClassifier::Intent::CLOSE_WINDOW:
     std::cout
-        << "Rock AI: You want to close a window.\n";
+        << "Rock AI: You want to close " << entity_name(entity) << ".\n";
     break;
 
   case IntentClassifier::Intent::MINIMIZE_WINDOW:
     std::cout
-        << "Rock AI: You want to minimize a window.\n";
+        << "Rock AI: You want to minimize " << entity_name(entity) << ".\n";
     break;
 
   case IntentClassifier::Intent::HELP:
@@ -137,7 +183,7 @@ int main() {
 
   Tokenizer tokenizer(vocab);
 
-  TrainingDataset<IntentClassifier::Intent> dataset(
+  TrainingDataset dataset(
       tokenizer,
       vocab);
 
@@ -160,6 +206,7 @@ int main() {
   layers.push_back(&layer);
 
   IntentClassifier classifier;
+  EntityClassifier entity_classifier;
 
   constexpr const char *MODEL_FILE =
       "rock_ai.model";
@@ -168,7 +215,8 @@ int main() {
           MODEL_FILE,
           embedding,
           layers,
-          classifier)) {
+          classifier,
+          entity_classifier)) {
 
     std::cout
         << "ERROR: Could not load Rock AI model.\n";
@@ -210,23 +258,28 @@ int main() {
       break;
     }
 
-    IntentClassifier::Intent prediction =
+    Prediction prediction =
         predict(
             input,
             tokenizer,
             embedding,
             pos_encoder,
             layers,
-            classifier);
+            classifier,
+            entity_classifier);
 
     std::cout
         << "Intent: "
-        << intent_name(prediction)
+        << intent_name(prediction.intent)
         << " ("
-        << static_cast<int>(prediction)
+        << static_cast<int>(prediction.intent)
+        << ")  Entity: "
+        << entity_name(prediction.entity)
+        << " ("
+        << static_cast<int>(prediction.entity)
         << ")\n";
 
-    respond(prediction);
+    respond(prediction.intent, prediction.entity);
 
     std::cout << "\n";
   }

@@ -3,6 +3,7 @@
 #include "../containers/vector.hpp"
 
 #include "embedding.hpp"
+#include "entity_classifier.hpp"
 #include "intent_classifier.hpp"
 #include "transform_layer.hpp"
 
@@ -12,7 +13,11 @@
 class ModelIO {
 private:
   static constexpr uint32_t MAGIC = 0x524F434B;
-  static constexpr uint32_t VERSION = 1;
+  // Bumped from 1 -> 2: files now also carry EntityClassifier's weights,
+  // appended after IntentClassifier's. A version-1 file will fail the
+  // version check below and load() will just return false (caller falls
+  // back to fresh weights), it will never be misread as version 2.
+  static constexpr uint32_t VERSION = 2;
 
   struct Header {
     uint32_t magic;
@@ -27,13 +32,15 @@ public:
       const char *filename,
       const Embedding &embedding,
       const Vector<TransformerLayer *> &layers,
-      const IntentClassifier &classifier) {
+      const IntentClassifier &intent_classifier,
+      const EntityClassifier &entity_classifier) {
 
     Vector<float> parameters;
 
     int total_parameters =
         embedding.parameter_count() +
-        classifier.parameter_count();
+        intent_classifier.parameter_count() +
+        entity_classifier.parameter_count();
 
     for (int i = 0; i < layers.size(); i++)
       total_parameters += layers[i]->parameter_count();
@@ -45,7 +52,8 @@ public:
     for (int i = 0; i < layers.size(); i++)
       layers[i]->export_weights(parameters);
 
-    classifier.export_weights(parameters);
+    intent_classifier.export_weights(parameters);
+    entity_classifier.export_weights(parameters);
 
     Header header;
 
@@ -77,7 +85,8 @@ public:
       const char *filename,
       Embedding &embedding,
       Vector<TransformerLayer *> &layers,
-      IntentClassifier &classifier) {
+      IntentClassifier &intent_classifier,
+      EntityClassifier &entity_classifier) {
 
     std::ifstream file(
         filename,
@@ -111,7 +120,8 @@ public:
 
     int expected_parameters =
         embedding.parameter_count() +
-        classifier.parameter_count();
+        intent_classifier.parameter_count() +
+        entity_classifier.parameter_count();
 
     for (int i = 0; i < layers.size(); i++)
       expected_parameters +=
@@ -149,7 +159,12 @@ public:
         return false;
     }
 
-    if (!classifier.import_weights(
+    if (!intent_classifier.import_weights(
+            parameters,
+            cursor))
+      return false;
+
+    if (!entity_classifier.import_weights(
             parameters,
             cursor))
       return false;
@@ -157,4 +172,3 @@ public:
     return cursor == parameters.size();
   }
 };
-
