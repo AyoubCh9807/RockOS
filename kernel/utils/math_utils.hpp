@@ -161,4 +161,9 @@ template <typename T> T sqrt(T x) {
   return guess;
 }
 
+template <typename T> constexpr bool is_finite(T x) {
+  // To remove cmath dependency
+  return __builtin_isfinite(x);
+}
+
 } // namespace MathUtils

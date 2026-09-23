@@ -10,6 +10,8 @@
 #include "../window.hpp"
 #include "../window_app.hpp"
 
+#include "../../desktop/desktop_actions.hpp"
+
 class RockAIApp : public IWindowApp {
 private:
   static constexpr int MAX_INPUT = 128;
@@ -43,6 +45,8 @@ private:
   static constexpr u32 ONLINE = 0x2ECC40;
   static constexpr u32 OFFLINE = 0xFF3B3B;
 
+  DesktopActions *desktop;
+
   struct Message {
     char text[INPUT_LENGTH];
     bool from_user;
@@ -60,7 +64,6 @@ private:
   int scroll = 0;
   int cursor_tick = 0;
 
-private:
   static int text_width(const char *text) {
     int length = 0;
 
@@ -362,7 +365,7 @@ private:
     }
   }
 
-  void handle_intent(const AIResponse &res, Window &win) {
+  void handle_response(const AIResponse &res, Window &win) {
     if (res.type() != AIResponseType::ACTION)
       return;
 
@@ -423,7 +426,49 @@ private:
       break;
     }
 
-    case IntentClassifier::Intent::OPEN_APP:
+    case IntentClassifier::Intent::OPEN_APP: {
+      switch (res.get_entity()) {
+      case IntentClassifier::Entity::CALCULATOR:
+        desktop->open_app("Calculator");
+        break;
+
+      case IntentClassifier::Entity::MATRIX:
+        desktop->open_app("Matrix");
+        break;
+
+      case IntentClassifier::Entity::TERMINAL:
+        desktop->open_app("Terminal");
+        break;
+
+      case IntentClassifier::Entity::BROWSER:
+        desktop->open_app("Browser");
+        break;
+
+      case IntentClassifier::Entity::ROCK_AI:
+        desktop->open_app("Rock AI");
+        break;
+
+      case IntentClassifier::Entity::TYRANT:
+        desktop->open_app("Tyrant");
+        break;
+
+      case IntentClassifier::Entity::SETTINGS:
+        desktop->open_app("Settings");
+        break;
+
+      case IntentClassifier::Entity::MUSIC_PLAYER:
+        desktop->open_app("Music Player");
+        break;
+
+      case IntentClassifier::Entity::NONE:
+      case IntentClassifier::Entity::COUNT:
+      default:
+        break;
+      }
+
+      break;
+    }
+
     case IntentClassifier::Intent::CLOSE_WINDOW:
     case IntentClassifier::Intent::MINIMIZE_WINDOW:
       // Handled later by the desktop/window manager.
@@ -433,7 +478,6 @@ private:
       break;
     }
   }
-
   void submit(Window &win) {
     if (input_length == 0)
       return;
@@ -449,7 +493,7 @@ private:
     if (response.type() == AIResponseType::TEXT)
       add_message(false, response.text().c_str(), &win);
 
-    handle_intent(response, win);
+    handle_response(response, win);
 
     input_length = 0;
     input[0] = '\0';
@@ -459,6 +503,8 @@ private:
 
 public:
   RockAIApp() : vocab(), ai(vocab) { input[0] = '\0'; }
+
+  void set_desktop_actions(DesktopActions &actions) { desktop = &actions; }
 
   const char *name() const override { return "Rock AI"; }
 

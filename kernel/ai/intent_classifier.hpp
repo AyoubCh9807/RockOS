@@ -4,8 +4,6 @@
 #include "../random/random.hpp"
 #include "../utils/math_utils.hpp"
 
-#include <cmath>
-
 class IntentClassifier {
 public:
   enum class Intent {
@@ -70,7 +68,7 @@ private:
 
     float norm = MathUtils::sqrt(norm_sq);
 
-    if (!std::isfinite(norm)) {
+    if (!MathUtils::is_finite(norm)) {
       for (int i = 0; i < grad.size(); i++)
         grad[i] = 0.0f;
 
@@ -143,7 +141,7 @@ public:
 
       sum += bias[intent];
 
-      if (!std::isfinite(sum)) {
+      if (!MathUtils::is_finite(sum)) {
         sum = MAX_LOGIT_MAGNITUDE;
         cached_clip_direction.push_back(1.0f);
       } else if (sum > MAX_LOGIT_MAGNITUDE) {

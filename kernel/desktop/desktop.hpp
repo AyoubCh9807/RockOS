@@ -16,13 +16,15 @@
 
 #include "../drivers/mouse.hpp"
 
+#include "desktop_actions.hpp"
+
 static constexpr auto MAX_DESKTOP_APPS = 256;
 static constexpr auto DEFAULT_WINDOW_WIDTH = 600;
 static constexpr auto DEFAULT_WINDOW_HEIGHT = 480;
 
 static constexpr auto INVALID_ICON_INDEX = -1;
 
-class Desktop {
+class Desktop : public DesktopActions {
 private:
   WindowManager &window_manager;
   WindowAppRegistry &window_app_registry;
@@ -465,4 +467,40 @@ public:
                          DamianSprite::HEIGHT);
   }
 
+  void open_app(const char *name) override {
+    IWindowApp *app = window_app_registry.find(name);
+
+    if (!app)
+      return;
+
+    Window *window = window_manager.create_window(
+        app, LAUNCH_X, LAUNCH_Y, DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+
+    if (!window)
+      return;
+
+    handle_launch_coords();
+  }
+
+  void close_focused_window() override {
+    Window *window = window_manager.get_focused();
+
+    if (!window)
+      return;
+
+    window_manager.destroy_window(window);
+  }
+
+  void minimize_focused_window() override {
+    Window *window = window_manager.get_focused();
+
+    if (!window)
+      return;
+
+    window->minimize();
+  }
+
+  void next_wallpaper() override { Wallpaper::select_next_wallpaper(); }
+
+  void open_launcher() override { app_launcher.open(); }
 };

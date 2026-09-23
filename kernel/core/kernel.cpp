@@ -160,15 +160,17 @@ extern "C" void kernel_main(u64 mb_addr) {
    */
 
   WindowManager wm;
-  WindowAppRegistry window_app_reg(terminal, shell);
 
-  window_app_reg.fill_registry();
+  WindowAppRegistry window_app_reg(terminal, shell);
 
   DialogManager dialog_manager;
 
   AppLauncher app_launcher(wm, window_app_reg, dialog_manager);
 
   Desktop desktop(wm, window_app_reg, dialog_manager, app_launcher);
+
+  window_app_reg.set_desktop_actions(desktop);
+  window_app_reg.fill_registry();
 
   const char *app_names[] = {
       "Counter",  "Dice",      "DVD",      "Clock", "Tyrant",  "Matrix",

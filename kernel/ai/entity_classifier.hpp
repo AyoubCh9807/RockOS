@@ -5,8 +5,6 @@
 #include "../utils/math_utils.hpp"
 #include "intent_classifier.hpp"
 
-#include <cmath>
-
 // Second prediction head over the same pooled transformer output
 // IntentClassifier reads. Predicts *which entity* (app/window) a command
 // refers to, independently of intent. Kept as its own class rather than
@@ -44,7 +42,7 @@ private:
 
     float norm = MathUtils::sqrt(norm_sq);
 
-    if (!std::isfinite(norm)) {
+    if (!MathUtils::is_finite(norm)) {
       for (int i = 0; i < grad.size(); i++)
         grad[i] = 0.0f;
 
@@ -117,7 +115,7 @@ public:
 
       sum += bias[entity];
 
-      if (!std::isfinite(sum)) {
+      if (!MathUtils::is_finite(sum)) {
         sum = MAX_LOGIT_MAGNITUDE;
         cached_clip_direction.push_back(1.0f);
       } else if (sum > MAX_LOGIT_MAGNITUDE) {

@@ -46,6 +46,10 @@ public:
     apps[count++] = app;
   }
 
+  void set_desktop_actions(DesktopActions &actions) {
+    rock_ai.set_desktop_actions(actions);
+  }
+
   void fill_registry() {
     register_app(&counter);
     register_app(&tyrant);

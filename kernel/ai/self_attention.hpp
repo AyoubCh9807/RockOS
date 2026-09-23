@@ -4,8 +4,6 @@
 #include "../random/random.hpp"
 #include "../utils/math_utils.hpp"
 
-#include <cmath>
-
 class SelfAttention {
 private:
   static constexpr int INPUT_DIMENSION = 128;
@@ -97,7 +95,7 @@ private:
 
     float norm = MathUtils::sqrt(norm_sq);
 
-    if (!std::isfinite(norm)) {
+    if (!MathUtils::is_finite(norm)) {
       for (int i = 0; i < grad.size(); i++)
         grad[i] = 0.0f;
 
@@ -198,7 +196,7 @@ public:
         // passed unclamped into the softmax. Treat it the same as a
         // high-side saturation: clamp it and mark direction so
         // corrective gradient can still pull it back down.
-        if (!std::isfinite(score)) {
+        if (!MathUtils::is_finite(score)) {
           score = MAX_SCORE_MAGNITUDE;
           direction_row.push_back(1.0f);
         } else if (score > MAX_SCORE_MAGNITUDE) {

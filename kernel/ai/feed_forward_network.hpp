@@ -4,8 +4,6 @@
 #include "../random/random.hpp"
 #include "../utils/math_utils.hpp"
 
-#include <cmath>
-
 class FeedForwardNetwork {
 private:
   static constexpr int INPUT_DIMENSION = 128;
@@ -55,7 +53,7 @@ private:
 
     float norm = MathUtils::sqrt(norm_sq);
 
-    if (!std::isfinite(norm)) {
+    if (!MathUtils::is_finite(norm)) {
       for (int i = 0; i < grad.size(); i++)
         grad[i] = 0.0f;
 

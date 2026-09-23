@@ -13,7 +13,6 @@
 #include "transform_layer.hpp"
 #include "transformer_input.hpp"
 
-#include <cmath>
 #include <functional>
 #include <iostream>
 #include <limits>
@@ -83,9 +82,9 @@ private:
     for (int i = 0; i < grad.size(); i++)
       norm_sq += grad[i] * grad[i];
 
-    float norm = std::sqrt(norm_sq);
+    float norm = MathUtils::sqrt(norm_sq);
 
-    if (!std::isfinite(norm)) {
+    if (!MathUtils::isfinite(norm)) {
       for (int i = 0; i < grad.size(); i++)
         grad[i] = 0.0f;
 
@@ -100,7 +99,8 @@ private:
     }
   }
 
-  static void clip_global_norm(Vector<Vector<float> *> &grads, float max_norm) {
+  static void clip_global_norm(Vector<Vector<float> *> &grads,
+                               float max_norm) {
     float norm_sq = 0.0f;
 
     for (int v = 0; v < grads.size(); v++) {
@@ -110,9 +110,9 @@ private:
         norm_sq += g[i] * g[i];
     }
 
-    float norm = std::sqrt(norm_sq);
+    float norm = MathUtils::sqrt(norm_sq);
 
-    if (!std::isfinite(norm)) {
+    if (!MathUtils::isfinite(norm)) {
       for (int v = 0; v < grads.size(); v++) {
         Vector<float> &g = *grads[v];
 
@@ -144,7 +144,8 @@ public:
 
   Trainer(Tokenizer &tokenizer, Embedding &embedding,
           PositionalEncoder &positional_encoder,
-          Vector<TransformerLayer *> layers, IntentClassifier &intent_classifier,
+          Vector<TransformerLayer *> layers,
+          IntentClassifier &intent_classifier,
           EntityClassifier &entity_classifier)
       : tokenizer(tokenizer), embedding(embedding),
         transformer_input(embedding, positional_encoder), layers(layers),
@@ -173,25 +174,31 @@ public:
 
     int intent_label = static_cast<int>(example.intent);
     float intent_probability = intent_probs[intent_label];
+
     if (intent_probability < 0.0001f)
       intent_probability = 0.0001f;
-    float intent_loss = -std::log(intent_probability);
+
+    float intent_loss = -MathUtils::log(intent_probability);
 
     Vector<float> entity_logits = entity_classifier.classify(sequence);
     Vector<float> entity_probs = entity_classifier.softmax(entity_logits);
 
     int entity_label = static_cast<int>(example.entity);
     float entity_probability = entity_probs[entity_label];
+
     if (entity_probability < 0.0001f)
       entity_probability = 0.0001f;
-    float entity_loss = -std::log(entity_probability);
+
+    float entity_loss = -MathUtils::log(entity_probability);
 
     Vector<float> d_intent_logits =
         intent_classifier.gradient_from_label(intent_logits, example.intent);
+
     clip_gradient(d_intent_logits, GRADIENT_CLIP);
 
     Vector<float> d_entity_logits =
         entity_classifier.gradient_from_label(entity_logits, example.entity);
+
     clip_gradient(d_entity_logits, GRADIENT_CLIP);
 
     embedding.zero_grad();
@@ -214,7 +221,8 @@ public:
       combined.resize(d_sequence_from_intent[t].size(), 0.0f);
 
       for (int k = 0; k < combined.size(); k++)
-        combined[k] = d_sequence_from_intent[t][k] + d_sequence_from_entity[t][k];
+        combined[k] =
+            d_sequence_from_intent[t][k] + d_sequence_from_entity[t][k];
 
       d_sequence.push_back(combined);
     }
@@ -286,9 +294,10 @@ public:
       for (int step = 0; step < indices.size(); step++) {
         int i = indices[step];
 
-        TrainStepResult result = train_on_example(dataset.get(i), learning_rate);
+        TrainStepResult result =
+            train_on_example(dataset.get(i), learning_rate);
 
-        if (!std::isfinite(result.total_loss)) {
+        if (!MathUtils::isfinite(result.total_loss)) {
           std::cout << "NaN/Inf detected at epoch " << (epoch + 1)
                     << ", example " << i << "\n";
 
@@ -305,7 +314,8 @@ public:
         }
       }
 
-      last_epoch_average_loss = total_loss / static_cast<float>(indices.size());
+      last_epoch_average_loss =
+          total_loss / static_cast<float>(indices.size());
 
       std::cout << "Epoch " << (epoch + 1)
                 << " loss: " << last_epoch_average_loss << "\n";
