@@ -215,13 +215,10 @@ public:
     char memory_text[32];
 
     if (used_memory > 1024 * 1024) {
-
       StringUtils::snprintf(memory_text, sizeof(memory_text), "MEM %u.%u MB",
                             used_memory / (1024 * 1024),
                             (used_memory % (1024 * 1024)) / 102400);
-
     } else {
-
       StringUtils::snprintf(memory_text, sizeof(memory_text), "MEM %u KB",
                             used_memory / 1024);
     }
@@ -233,21 +230,27 @@ public:
                             : heap.memory_low()       ? Colors::GREEN
                                                       : Colors::WHITE;
 
-    Graphics::draw_string(memory_text, INFO_X, taskbar_y + 18,
+    Graphics::draw_string(memory_text, INFO_X, taskbar_y + 14,
                           memory_text_color);
+
+    // Open windows.
+    char windows_text[32];
+
+    StringUtils::snprintf(windows_text, sizeof(windows_text), "WIN %u/32",
+                          window_manager.get_count());
+
+    Graphics::draw_string(windows_text, INFO_X, taskbar_y + 28, Colors::WHITE);
 
     // Uptime.
     char uptime_text[32];
 
     Timer::get_formatted_time_into(uptime_text, sizeof(uptime_text));
 
-    Graphics::draw_string(uptime_text, INFO_X, taskbar_y + 38, Colors::WHITE);
+    Graphics::draw_string(uptime_text, INFO_X, taskbar_y + 42, Colors::WHITE);
 
     // RTC date.
     u32 year = RTC::get_year() + 2000;
-
     u8 month = RTC::get_month();
-
     u8 day = RTC::get_day();
 
     char date_text[32];
@@ -257,9 +260,7 @@ public:
 
     // Clock.
     u8 hour = RTC::get_hours() % 24;
-
     u8 minute = RTC::get_minutes() % 60;
-
     u8 second = RTC::get_seconds() % 60;
 
     char clock_text[16];
