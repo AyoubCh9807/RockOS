@@ -20,7 +20,7 @@ inline bool init_back_buffer() {
     return false;
 
   Framebuffer &fb = Multiboot2::framebuffer;
-  
+
   if (fb.bpp != 32)
     return false;
 
@@ -101,12 +101,21 @@ inline void draw_char(char c, u32 x, u32 y, u32 color) {
 }
 
 inline void draw_string(const char *str, u32 x, u32 y, u32 color) {
-  u32 i = 0;
+  u32 offset_x = 0;
+  u32 offset_y = 0;
 
-  while (str[i] != '\0') {
-    draw_char(str[i], x + i * CHARACTER_WIDTH, y, color);
+  while (*str != '\0') {
+    if (*str == '\n') {
+      offset_x = 0;
+      offset_y += CHARACTER_HEIGHT;
+      str++;
+      continue;
+    }
 
-    i++;
+    draw_char(*str, x + offset_x, y + offset_y, color);
+
+    offset_x += CHARACTER_WIDTH;
+    str++;
   }
 }
 

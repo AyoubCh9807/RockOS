@@ -167,7 +167,9 @@ extern "C" void kernel_main(u64 mb_addr) {
 
   AppLauncher app_launcher(wm, window_app_reg, dialog_manager);
 
-  Desktop desktop(wm, window_app_reg, dialog_manager, app_launcher);
+  NotificationService notification_service;
+
+  Desktop desktop(wm, window_app_reg, dialog_manager, app_launcher, notification_service);
 
   window_app_reg.set_desktop_actions(desktop);
   window_app_reg.fill_registry();

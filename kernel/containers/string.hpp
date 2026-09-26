@@ -213,12 +213,11 @@ public:
     return data_[index];
   }
 
-  char &operator[](size_t index) const {
+  const char &operator[](size_t index) const {
     if (!data_ || index >= size_)
       return err_char_;
     return data_[index];
   }
-
   void clear() {
     size_ = 0;
     if (data_)

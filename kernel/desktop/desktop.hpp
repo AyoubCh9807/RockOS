@@ -8,6 +8,8 @@
 
 #include "app_launcher.hpp"
 #include "desktop_icon.hpp"
+#include "notification_icons.hpp"
+#include "notification_service.hpp"
 #include "wallpaper.hpp"
 
 #include "../utils/debugger.hpp"
@@ -30,6 +32,7 @@ private:
   WindowAppRegistry &window_app_registry;
   DialogManager &dialog_manager;
   AppLauncher &app_launcher;
+  NotificationService notification_service;
 
   DesktopIcon icons[MAX_DESKTOP_APPS];
 
@@ -76,9 +79,11 @@ private:
 
 public:
   Desktop(WindowManager &wm, WindowAppRegistry &window_app_registry,
-          DialogManager &dialog_manager, AppLauncher &app_launcher)
+          DialogManager &dialog_manager, AppLauncher &app_launcher,
+          NotificationService &notification_service)
       : window_manager(wm), window_app_registry(window_app_registry),
-        dialog_manager(dialog_manager), app_launcher(app_launcher) {}
+        dialog_manager(dialog_manager), app_launcher(app_launcher),
+        notification_service(notification_service) {}
 
   void init() {
     clear();
@@ -137,6 +142,8 @@ public:
     }
 
     window_manager.update();
+
+    notification_service.update();
   }
 
   void render() {
@@ -150,6 +157,8 @@ public:
     // draw_damian();
 
     window_manager.render();
+
+    notification_service.draw();
 
     dialog_manager.render();
 
@@ -432,6 +441,16 @@ public:
       return true;
     }
 
+    // Ctrl + N to send a mock notification
+    if (ev.keytype == KeyType::Char && ev.scancode == 'n' &&
+        Keyboard::is_ctrl_down()) {
+      notification_service.add_notification(
+          "ROCK OS", Generator::random_phrase(damian_phrases), 500,
+          ROCK_OS_ICON_BATTERY_CHARGING, Colors::DARK_RED, Colors::WHITE, Colors::GOLD,
+          Colors::BLACK, 2);
+      return true;
+    }
+
     return false;
   }
 
@@ -452,7 +471,7 @@ public:
     }
   }
 
-  // in draw_damian(), use the decoded buffer instead of DamianSprite::PIXELS
+  // in draw_damian(), we use the decoded buffer instead of DamianSprite::PIXELS
   // directly
   void draw_damian() {
     if (!damian_pixels)
@@ -504,4 +523,13 @@ public:
   void next_wallpaper() override { Wallpaper::select_next_wallpaper(); }
 
   void open_launcher() override { app_launcher.open(); }
+
+  void send_notification(String title, String description, u32 timeout) {
+    notification_service.add_notification(title, description, timeout);
+  }
+
+  void send_notification(String title, String description) {
+    notification_service.add_notification(
+        title, description, notification_service.get_default_timeout());
+  }
 };
