@@ -1,6 +1,6 @@
 #pragma once
-#include "../../shared/types.hpp"
 #include "../../data/colors.hpp"
+#include "../../shared/types.hpp"
 
 class IWidget {
 protected:
@@ -31,5 +31,12 @@ public:
 
   virtual void draw() = 0;
   virtual void update() = 0;
-};
 
+  void set_position(int new_x, int new_y) {
+    x = new_x;
+    y = new_y;
+  }
+
+  constexpr int get_width() const { return width; }
+  constexpr int get_height() const { return height; }
+};

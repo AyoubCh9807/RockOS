@@ -5,6 +5,7 @@
 #include "../gui/dialog_manager.hpp"
 #include "../gui/window_app_registry.hpp"
 #include "../gui/window_manager.hpp"
+#include "widgets/widget_manager.hpp"
 
 #include "app_launcher.hpp"
 #include "context_menu.hpp"
@@ -30,13 +31,13 @@ static constexpr auto INVALID_ICON_INDEX = -1;
 
 class Desktop : public DesktopActions {
 private:
-  ClockWidget clock_widget;
   WindowManager &window_manager;
   WindowAppRegistry &window_app_registry;
   DialogManager &dialog_manager;
   AppLauncher &app_launcher;
   NotificationService notification_service;
   ContextMenu context_menu;
+  WidgetManager& widget_manager;
 
   DesktopIcon icons[MAX_DESKTOP_APPS];
 
@@ -84,10 +85,10 @@ private:
 public:
   Desktop(WindowManager &wm, WindowAppRegistry &window_app_registry,
           DialogManager &dialog_manager, AppLauncher &app_launcher,
-          NotificationService &notification_service)
+          NotificationService &notification_service, WidgetManager& widget_manager)
       : window_manager(wm), window_app_registry(window_app_registry),
         dialog_manager(dialog_manager), app_launcher(app_launcher),
-        notification_service(notification_service), context_menu(*this) {
+        notification_service(notification_service), context_menu(*this), widget_manager(widget_manager) {
     setup_context_menu();
   }
 
@@ -164,6 +165,7 @@ public:
 
     window_manager.update();
     notification_service.update();
+    widget_manager.update();
   }
 
   void render() {
@@ -171,8 +173,7 @@ public:
 
     Wallpaper::draw_selected_wallpaper();
 
-    clock_widget.update();
-    clock_widget.draw();
+    widget_manager.draw();
 
     update_icons();
     draw_icons();

@@ -38,13 +38,12 @@ static void int_to_hex(u32 value, char *buf) {
   buf[10] = '\0';
 }
 
-template <typename T> T max(T a, T b) { return a > b ? a : b; }
+template <typename Tx, typename Ty> auto max(Tx a, Ty b) { return a > b ? a : b; }
 
-template <typename T> T min(T a, T b) { return a < b ? a : b; }
+template <typename Tx, typename Ty> auto min(Tx a, Ty b) { return a < b ? a : b; }
 
-template <typename T> T clamp(T min, T mid, T max) {
-  T res;
-  res = (min > mid ? min : mid);
+template <typename Tx, typename Ty, typename Tz> auto clamp(Tx min, Ty mid, Tz max) {
+  auto res = (min > mid ? min : mid);
   res = (res > max ? max : res);
   return res;
 }
