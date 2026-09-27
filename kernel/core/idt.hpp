@@ -1,5 +1,6 @@
 #pragma once
 #include "../shared/types.hpp"
+#include "asm.hpp"  // <-- needed for Asm::inb / Asm::outb below; adjust path if asm.hpp lives elsewhere
 
 struct idt_entry {
   u16 offset_low;
@@ -25,6 +26,7 @@ extern "C" void keyboard_stub();
 extern "C" void pagefault_stub();
 extern "C" void gpfault_stub();
 extern "C" void mouse_stub();
+extern "C" void ata_stub();
 
 inline void idt_set_gate(int n, u64 handler) {
   idt[n].offset_low = handler & 0xFFFF;
@@ -58,7 +60,24 @@ inline void idt_init() {
 
   // IRQ12 -> vector 44 -> PS/2 mouse
   idt_set_gate(44, reinterpret_cast<u64>(mouse_stub));
+  // IRQ14 -> vector 46 -> primary ATA channel (disk)
+  idt_set_gate(46, reinterpret_cast<u64>(ata_stub));
 
   // Load the 64-bit IDT.
   asm volatile("lidt %0" : : "m"(idt_p) : "memory");
+
+  // Unmask IRQ14 on the SLAVE PIC (port 0xA1) so the disk is actually
+  // allowed to ring the bell. IRQ8-15 live on the slave PIC, and IRQ14
+  // is the 7th line there (IRQ8=bit0 ... IRQ14=bit6), so we clear bit 6.
+  //
+  // NOTE: this assumes the PIC has already been remapped (vectors 32+)
+  // by the time idt_init() runs, same as whatever already unmasked
+  // IRQ0/IRQ1/IRQ12 for your timer/keyboard/mouse. If that remap/unmask
+  // actually happens in a separate pic.hpp/pic_init() in your codebase,
+  // move this two-line block there instead, right after the other IRQ
+  // lines get unmasked - it just needs to run once, after the PIC remap
+  // and before you expect disk interrupts to fire.
+  u8 slave_mask = Asm::inb(0xA1);
+  slave_mask &= ~(1 << 6);
+  Asm::outb(0xA1, slave_mask);
 }

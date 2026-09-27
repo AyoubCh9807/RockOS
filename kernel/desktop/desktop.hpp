@@ -20,6 +20,7 @@
 #include "../drivers/mouse.hpp"
 
 #include "desktop_actions.hpp"
+#include "widgets/clock_widget.hpp"
 
 static constexpr auto MAX_DESKTOP_APPS = 256;
 static constexpr auto DEFAULT_WINDOW_WIDTH = 600;
@@ -29,6 +30,7 @@ static constexpr auto INVALID_ICON_INDEX = -1;
 
 class Desktop : public DesktopActions {
 private:
+  ClockWidget clock_widget;
   WindowManager &window_manager;
   WindowAppRegistry &window_app_registry;
   DialogManager &dialog_manager;
@@ -168,6 +170,9 @@ public:
     draw_background();
 
     Wallpaper::draw_selected_wallpaper();
+
+    clock_widget.update();
+    clock_widget.draw();
 
     update_icons();
     draw_icons();

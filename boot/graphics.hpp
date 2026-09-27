@@ -5,6 +5,7 @@
 #include "../kernel/data/font.hpp"
 #include "../kernel/desktop/cursor.hpp"
 #include "../kernel/shared/types.hpp"
+#include "../kernel/utils/math_utils.hpp"
 #include "graphic_colors.hpp"
 
 namespace Graphics {
@@ -67,6 +68,35 @@ inline void draw_rect(u32 x, u32 y, u32 w, u32 h, u32 color) {
 inline void draw_line(u32 x, u32 y, u32 w, u32 color) {
   for (u32 i = x; i < x + w; i++) {
     put_pixel(i, y, color);
+  }
+}
+
+inline void draw_line(int x1, int y1, int x2, int y2, u32 color) {
+  int dx = MathUtils::abs(x2 - x1);
+  int dy = MathUtils::abs(y2 - y1);
+
+  int sx = x1 < x2 ? 1 : -1;
+  int sy = y1 < y2 ? 1 : -1;
+
+  int error = dx - dy;
+
+  while (true) {
+    put_pixel(x1, y1, color);
+
+    if (x1 == x2 && y1 == y2)
+      break;
+
+    int error2 = error * 2;
+
+    if (error2 > -dy) {
+      error -= dy;
+      x1 += sx;
+    }
+
+    if (error2 < dx) {
+      error += dx;
+      y1 += sy;
+    }
   }
 }
 
@@ -177,6 +207,40 @@ inline void draw_vertical_line(u32 x, u32 y, u32 h, u32 color) {
   for (u32 i = y; i < y + h; ++i) {
     put_pixel(x, i, color);
   }
+}
+
+void draw_circle(int cx, int cy, int radius, u32 color) {
+  int x = radius;
+  int y = 0;
+  int decision = 1 - radius;
+
+  while (x >= y) {
+    put_pixel(cx + x, cy + y, color);
+    put_pixel(cx + y, cy + x, color);
+    put_pixel(cx - y, cy + x, color);
+    put_pixel(cx - x, cy + y, color);
+    put_pixel(cx - x, cy - y, color);
+    put_pixel(cx - y, cy - x, color);
+    put_pixel(cx + y, cy - x, color);
+    put_pixel(cx + x, cy - y, color);
+
+    y++;
+
+    if (decision <= 0) {
+      decision += 2 * y + 1;
+    } else {
+      x--;
+      decision += 2 * (y - x) + 1;
+    }
+  }
+}
+
+void draw_angled_line(int cx, int cy, int length, float angle, u32 color) {
+  const int end_x = cx + static_cast<int>(MathUtils::cos(angle) * length);
+
+  const int end_y = cy + static_cast<int>(MathUtils::sin(angle) * length);
+
+  draw_line(cx, cy, end_x, end_y, color);
 }
 
 } // namespace Graphics

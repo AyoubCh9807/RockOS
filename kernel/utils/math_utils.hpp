@@ -166,4 +166,8 @@ template <typename T> constexpr bool is_finite(T x) {
   return __builtin_isfinite(x);
 }
 
+template <typename T> constexpr T abs(T x) {
+  return x > 0 ? x : -x;
+}
+
 } // namespace MathUtils

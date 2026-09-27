@@ -396,6 +396,60 @@ mouse_stub:
     iretq
 
 
+extern c_disk_handler
+global ata_stub
+
+ata_stub:
+    ; preserve the interrupted cpu state before entering c++.
+    push rax
+    push rcx
+    push rdx
+    push rbx
+    push rbp
+    push rsi
+    push rdi
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+
+    sub rsp, 512
+    fxsave [rsp]
+
+    ; c++ reads the ATA status register (0x1F7) to see what happened,
+    ; and if it's a read, pulls the 256 words of data off the data port.
+    call c_disk_handler
+
+    fxrstor [rsp]
+    add rsp, 512
+
+    ; tell both the master and the slave pics that irq14 has been handled.
+    mov al, 0x20
+    out 0xA0, al
+    out 0x20, al
+
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop rdi
+    pop rsi
+    pop rbp
+    pop rbx
+    pop rdx
+    pop rcx
+    pop rax
+
+    iretq
+
 ; Page fault (#PF, vector 14). The CPU pushes a 32-bit (zero-extended
 ; to 64-bit) error code before this fires. We save all GPRs and the
 ; SSE/x87 state, pass a pointer to the GPR block (plus the error code
