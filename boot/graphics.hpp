@@ -168,14 +168,15 @@ inline void present() {
   }
 }
 
-// Draws a cursor bitmap from cursor.hpp (RockCursors::ARROW, ::HORNS, etc.)
-// at the given tip position. Replaces the old hardcoded point-list cursor:
-// this one is data-driven off the same 0xAARRGGBB / 0-alpha-transparent
-// format used everywhere else in Graphics, so any bitmap in RockCursors::ALL
-// works here without special-casing.
 inline void draw_cursor(u32 x, u32 y) {
   draw_image(Cursor::get_current_cursor_bitmap()->pixels, x, y, Cursor::WIDTH,
              Cursor::HEIGHT);
+}
+
+inline void draw_vertical_line(u32 x, u32 y, u32 h, u32 color) {
+  for (u32 i = y; i < y + h; ++i) {
+    put_pixel(x, i, color);
+  }
 }
 
 } // namespace Graphics

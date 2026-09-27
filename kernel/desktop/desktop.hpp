@@ -7,6 +7,7 @@
 #include "../gui/window_manager.hpp"
 
 #include "app_launcher.hpp"
+#include "context_menu.hpp"
 #include "desktop_icon.hpp"
 #include "notification_icons.hpp"
 #include "notification_service.hpp"
@@ -14,7 +15,7 @@
 
 #include "../utils/debugger.hpp"
 
-#include "../data/characters/damian.hpp"
+// #include "../data/characters/damian.hpp"
 
 #include "../drivers/mouse.hpp"
 
@@ -33,6 +34,7 @@ private:
   DialogManager &dialog_manager;
   AppLauncher &app_launcher;
   NotificationService notification_service;
+  ContextMenu context_menu;
 
   DesktopIcon icons[MAX_DESKTOP_APPS];
 
@@ -83,7 +85,9 @@ public:
           NotificationService &notification_service)
       : window_manager(wm), window_app_registry(window_app_registry),
         dialog_manager(dialog_manager), app_launcher(app_launcher),
-        notification_service(notification_service) {}
+        notification_service(notification_service), context_menu(*this) {
+    setup_context_menu();
+  }
 
   void init() {
     clear();
@@ -94,7 +98,7 @@ public:
     if (dialog)
       dialog_manager.show(dialog);
 
-    damian_pixels = DamianSprite::decode(); // ~1.1MB heap allocation, once
+    // damian_pixels = DamianSprite::decode(); // ~1.1MB heap allocation, once
   }
 
   void update() {
@@ -121,19 +125,32 @@ public:
 
     MouseEvent mouse_ev = Mouse::read();
 
-    if (mouse_ev.button_type == MouseButton::LEFT_BUTTON &&
-        mouse_ev.event_type == MouseEventType::PRESS) {
+    const int mouse_x = Mouse::get_x();
+    const int mouse_y = Mouse::get_y();
 
-      if ((window_manager.get_focused() &&
-           window_manager.get_focused()->contains(Mouse::get_x(),
-                                                  Mouse::get_y())) ||
-          window_manager.any_window_contains(Mouse::get_x(), Mouse::get_y())) {
+    if (context_menu.is_visible()) {
 
+      context_menu.handle_mouse(mouse_ev);
+
+    } else if (mouse_ev.event_type == MouseEventType::PRESS &&
+               mouse_ev.button_type == MouseButton::RIGHT_BUTTON) {
+
+      const bool over_window =
+          window_manager.any_window_contains(mouse_x, mouse_y);
+
+      if (!over_window)
+        context_menu.open(mouse_x, mouse_y);
+
+    } else if (mouse_ev.event_type == MouseEventType::PRESS &&
+               mouse_ev.button_type == MouseButton::LEFT_BUTTON) {
+
+      const bool over_window =
+          window_manager.any_window_contains(mouse_x, mouse_y);
+
+      if (over_window)
         window_manager.route_mouse_event(mouse_ev);
-
-      } else {
+      else
         handle_mouse_event(mouse_ev);
-      }
 
     } else if (mouse_ev.event_type == MouseEventType::MOVE ||
                mouse_ev.event_type == MouseEventType::RELEASE) {
@@ -141,8 +158,9 @@ public:
       window_manager.route_mouse_event(mouse_ev);
     }
 
-    window_manager.update();
+    context_menu.update();
 
+    window_manager.update();
     notification_service.update();
   }
 
@@ -157,6 +175,8 @@ public:
     // draw_damian();
 
     window_manager.render();
+
+    context_menu.draw();
 
     notification_service.draw();
 
@@ -355,36 +375,32 @@ public:
   }
 
   bool handle_mouse_event(const MouseEvent &ev) {
-
-    if (ev.button_type == MouseButton::NONE)
+    if (ev.event_type != MouseEventType::PRESS ||
+        ev.button_type != MouseButton::LEFT_BUTTON)
       return false;
 
-    if (icon_count > 0) {
+    for (int i = 0; i < icon_count; ++i) {
+      if (!icons[i].hovered())
+        continue;
 
-      for (int i = 0; i < icon_count; i++) {
-        bool is_pressing_left_click =
-            ev.event_type == MouseEventType::PRESS &&
-            ev.button_type == MouseButton::LEFT_BUTTON;
-        if (is_pressing_left_click && icons[i].hovered() &&
-            selected_icon != i) {
-          selected_icon = i;
-          icons[i].select();
-          return true;
-        } else if (is_pressing_left_click && selected_icon == i &&
-                   icons[i].hovered() && icons[i].launchable() &&
-                   last_launched_app != i) {
-          launch_app(icons[selected_icon]);
-          icons[i].make_unlaunchable();
-          selected_icon = INVALID_ICON_INDEX;
-          last_launched_app = i;
-          icons[i].unselect();
-          return true;
-        } else if (is_pressing_left_click && selected_icon == i &&
-                   icons[i].hovered() && !icons[i].launchable()) {
-          icons[i].make_launchable();
-          return true;
-        }
+      if (selected_icon != i) {
+        selected_icon = i;
+        icons[i].select();
+        return true;
       }
+
+      if (!icons[i].launchable()) {
+        icons[i].make_launchable();
+        return true;
+      }
+
+      launch_app(icons[i]);
+
+      icons[i].make_unlaunchable();
+      icons[i].unselect();
+      selected_icon = INVALID_ICON_INDEX;
+
+      return true;
     }
 
     return false;
@@ -446,8 +462,8 @@ public:
         Keyboard::is_ctrl_down()) {
       notification_service.add_notification(
           "ROCK OS", Generator::random_phrase(damian_phrases), 500,
-          ROCK_OS_ICON_BATTERY_CHARGING, Colors::DARK_RED, Colors::WHITE, Colors::GOLD,
-          Colors::BLACK, 2);
+          ROCK_OS_ICON_BATTERY_CHARGING, Colors::DARK_RED, Colors::WHITE,
+          Colors::GOLD, Colors::BLACK, 2);
       return true;
     }
 
@@ -473,7 +489,7 @@ public:
 
   // in draw_damian(), we use the decoded buffer instead of DamianSprite::PIXELS
   // directly
-  void draw_damian() {
+  /* void draw_damian() {
     if (!damian_pixels)
       return;
 
@@ -485,7 +501,7 @@ public:
 
     Graphics::draw_image(damian_pixels, x, y, DamianSprite::WIDTH,
                          DamianSprite::HEIGHT);
-  }
+  } */
 
   void open_app(const char *name) override {
     IWindowApp *app = window_app_registry.find(name);
@@ -524,6 +540,8 @@ public:
 
   void open_launcher() override { app_launcher.open(); }
 
+  AppLauncher &get_app_launcher() override { return app_launcher; }
+
   void send_notification(String title, String description, u32 timeout) {
     notification_service.add_notification(title, description, timeout);
   }
@@ -531,5 +549,30 @@ public:
   void send_notification(String title, String description) {
     notification_service.add_notification(
         title, description, notification_service.get_default_timeout());
+  }
+
+  void setup_context_menu() {
+    context_menu.add_item("Open Launcher", ContextMenuActions::OPEN_LAUNCHER);
+
+    context_menu.add_item("Next Wallpaper", ContextMenuActions::NEXT_WALLPAPER);
+
+    context_menu.add_separator();
+
+    context_menu.add_item("Terminal", ContextMenuActions::OPEN_TERMINAL);
+
+    context_menu.add_item("File Manager",
+                          ContextMenuActions::OPEN_FILE_MANAGER);
+
+    context_menu.add_item("Browser", ContextMenuActions::OPEN_BROWSER);
+
+    context_menu.add_item("Calculator", ContextMenuActions::OPEN_CALCULATOR);
+
+    context_menu.add_item("Rock AI", ContextMenuActions::OPEN_ROCK_AI);
+
+    context_menu.add_separator();
+
+    context_menu.add_item("Settings", ContextMenuActions::OPEN_SETTINGS);
+
+    context_menu.add_item("About", ContextMenuActions::OPEN_ABOUT);
   }
 };

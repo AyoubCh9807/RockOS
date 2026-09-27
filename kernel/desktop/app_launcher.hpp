@@ -4,14 +4,15 @@
 #include "../data/colors.hpp"
 #include "../drivers/mouse.hpp"
 #include "../shared/key_event.hpp"
-#include "desktop.hpp"
 #include "icon_bitmaps.hpp"
 
 #include "../gui/dialog_manager.hpp"
-#include "../gui/window_app_registry.hpp"
+// #include "../gui/window_app_registry.hpp"
 #include "../gui/window_manager.hpp"
 
 constexpr auto MAX_QUERY_LENGTH = 64;
+
+class WindowAppRegistry;
 
 class AppLauncher {
 
@@ -280,6 +281,13 @@ public:
 
   bool is_open() const { return open_state; };
 
+  void launch_app(const char *label) {
+    if (!label)
+      return;
+
+    window_app_registry.launch_app(label, window_manager);
+  }
+
   void open_selected_app() {
     if (filtered_count == 0)
       return;
@@ -289,13 +297,7 @@ public:
     if (!app)
       return;
 
-    IWindowApp *window_app = window_app_registry.find(app->label);
-
-    if (!window_app)
-      return;
-
-    window_manager.create_window(window_app, 0, 0, 640, 480);
-
+    launch_app(app->label);
     close();
   }
 };

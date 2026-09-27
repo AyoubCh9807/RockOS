@@ -14,8 +14,10 @@
 #include "apps/tyrant_app.hpp"
 
 #include "window_app.hpp"
+#include "window_manager.hpp"
 
 constexpr int MAX_WINDOW_APPS = 256;
+
 
 class WindowAppRegistry {
 private:
@@ -70,5 +72,14 @@ public:
     }
 
     return nullptr;
+  }
+
+  void launch_app(const char *label, WindowManager &window_manager) {
+    IWindowApp *app = find(label);
+
+    if (!app)
+      return;
+
+    window_manager.create_window(app, 0, 0, 640, 480);
   }
 };
