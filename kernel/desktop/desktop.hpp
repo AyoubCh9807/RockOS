@@ -483,6 +483,7 @@ public:
     if (ev.keytype == KeyType::Char && ev.scancode == 't' &&
         Keyboard::is_ctrl_down() && Keyboard::is_alt_down()) {
       app_launcher.launch_app("Terminal");
+      return true;
     }
 
     return false;
