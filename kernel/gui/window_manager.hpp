@@ -336,20 +336,30 @@ private:
     const int screen_width = Multiboot2::framebuffer.width;
     const int screen_height = Multiboot2::framebuffer.height;
 
+    const int available_height = screen_height - TASKBAR_HEIGHT;
+
     const int max_x = screen_width - win->width;
-    const int max_y = screen_height - TASKBAR_HEIGHT - win->height;
+    const int max_y = available_height - win->height;
 
-    if (win->x < 0)
+    if (max_x <= 0)
       win->x = 0;
+    else {
+      if (win->x < 0)
+        win->x = 0;
 
-    if (win->y < 0)
+      if (win->x > max_x)
+        win->x = max_x;
+    }
+
+    if (max_y <= 0)
       win->y = 0;
+    else {
+      if (win->y < 0)
+        win->y = 0;
 
-    if (win->x > max_x)
-      win->x = max_x;
-
-    if (win->y > max_y)
-      win->y = max_y;
+      if (win->y > max_y)
+        win->y = max_y;
+    }
   }
 
   // Magnetic edge snapping while dragging.
@@ -359,17 +369,29 @@ private:
 
     const int screen_width = Multiboot2::framebuffer.width;
     const int screen_height = Multiboot2::framebuffer.height;
-    const int max_y = screen_height - TASKBAR_HEIGHT - win->height;
 
-    if (win->x < SNAP_THRESHOLD)
+    const int available_height = screen_height - TASKBAR_HEIGHT;
+
+    const int max_x = screen_width - win->width;
+    const int max_y = available_height - win->height;
+
+    if (max_x > 0) {
+      if (win->x < SNAP_THRESHOLD)
+        win->x = 0;
+      else if (screen_width - (win->x + win->width) < SNAP_THRESHOLD)
+        win->x = max_x;
+    } else {
       win->x = 0;
-    else if (screen_width - (win->x + win->width) < SNAP_THRESHOLD)
-      win->x = screen_width - win->width;
+    }
 
-    if (win->y < SNAP_THRESHOLD)
+    if (max_y > 0) {
+      if (win->y < SNAP_THRESHOLD)
+        win->y = 0;
+      else if (max_y - win->y < SNAP_THRESHOLD)
+        win->y = max_y;
+    } else {
       win->y = 0;
-    else if (max_y - win->y < SNAP_THRESHOLD)
-      win->y = max_y;
+    }
   }
 
   void remove_oldest_window() {
@@ -383,28 +405,19 @@ private:
     if (!win || win->minimized)
       return;
 
-    constexpr int BORDER = 3;
+    constexpr int BORDER = WINDOW_BORDER_THICKNESS;
     constexpr u32 COLOR = Colors::RED;
 
-    for (int x = 0; x < win->width; x++) {
-      for (int i = 0; i < BORDER; i++)
-        Graphics::put_pixel(win->x + x, win->y + i, COLOR);
-    }
+    const int x = win->x;
+    const int y = win->y;
+    const int right = x + win->width - BORDER;
+    const int bottom = y + win->height - BORDER;
 
-    for (int x = 0; x < win->width; x++) {
-      for (int i = 0; i < BORDER; i++)
-        Graphics::put_pixel(win->x + x, win->y + win->height - 1 - i, COLOR);
-    }
+    draw_rect(x, y, win->width, BORDER, COLOR);
+    draw_rect(x, bottom, win->width, BORDER, COLOR);
 
-    for (int y = 0; y < win->height; y++) {
-      for (int i = 0; i < BORDER; i++)
-        Graphics::put_pixel(win->x + i, win->y + y, COLOR);
-    }
-
-    for (int y = 0; y < win->height; y++) {
-      for (int i = 0; i < BORDER; i++)
-        Graphics::put_pixel(win->x + win->width - 1 - i, win->y + y, COLOR);
-    }
+    draw_rect(x, y, BORDER, win->height, COLOR);
+    draw_rect(right, y, BORDER, win->height, COLOR);
   }
 
 public:
@@ -633,10 +646,6 @@ public:
       return;
     }
 
-    if(ev.keytype == KeyType::Char && ev.scancode == 't' && Keyboard::is_ctrl_down() && Keyboard::is_alt_down()) {
-      // open up a terminal
-    }
-
     IWindowApp *app = app_for(focused_window);
 
     if (!app)
@@ -740,7 +749,7 @@ public:
       clamp_window_position(win);
       apply_snap(win);
 
-      redraw_all();
+      redraw(win);
       return;
     }
 

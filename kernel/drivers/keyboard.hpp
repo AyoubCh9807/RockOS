@@ -33,6 +33,25 @@ private:
   static constexpr u8 ARROW_RIGHT = 0x4D;
   static constexpr u8 DELETE = 0x53;
 
+  static constexpr u8 NUM_LOCK = 0x45;
+
+  static constexpr u8 NUMPAD_7 = 0x47;
+  static constexpr u8 NUMPAD_8 = 0x48;
+  static constexpr u8 NUMPAD_9 = 0x49;
+  static constexpr u8 NUMPAD_MINUS = 0x4A;
+  static constexpr u8 NUMPAD_4 = 0x4B;
+  static constexpr u8 NUMPAD_5 = 0x4C;
+  static constexpr u8 NUMPAD_6 = 0x4D;
+  static constexpr u8 NUMPAD_PLUS = 0x4E;
+  static constexpr u8 NUMPAD_1 = 0x4F;
+  static constexpr u8 NUMPAD_2 = 0x50;
+  static constexpr u8 NUMPAD_3 = 0x51;
+  static constexpr u8 NUMPAD_0 = 0x52;
+  static constexpr u8 NUMPAD_DOT = 0x53;
+
+  static constexpr u8 NUMPAD_DIVIDE = 0x35;
+  static constexpr u8 NUMPAD_MULTIPLY = 0x37;
+
   static constexpr int RING_BUFFER_SIZE = 1024;
 
   inline static KeyEvent buffer[RING_BUFFER_SIZE];
@@ -46,6 +65,7 @@ private:
   inline static bool alt = false;
   inline static bool altgr = false;
   inline static bool caps_lock = false;
+  inline static bool num_lock = false;
 
   static constexpr bool is_release(u8 scancode) {
     return scancode & RELEASE_MASK;
@@ -53,6 +73,75 @@ private:
 
   static constexpr u8 base_scancode(u8 scancode) {
     return scancode & ~RELEASE_MASK;
+  }
+
+  static constexpr bool is_numpad_key(u8 scancode) {
+    switch (scancode) {
+    case NUMPAD_0:
+    case NUMPAD_1:
+    case NUMPAD_2:
+    case NUMPAD_3:
+    case NUMPAD_4:
+    case NUMPAD_5:
+    case NUMPAD_6:
+    case NUMPAD_7:
+    case NUMPAD_8:
+    case NUMPAD_9:
+    case NUMPAD_DOT:
+      return true;
+
+    default:
+      return false;
+    }
+  }
+
+  static constexpr KeyEvent handle_numpad_key(u8 scancode) {
+    if (!num_lock)
+      return {KeyType::None, 0};
+
+    switch (scancode) {
+    case NUMPAD_0:
+      return make_event('0', KeyType::Char);
+
+    case NUMPAD_1:
+      return make_event('1', KeyType::Char);
+
+    case NUMPAD_2:
+      return make_event('2', KeyType::Char);
+
+    case NUMPAD_3:
+      return make_event('3', KeyType::Char);
+
+    case NUMPAD_4:
+      return make_event('4', KeyType::Char);
+
+    case NUMPAD_5:
+      return make_event('5', KeyType::Char);
+
+    case NUMPAD_6:
+      return make_event('6', KeyType::Char);
+
+    case NUMPAD_7:
+      return make_event('7', KeyType::Char);
+
+    case NUMPAD_8:
+      return make_event('8', KeyType::Char);
+
+    case NUMPAD_9:
+      return make_event('9', KeyType::Char);
+
+    case NUMPAD_DOT:
+      return make_event('.', KeyType::Char);
+
+    case NUMPAD_MINUS:
+      return make_event('-', KeyType::Char);
+
+    case NUMPAD_PLUS:
+      return make_event('+', KeyType::Char);
+
+    default:
+      return {KeyType::None, 0};
+    }
   }
 
   static constexpr void handle_modifier_press(u8 scancode) {
@@ -74,6 +163,11 @@ private:
         alt = true;
       }
 
+      return;
+    }
+
+    if (scancode == NUM_LOCK) {
+      num_lock = !num_lock;
       return;
     }
 
@@ -183,6 +277,9 @@ private:
     case ARROW_RIGHT:
       return make_event(KEY_ARROW_RIGHT, KeyType::ArrowRight);
 
+    case NUMPAD_DIVIDE:
+      return make_event('/', KeyType::Char);
+
     default:
       return {KeyType::None, 0};
     }
@@ -197,6 +294,9 @@ private:
 
     if (scancode == ENTER)
       return make_event('\n', KeyType::Enter);
+
+    if (scancode == NUMPAD_MULTIPLY)
+      return make_event('*', KeyType::Char);
 
     char ascii = translate(scancode);
 
@@ -243,6 +343,20 @@ public:
       }
     }
 
+    if (!extended && scancode == NUM_LOCK) {
+      handle_modifier_press(scancode);
+      return;
+    }
+
+    if (!extended && is_numpad_key(scancode)) {
+      KeyEvent event = handle_numpad_key(scancode);
+
+      if (event.keytype != KeyType::None)
+        push(event);
+
+      return;
+    }
+
     KeyEvent event;
 
     if (extended)
@@ -263,6 +377,8 @@ public:
   static constexpr bool is_altgr_pressed() { return altgr; }
 
   static constexpr bool is_caps_lock_pressed() { return caps_lock; }
+
+  static constexpr bool is_num_lock_pressed() { return num_lock; }
 };
 
 extern "C" void c_keyboard_handler() { Keyboard::interrupt_handler(); }

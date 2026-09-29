@@ -6,6 +6,7 @@
 #include "../core/timer.hpp"
 #include "../data/colors.hpp"
 #include "../utils/text_utils.hpp"
+#include "animations/animation_types.hpp"
 #include "notification_icons.hpp"
 
 class Notification {
@@ -65,6 +66,12 @@ private:
   bool auto_position = true;
   bool auto_wrap = true;
 
+  AnimationType animation_type = AnimationType::SlideRight;
+  EasingType animation_easing = EasingType::EaseOutCubic;
+
+  u32 animation_duration = 100;
+  u32 animation_started_at = 0;
+
 public:
   Notification(const String &title, const String &description, u32 timeout,
                const u32 *icon)
@@ -85,8 +92,22 @@ public:
     if (!is_visible)
       return;
 
-    u32 draw_x = x;
-    u32 draw_y = y;
+    float progress = 1.0f;
+
+    if (animation_duration > 0) {
+      const u32 elapsed = Timer::get_ticks() - animation_started_at;
+
+      progress =
+          static_cast<float>(elapsed) / static_cast<float>(animation_duration);
+
+      if (progress > 1.0f)
+        progress = 1.0f;
+
+      progress = Easing::apply(progress, animation_easing);
+    }
+
+    int draw_x = static_cast<int>(x);
+    int draw_y = static_cast<int>(y);
 
     if (auto_position) {
       const u32 screen_width = Multiboot2::framebuffer.width;
@@ -97,6 +118,51 @@ public:
         draw_x = 0;
 
       draw_y = margin;
+    }
+
+    const u32 offset_x = static_cast<u32>((1.0f - progress) * width);
+
+    const u32 offset_y = static_cast<u32>((1.0f - progress) * height);
+
+    switch (animation_type) {
+    case AnimationType::SlideRight:
+      draw_x += offset_x;
+      break;
+
+    case AnimationType::SlideLeft:
+      draw_x -= offset_x;
+      break;
+
+    case AnimationType::SlideDown:
+      draw_y += offset_y;
+      break;
+
+    case AnimationType::SlideUp:
+      draw_y -= offset_y;
+      break;
+
+    case AnimationType::FadeSlideRight:
+      draw_x += offset_x;
+      break;
+
+    case AnimationType::FadeSlideLeft:
+      draw_x -= offset_x;
+      break;
+
+    case AnimationType::FadeSlideDown:
+      draw_y += offset_y;
+      break;
+
+    case AnimationType::FadeSlideUp:
+      draw_y -= offset_y;
+      break;
+
+    case AnimationType::None:
+    case AnimationType::FadeIn:
+    case AnimationType::FadeOut:
+    case AnimationType::ScaleIn:
+    case AnimationType::FadeScale:
+      break;
     }
 
     if (border_thickness > 0 && border_thickness * 2 < width &&
@@ -140,6 +206,7 @@ public:
     shown_at = Timer::get_ticks();
     is_visible = true;
     is_expired = false;
+    start_animation();
   }
 
   void hide() { is_visible = false; }
@@ -232,4 +299,10 @@ private:
 
     message = TextUtils::wrap_text(description, text_width, CHARACTER_WIDTH);
   }
+
+  void start_animation() { animation_started_at = Timer::get_ticks(); }
+  void set_animation_duration(u32 duration) { animation_duration = duration; }
+  void set_animation_type(AnimationType type) { animation_type = type; }
+  void set_animation_easing(EasingType easing) { animation_easing = easing; }
+
 };

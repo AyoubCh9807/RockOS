@@ -4,19 +4,12 @@
 #include "../data/font.hpp"
 #include "../shared/types.hpp"
 
-/* A Window owns a private pixel buffer. Apps draw into that buffer,
-   never directly onto the real framebuffer, the WindowManager is the
-   only thing that ever touches the actual screen, by compositing
-   every window's buffer onto it in z-order. This separation is what
-   will make Phase 2 easy later, once a window's app lives in its own
-   process, the process just needs to hand pixels to the kernel
-   somehow (a syscall), it never needs direct framebuffer access. */
 class Window {
 
   static constexpr int WINDOW_TITLE_BAR_HEIGHT = 24;
 
 private:
-  u32 *pixels;
+  u32 *pixels = nullptr;
 
   int border_thickness = 2;
   u32 border_color = Colors::GOLD;
@@ -31,29 +24,29 @@ private:
   static constexpr int CHAR_WIDTH = 8;
   static constexpr int CHAR_HEIGHT = 8;
 
-  static constexpr int TITLE_BAR_HEIGHT = 24;
-  static constexpr int WINDOW_BUTTON_SIZE = 18;
-  static constexpr int WINDOW_BUTTON_GAP = 2;
-  static constexpr int WINDOW_BUTTON_MARGIN = 3;
-
 public:
-  int x, y;
-  int width, height;
+  int x;
+  int y;
+  int width;
+  int height;
+
   const char *title;
 
   enum class Button { NONE, MINIMIZE, MAXIMIZE, CLOSE };
 
-  /* Higher draws on top. WindowManager keeps windows sorted by this
-     when compositing and when picking which window gets focus. */
   int z_order;
-
   bool focused;
-
   bool minimized = false;
 
   Window(int x, int y, int width, int height, const char *title)
       : x(x), y(y), width(width), height(height), title(title), z_order(0),
         focused(false) {
+
+    if (width <= 0 || height <= 0) {
+      this->width = 0;
+      this->height = 0;
+      return;
+    }
 
     pixels = new u32[width * height];
 
@@ -63,7 +56,10 @@ public:
     clear(0x000000);
   }
 
-  ~Window() { delete[] pixels; }
+  ~Window() {
+    delete[] pixels;
+    pixels = nullptr;
+  }
 
   void minimize() { minimized = true; }
 
@@ -73,6 +69,9 @@ public:
 
     const int new_width = screen_width;
     const int new_height = screen_height - taskbar_height;
+
+    if (new_width <= 0 || new_height <= 0)
+      return;
 
     u32 *new_pixels = new u32[new_width * new_height];
 
@@ -87,6 +86,7 @@ public:
     delete[] pixels;
 
     pixels = new_pixels;
+
     width = new_width;
     height = new_height;
 
@@ -105,12 +105,14 @@ public:
     x = restore_x;
     y = restore_y;
 
-    resize(restore_width, restore_height);
+    if (!resize(restore_width, restore_height))
+      return;
 
     maximized = false;
   }
 
   bool is_maximized() const { return maximized; }
+
   bool resize(int new_width, int new_height) {
     if (new_width <= 0 || new_height <= 0)
       return false;
@@ -123,6 +125,7 @@ public:
     delete[] pixels;
 
     pixels = new_pixels;
+
     width = new_width;
     height = new_height;
 
@@ -132,33 +135,45 @@ public:
   }
 
   void clear(u32 color) {
+    if (!pixels)
+      return;
+
     for (int i = 0; i < width * height; i++)
       pixels[i] = color;
   }
 
   void set_pixel(int local_x, int local_y, u32 color) {
+    if (!pixels)
+      return;
+
     if (local_x < 0 || local_x >= width || local_y < 0 || local_y >= height)
       return;
+
     pixels[local_y * width + local_x] = color;
   }
 
   u32 get_pixel(int local_x, int local_y) const {
+    if (!pixels)
+      return 0;
+
     if (local_x < 0 || local_x >= width || local_y < 0 || local_y >= height)
       return 0;
+
     return pixels[local_y * width + local_x];
   }
 
-  /* Same font and bit layout Graphics::draw_char uses, but plotted
-     through set_pixel above instead of Graphics::put_pixel, so the
-     glyph lands in this window's own buffer at window-local
-     coordinates instead of on the real screen at absolute ones. */
   void draw_char(char c, int local_x, int local_y, u32 color) {
+    if (!pixels)
+      return;
+
     if ((u8)c >= 128)
       return;
 
     const u8 *glyph = Graphics::FONT[(u8)c];
+
     for (int row = 0; row < CHAR_HEIGHT; row++) {
       const u8 bits = glyph[row];
+
       for (int col = 0; col < CHAR_WIDTH; col++) {
         if (bits & (1 << (CHAR_WIDTH - 1 - col)))
           set_pixel(local_x + col, local_y + row, color);
@@ -167,7 +182,11 @@ public:
   }
 
   void draw_string(const char *str, int local_x, int local_y, u32 color) {
+    if (!str)
+      return;
+
     int i = 0;
+
     while (str[i] != '\0') {
       draw_char(str[i], local_x + i * CHAR_WIDTH, local_y, color);
       i++;
@@ -175,14 +194,19 @@ public:
   }
 
   void draw_rect(int x, int y, int width, int height, u32 color) {
+    if (!pixels)
+      return;
+
+    if (width <= 0 || height <= 0)
+      return;
+
     for (int py = y; py < y + height; py++) {
-      for (int px = x; px < x + width; px++) {
+      for (int px = x; px < x + width; px++)
         set_pixel(px, py, color);
-      }
     }
   }
 
-  constexpr bool contains(u32 mouse_x, u32 mouse_y) const {
+  constexpr bool contains(int mouse_x, int mouse_y) const {
     if (!pixels)
       return false;
 
@@ -192,8 +216,10 @@ public:
 
   const u32 *get_buffer() const { return pixels; }
 
-  const int get_width() const { return width; }
-  const int get_height() const { return height; }
+  int get_width() const { return width; }
+
+  int get_height() const { return height; }
+
   int get_client_width() const { return width - 2 * border_thickness; }
 
   int get_client_height() const {
@@ -201,5 +227,6 @@ public:
   }
 
   constexpr int get_border_thickness() const { return border_thickness; }
+
   constexpr u32 get_border_color() const { return border_color; }
 };

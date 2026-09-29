@@ -57,11 +57,23 @@ inline void clear(u32 color) {
   }
 }
 
-inline void draw_rect(u32 x, u32 y, u32 w, u32 h, u32 color) {
-  for (u32 i = x; i < x + w; i++) {
-    for (u32 j = y; j < y + h; j++) {
-      put_pixel(i, j, color);
-    }
+void draw_rect(int x, int y, int width, int height, u32 color) {
+  if (width <= 0 || height <= 0)
+    return;
+
+  const int screen_width = Multiboot2::framebuffer.width;
+  const int screen_height = Multiboot2::framebuffer.height;
+
+  const int start_x = x < 0 ? 0 : x;
+  const int start_y = y < 0 ? 0 : y;
+
+  const int end_x = x + width > screen_width ? screen_width : x + width;
+
+  const int end_y = y + height > screen_height ? screen_height : y + height;
+
+  for (int py = start_y; py < end_y; py++) {
+    for (int px = start_x; px < end_x; px++)
+      Graphics::put_pixel(px, py, color);
   }
 }
 
