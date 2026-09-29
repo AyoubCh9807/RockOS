@@ -1,5 +1,7 @@
 #pragma once
 #include "../../data/colors.hpp"
+#include "../../shared/key_event.hpp"
+#include "../../shared/mouse_types.hpp"
 #include "../../shared/types.hpp"
 
 class IWidget {
@@ -39,4 +41,12 @@ public:
 
   constexpr int get_width() const { return width; }
   constexpr int get_height() const { return height; }
+
+  virtual void handle_mouse_event(const MouseEvent &ev) = 0;
+  virtual void handle_key(const KeyEvent &event) = 0;
+
+  constexpr bool contains(int mouse_x, int mouse_y) const {
+    return mouse_x >= x && mouse_x < x + width && mouse_y >= y &&
+           mouse_y < y + height;
+  }
 };

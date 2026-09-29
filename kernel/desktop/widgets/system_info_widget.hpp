@@ -148,4 +148,7 @@ public:
     draw_mini_bar(x + padding, cursor_y, width - padding * 2, 6, mem_percent,
                   Colors::GRAY, Colors::TURQUOISE);
   }
+
+  void handle_key(const KeyEvent &ev) override {}
+  void handle_mouse_event(const MouseEvent &ev) override {}
 };

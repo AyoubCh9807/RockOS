@@ -37,7 +37,7 @@ private:
   AppLauncher &app_launcher;
   NotificationService notification_service;
   ContextMenu context_menu;
-  WidgetManager& widget_manager;
+  WidgetManager &widget_manager;
 
   DesktopIcon icons[MAX_DESKTOP_APPS];
 
@@ -85,10 +85,12 @@ private:
 public:
   Desktop(WindowManager &wm, WindowAppRegistry &window_app_registry,
           DialogManager &dialog_manager, AppLauncher &app_launcher,
-          NotificationService &notification_service, WidgetManager& widget_manager)
+          NotificationService &notification_service,
+          WidgetManager &widget_manager)
       : window_manager(wm), window_app_registry(window_app_registry),
         dialog_manager(dialog_manager), app_launcher(app_launcher),
-        notification_service(notification_service), context_menu(*this), widget_manager(widget_manager) {
+        notification_service(notification_service), context_menu(*this),
+        widget_manager(widget_manager) {
     setup_context_menu();
   }
 
@@ -409,6 +411,10 @@ public:
       return true;
     }
 
+    if (widget_manager.handle_mouse_event(ev)) {
+      return true;
+    }
+
     return false;
   }
 
@@ -471,6 +477,12 @@ public:
           ROCK_OS_ICON_BATTERY_CHARGING, Colors::DARK_RED, Colors::WHITE,
           Colors::GOLD, Colors::BLACK, 2);
       return true;
+    }
+
+    // Ctrl + alt + t to open, up a terminal
+    if (ev.keytype == KeyType::Char && ev.scancode == 't' &&
+        Keyboard::is_ctrl_down() && Keyboard::is_alt_down()) {
+      app_launcher.launch_app("Terminal");
     }
 
     return false;

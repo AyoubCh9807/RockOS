@@ -1,5 +1,6 @@
 #pragma once
 
+#include "click_widget.hpp"
 #include "clock_widget.hpp"
 #include "cpu_widget.hpp"
 #include "date_widget.hpp"
@@ -19,6 +20,7 @@ private:
   MemoryWidget memory;
   SystemInfoWidget system_info;
   UptimeWidget uptime;
+  ClickMeWidget clickme;
 
   int count = 0;
 
@@ -39,6 +41,7 @@ public:
     register_widget(&memory);
     register_widget(&system_info);
     register_widget(&uptime);
+    register_widget(&clickme);
   }
 
   IWidget *get(int index) {

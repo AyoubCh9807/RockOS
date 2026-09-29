@@ -1,11 +1,11 @@
 #pragma once
 
+#include "../../../boot/graphics.hpp"
 #include "../../core/timer.hpp"
 #include "../../data/colors.hpp"
 #include "../../shared/types.hpp"
 #include "../../utils/math_utils.hpp"
 #include "../../utils/string_utils.hpp"
-#include "../../../boot/graphics.hpp"
 #include "iwidget.hpp"
 
 namespace CpuWidgetInternal {
@@ -20,8 +20,8 @@ static int text_width(const char *s) {
 // Draws an arc (in degrees, 0 = right, increasing clockwise since
 // screen y grows downward) by stepping in half-degree increments and
 // stamping filled dots, several radii deep for thickness.
-static void draw_arc(int cx, int cy, int radius, int thickness,
-                     float start_deg, float end_deg, u32 color) {
+static void draw_arc(int cx, int cy, int radius, int thickness, float start_deg,
+                     float end_deg, u32 color) {
   const float step = 0.5f;
 
   for (float deg = start_deg; deg <= end_deg; deg += step) {
@@ -30,10 +30,8 @@ static void draw_arc(int cx, int cy, int radius, int thickness,
     for (int t = 0; t < thickness; t++) {
       const int r = radius - t;
 
-      const int px =
-          cx + static_cast<int>(MathUtils::cos(rad) * r);
-      const int py =
-          cy + static_cast<int>(MathUtils::sin(rad) * r);
+      const int px = cx + static_cast<int>(MathUtils::cos(rad) * r);
+      const int py = cy + static_cast<int>(MathUtils::sin(rad) * r);
 
       Graphics::put_pixel(px, py, color);
     }
@@ -74,52 +72,21 @@ public:
       return;
 
     // Widget background
-    Graphics::draw_rect(
-        x,
-        y,
-        width,
-        height,
-        background_color
-    );
+    Graphics::draw_rect(x, y, width, height, background_color);
 
     // Widget border
-    Graphics::draw_rect(
-        x,
-        y,
-        width,
-        2,
-        border_color
-    );
+    Graphics::draw_rect(x, y, width, 2, border_color);
 
-    Graphics::draw_rect(
-        x,
-        y + height - 2,
-        width,
-        2,
-        border_color
-    );
+    Graphics::draw_rect(x, y + height - 2, width, 2, border_color);
 
-    Graphics::draw_rect(
-        x,
-        y,
-        2,
-        height,
-        border_color
-    );
+    Graphics::draw_rect(x, y, 2, height, border_color);
 
-    Graphics::draw_rect(
-        x + width - 2,
-        y,
-        2,
-        height,
-        border_color
-    );
+    Graphics::draw_rect(x + width - 2, y, 2, height, border_color);
 
     const int center_x = x + width / 2;
     const int center_y = y + height / 2;
 
-    const int radius =
-        (width < height ? width : height) / 2 - padding - 4;
+    const int radius = (width < height ? width : height) / 2 - padding - 4;
 
     const int usage = MathUtils::clamp(0, Timer::get_cpu_usage(), 100);
 
@@ -130,15 +97,8 @@ public:
     constexpr float SWEEP_DEG = 270.0f;
 
     // Background track (dim, full sweep)
-    draw_arc(
-        center_x,
-        center_y,
-        radius,
-        4,
-        START_DEG,
-        START_DEG + SWEEP_DEG,
-        Colors::SLATE
-    );
+    draw_arc(center_x, center_y, radius, 4, START_DEG, START_DEG + SWEEP_DEG,
+             Colors::SLATE);
 
     // Color reflects load: calm green, cautious gold, hot red
     u32 fill_color = Colors::LIME;
@@ -149,33 +109,23 @@ public:
 
     const float fill_deg = SWEEP_DEG * (usage / 100.0f);
 
-    draw_arc(
-        center_x,
-        center_y,
-        radius,
-        4,
-        START_DEG,
-        START_DEG + fill_deg,
-        fill_color
-    );
+    draw_arc(center_x, center_y, radius, 4, START_DEG, START_DEG + fill_deg,
+             fill_color);
 
     // Percentage text, centered
     char pct_buf[6];
     StringUtils::snprintf(pct_buf, sizeof(pct_buf), "%d%%", usage);
 
-    Graphics::draw_string(
-        pct_buf,
-        center_x - text_width(pct_buf) / 2,
-        center_y - Graphics::CHARACTER_HEIGHT / 2,
-        text_color
-    );
+    Graphics::draw_string(pct_buf, center_x - text_width(pct_buf) / 2,
+                          center_y - Graphics::CHARACTER_HEIGHT / 2,
+                          text_color);
 
     // Label below the percentage
-    Graphics::draw_string(
-        "CPU",
-        center_x - text_width("CPU") / 2,
-        center_y + Graphics::CHARACTER_HEIGHT + 4,
-        Colors::SILVER
-    );
+    Graphics::draw_string("CPU", center_x - text_width("CPU") / 2,
+                          center_y + Graphics::CHARACTER_HEIGHT + 4,
+                          Colors::SILVER);
   }
+
+  void handle_key(const KeyEvent &ev) override {}
+  void handle_mouse_event(const MouseEvent &ev) override {}
 };

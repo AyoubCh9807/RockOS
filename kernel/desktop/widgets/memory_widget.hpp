@@ -5,10 +5,10 @@
 // (with a get_used() method) is actually declared.
 #include "../../memory/heap.hpp"
 
+#include "../../../boot/graphics.hpp"
 #include "../../data/colors.hpp"
 #include "../../shared/types.hpp"
 #include "../../utils/string_utils.hpp"
-#include "../../../boot/graphics.hpp"
 #include "iwidget.hpp"
 
 namespace MemoryWidgetInternal {
@@ -77,54 +77,19 @@ public:
       return;
 
     // Widget background
-    Graphics::draw_rect(
-        x,
-        y,
-        width,
-        height,
-        background_color
-    );
+    Graphics::draw_rect(x, y, width, height, background_color);
 
     // Widget border
-    Graphics::draw_rect(
-        x,
-        y,
-        width,
-        2,
-        border_color
-    );
+    Graphics::draw_rect(x, y, width, 2, border_color);
 
-    Graphics::draw_rect(
-        x,
-        y + height - 2,
-        width,
-        2,
-        border_color
-    );
+    Graphics::draw_rect(x, y + height - 2, width, 2, border_color);
 
-    Graphics::draw_rect(
-        x,
-        y,
-        2,
-        height,
-        border_color
-    );
+    Graphics::draw_rect(x, y, 2, height, border_color);
 
-    Graphics::draw_rect(
-        x + width - 2,
-        y,
-        2,
-        height,
-        border_color
-    );
+    Graphics::draw_rect(x + width - 2, y, 2, height, border_color);
 
     // Label
-    Graphics::draw_string(
-        "MEMORY",
-        x + padding,
-        y + padding,
-        border_color
-    );
+    Graphics::draw_string("MEMORY", x + padding, y + padding, border_color);
 
     // Trend glyph, drawn with plain lines so it doesn't depend on
     // any extra font glyphs
@@ -139,32 +104,33 @@ public:
 
     if (trend > 0) {
       // Up arrow
-      Graphics::draw_line(glyph_cx - 5, glyph_cy + 4, glyph_cx, glyph_cy - 4, trend_color);
-      Graphics::draw_line(glyph_cx + 5, glyph_cy + 4, glyph_cx, glyph_cy - 4, trend_color);
+      Graphics::draw_line(glyph_cx - 5, glyph_cy + 4, glyph_cx, glyph_cy - 4,
+                          trend_color);
+      Graphics::draw_line(glyph_cx + 5, glyph_cy + 4, glyph_cx, glyph_cy - 4,
+                          trend_color);
     } else if (trend < 0) {
       // Down arrow
-      Graphics::draw_line(glyph_cx - 5, glyph_cy - 4, glyph_cx, glyph_cy + 4, trend_color);
-      Graphics::draw_line(glyph_cx + 5, glyph_cy - 4, glyph_cx, glyph_cy + 4, trend_color);
+      Graphics::draw_line(glyph_cx - 5, glyph_cy - 4, glyph_cx, glyph_cy + 4,
+                          trend_color);
+      Graphics::draw_line(glyph_cx + 5, glyph_cy - 4, glyph_cx, glyph_cy + 4,
+                          trend_color);
     } else {
       // Steady dash
-      Graphics::draw_line(glyph_cx - 5, glyph_cy, glyph_cx + 5, glyph_cy, trend_color);
+      Graphics::draw_line(glyph_cx - 5, glyph_cy, glyph_cx + 5, glyph_cy,
+                          trend_color);
     }
 
     // Used amount, shown in KB for readability
     const u64 used_kb = last_used / 1024;
 
     char used_buf[32];
-    StringUtils::snprintf(
-        used_buf, sizeof(used_buf), "%d KB", static_cast<int>(used_kb));
+    StringUtils::snprintf(used_buf, sizeof(used_buf), "%d KB",
+                          static_cast<int>(used_kb));
 
-    Graphics::draw_string(
-        used_buf,
-        x + (width - text_width(used_buf)) / 2,
-        y + height / 2,
-        text_color
-    );
+    Graphics::draw_string(used_buf, x + (width - text_width(used_buf)) / 2,
+                          y + height / 2, text_color);
 
-    // Small usage bar purely as a visual pulse — width is relative
+    // Small usage bar purely as a visual pulse, width is relative
     // to a soft 64 MB reference scale, clamped, until a real total
     // is available.
     constexpr u64 REFERENCE_SCALE = 64ull * 1024ull * 1024ull;
@@ -179,9 +145,11 @@ public:
     if (fill > static_cast<u64>(bar_max_w))
       fill = static_cast<u64>(bar_max_w);
 
-    Graphics::draw_rect(
-        bar_x, bar_y, static_cast<u32>(fill), 6, border_color);
+    Graphics::draw_rect(bar_x, bar_y, static_cast<u32>(fill), 6, border_color);
   }
+
+  void handle_key(const KeyEvent &ev) override {}
+  void handle_mouse_event(const MouseEvent &ev) override {}
 
 private:
   u64 last_used;

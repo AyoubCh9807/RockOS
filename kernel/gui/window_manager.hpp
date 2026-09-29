@@ -633,6 +633,10 @@ public:
       return;
     }
 
+    if(ev.keytype == KeyType::Char && ev.scancode == 't' && Keyboard::is_ctrl_down() && Keyboard::is_alt_down()) {
+      // open up a terminal
+    }
+
     IWindowApp *app = app_for(focused_window);
 
     if (!app)

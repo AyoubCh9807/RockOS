@@ -34,6 +34,7 @@ private:
   inline static bool is_ctrl = false;
   inline static bool is_altgr = false;
   inline static bool is_caps_lock = false;
+  inline static bool is_alt = false;
 
 public:
   static char translate(unsigned char scancode) {
@@ -142,6 +143,8 @@ public:
           is_ctrl = false;
         } else if (released == 0x38) {
           is_altgr = false;
+        } else if(released == 0x3B) {
+          is_alt = false;
         }
       }
 
@@ -163,6 +166,11 @@ public:
 
     if (scancode == 0x38) {
       is_altgr = true;
+      return;
+    }
+
+    if(scancode == 0x3B) {
+      is_alt = true;
       return;
     }
 
@@ -247,7 +255,7 @@ public:
   static constexpr bool is_ctrl_down() { return is_ctrl; }
   static constexpr bool is_altgr_pressed() { return is_altgr; }
   static constexpr bool is_caps_lock_pressed() { return is_caps_lock; }
-
+  static constexpr bool is_alt_down() { return is_alt; }
 };
 
 extern "C" void c_keyboard_handler() { Keyboard::interrupt_handler(); }
