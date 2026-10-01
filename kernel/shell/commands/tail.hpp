@@ -52,6 +52,9 @@ public:
         line_count++;
     }
 
+    if (bytes_read > 0 && buffer[bytes_read - 1] != '\n')
+      line_count++;
+
     int target_line = line_count - requested_line_count;
 
     if (target_line < 0)
