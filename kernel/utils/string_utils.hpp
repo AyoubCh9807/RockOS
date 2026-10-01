@@ -596,4 +596,18 @@ static int join(char *output, int max_length, int argc, char **argv,
   return position;
 }
 
+inline int find_last(char *str, char c) {
+  if (!str)
+    return -1;
+
+  int last = -1;
+
+  for (int i = 0; str[i] != '\0'; i++) {
+    if (str[i] == c)
+      last = i;
+  }
+
+  return last;
+}
+
 } // namespace StringUtils

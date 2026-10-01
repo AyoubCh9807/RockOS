@@ -41,6 +41,7 @@
 #include "commands/uptime.hpp"
 #include "commands/wc.hpp"
 #include "commands/write.hpp"
+#include "commands/tail.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -87,6 +88,7 @@ private:
   GrepCommand grep;
   AppendCommand append;
   HeadCommand head;
+  TailCommand tail;
   DirnameCommand dirname;
   RevCommand rev;
   RepeatCommand repeat;
@@ -124,7 +126,7 @@ public:
         tyrant(), damian(), garrick(), random(), cd(fs, current_dir),
         touch(fs, current_dir), rm(fs, current_dir), rmdir(fs, current_dir),
         cat(fs, current_dir), write(fs, current_dir), wc(fs, current_dir),
-        grep(fs, current_dir), append(fs, current_dir), head(fs, current_dir),
+        grep(fs, current_dir), append(fs, current_dir), head(fs, current_dir), tail(fs, current_dir),
         env(environment), date(terminal_utils), heaptest(), seq(), dirname(),
         rev(), crystal(terminal_utils), rtop(terminal_utils), fortune(),
         whoami(terminal_utils), repeat(terminal_utils), upper(terminal_utils),
@@ -183,6 +185,7 @@ public:
     register_command(&diagnose);
     register_command(&rockai);
     register_command(&wallpaper);
+    register_command(&tail);
 
     //    Debugger::log("loaded %d commands successfully!\n", count);
   }
