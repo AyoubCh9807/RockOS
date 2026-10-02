@@ -288,19 +288,14 @@ inline void substr(char *str, int start, int end) {
   str[i] = '\0';
 }
 
-inline bool is_numeric(const char *str) {
-  if (str == nullptr || str[0] == '\0')
-    return false;
+inline bool is_alpha_char(char c) {
+  bool is_upper = (c >= UPPERCASE_START && c <= UPPERCASE_END);
+  bool is_lower = (c >= LOWERCASE_START && c <= LOWERCASE_END);
 
-  int i = 0;
-  while (str[i] != '\0') {
-    int c = (int)str[i];
-    if (c < NUMERIC_DIGITS_START || c > NUMERIC_DIGITS_END)
-      return false;
-    i++;
-  }
-  return true;
+  return is_upper || is_lower;
 }
+
+inline bool is_numeric_char(char c) { return '0' <= c && c <= '9'; }
 
 inline bool is_alpha(const char *str) {
   if (str == nullptr || str[0] == '\0')
@@ -308,11 +303,20 @@ inline bool is_alpha(const char *str) {
 
   int i = 0;
   while (str[i] != '\0') {
-    int c = (int)str[i];
-    bool is_upper = (c >= UPPERCASE_START && c <= UPPERCASE_END);
-    bool is_lower = (c >= LOWERCASE_START && c <= LOWERCASE_END);
+    if (!is_alpha_char(str[i]))
+      return false;
+    i++;
+  }
+  return true;
+}
 
-    if (!is_upper && !is_lower)
+inline bool is_numeric(const char *str) {
+  if (str == nullptr || str[0] == '\0')
+    return false;
+
+  int i = 0;
+  while (str[i] != '\0') {
+    if (!is_numeric_char(str[i]))
       return false;
     i++;
   }
@@ -511,6 +515,7 @@ static void reverse(const char *str, char *buf) {
   buf[length] = '\0';
 }
 
+
 static void uppercase(char *str) {
   int l = strlen(str);
   if (l <= 0)
@@ -608,6 +613,93 @@ inline int find_last(char *str, char c) {
   }
 
   return last;
+}
+
+inline int index_of(const char *str, char c) {
+  if (!str)
+    return -1;
+  int i = 0;
+  while (str[i] != '\0') {
+    if (str[i] == c) {
+      return i;
+    }
+    i++;
+  }
+  return -1;
+}
+
+inline int last_index_of(const char *str, char c) {
+  if (!str)
+    return -1;
+  int index = -1;
+  int i = 0;
+
+  while (str[i] != '\0') {
+    if (str[i] == c)
+      index = i;
+    i++;
+  }
+
+  return index;
+}
+
+inline bool is_alphanumeric(const char *str) {
+  if (!str)
+    return false;
+  int i = 0;
+  while (str[i] != '\0') {
+    if (!is_alpha_char(str[i]) && !is_numeric_char(str[i]))
+      return false;
+    i++;
+  }
+  return true;
+}
+
+inline bool empty(const char *str) { return !str || str[0] == '\0'; }
+
+inline bool equals(const char *str1, const char *str2) {
+  int i = 0;
+  while (str1[i] != '\0') {
+    if (str1[i] != str2[i])
+      return false;
+    i++;
+  }
+  return true;
+}
+
+inline bool equals_ignore_case(const char *str1, const char *str2) {
+  int i = 0;
+  lowercase((char *)str1);
+  lowercase((char *)str2);
+  while (str1[i] != '\0') {
+    if (str1[i] != str2[i])
+      return false;
+  }
+  return true;
+}
+
+inline bool starts_with(const char* str, const char* prefix) {
+  if(!str || !prefix) return false;
+  int i = 0;
+  while(prefix[i] != '\0') {
+    if(str[i] != prefix[i]) return false;
+    i++;
+  }
+  return true;
+}
+
+inline bool ends_with(const char* str, int str_len, const char* prefix, int prefix_len) {
+  if(!str || !prefix) return false;
+  int i = 0;
+  while(prefix[i] != '\0') {
+    if(str[str_len - prefix_len + i] != prefix[i]) return false;
+    i++;
+  }
+  return true;
+}
+
+inline void clear(char* str) {
+  if(str) str[0] = '\0';
 }
 
 } // namespace StringUtils

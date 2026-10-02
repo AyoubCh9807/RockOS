@@ -366,6 +366,35 @@ public:
 
     return result;
   }
+
+  bool is_alpha() {
+    return StringUtils::is_alpha(data_);
+  }
+
+  bool is_numeric() {
+    return StringUtils::is_numeric(data_);
+  }
+
+  bool is_alpha_numeric() {
+    return StringUtils::is_alphanumeric(data_);
+  }
+
+  bool starts_with(const char *prefix) {
+    return StringUtils::starts_with(data_, prefix);
+  }
+
+  bool ends_with(const char* suffix) {
+    return StringUtils::ends_with(data_, size_, suffix, StringUtils::strlen(suffix));
+  }
+
+  int index_of(char c) {
+    return StringUtils::index_of(data_, c);
+  }
+
+  int last_index_of(char c) {
+    return StringUtils::last_index_of(data_, c);
+  }
+
 };
 
 namespace StringUtils {
