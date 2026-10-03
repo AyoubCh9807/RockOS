@@ -14,7 +14,7 @@ constexpr int UPPERCASE_END = 90;
 constexpr int LOWERCASE_START = 97;
 constexpr int LOWERCASE_END = 122;
 
-// Forward declaration — no include needed
+// Forward declaration and no include needed
 class String;
 
 namespace StringUtils {

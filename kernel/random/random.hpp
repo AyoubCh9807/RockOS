@@ -2,14 +2,12 @@
 
 #ifdef HOST_BUILD
 
-// ---------------------------------------------------------------------
 // Host-only path: used when training outside the kernel (compiled with
 // -DHOST_BUILD). There's no real timer interrupt or RDTSC entropy source
 // out here, and we don't need one - a fixed seed is perfectly fine for
 // initializing training weights. This branch never touches the kernel's
 // timer/scheduler/debugger/terminal_utils/colors chain, so it can be
 // compiled completely standalone.
-// ---------------------------------------------------------------------
 #include "../crypto/sha256.hpp"
 
 class Random {

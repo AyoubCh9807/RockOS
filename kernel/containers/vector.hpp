@@ -2,13 +2,11 @@
 
 #include "../memory/heap.hpp"
 #include "../shared/types.hpp"
-
-#include <new>
+#include "../utils/random_utils.hpp"
 
 constexpr int DEFAULT_VECTOR_REALLOCATION_INCREMENT = 24;
 
-template <typename T>
-class Vector {
+template <typename T> class Vector {
 private:
   T *data_;
   size_t size_;
@@ -42,8 +40,7 @@ private:
 
 public:
   Vector()
-      : data_(nullptr),
-        size_(0),
+      : data_(nullptr), size_(0),
         capacity_(DEFAULT_VECTOR_REALLOCATION_INCREMENT) {
 
     data_ = (T *)kmalloc(sizeof(T) * capacity_);
@@ -60,10 +57,7 @@ public:
     kfree(data_);
   }
 
-  Vector(const Vector &other)
-      : data_(nullptr),
-        size_(0),
-        capacity_(0) {
+  Vector(const Vector &other) : data_(nullptr), size_(0), capacity_(0) {
 
     if (other.capacity_ == 0)
       return;
@@ -98,8 +92,7 @@ public:
   }
 
   void reallocate() {
-    size_t new_capacity =
-        capacity_ + DEFAULT_VECTOR_REALLOCATION_INCREMENT;
+    size_t new_capacity = capacity_ + DEFAULT_VECTOR_REALLOCATION_INCREMENT;
 
     if (new_capacity <= capacity_)
       return;
@@ -153,29 +146,17 @@ public:
     size_--;
   }
 
-  T &back() const {
-    return data_[size_ - 1];
-  }
+  T &back() const { return data_[size_ - 1]; }
 
-  T &front() const {
-    return data_[0];
-  }
+  T &front() const { return data_[0]; }
 
-  bool empty() const {
-    return size_ == 0;
-  }
+  bool empty() const { return size_ == 0; }
 
-  T &operator[](size_t index) {
-    return data_[index];
-  }
+  T &operator[](size_t index) { return data_[index]; }
 
-  T &operator[](size_t index) const {
-    return data_[index];
-  }
+  T &operator[](size_t index) const { return data_[index]; }
 
-  void clear() {
-    destroy_elements();
-  }
+  void clear() { destroy_elements(); }
 
   void reserve(size_t new_capacity) {
     if (new_capacity <= capacity_)
@@ -246,37 +227,21 @@ public:
     size_--;
   }
 
-  size_t size() {
-    return size_;
-  }
+  size_t size() { return size_; }
 
-  size_t size() const {
-    return size_;
-  }
+  size_t size() const { return size_; }
 
-  size_t capacity() {
-    return capacity_;
-  }
+  size_t capacity() { return capacity_; }
 
-  size_t capacity() const {
-    return capacity_;
-  }
+  size_t capacity() const { return capacity_; }
 
-  T *begin() {
-    return data_;
-  }
+  T *begin() { return data_; }
 
-  T *end() {
-    return data_ + size_;
-  }
+  T *end() { return data_ + size_; }
 
-  const T *begin() const {
-    return data_;
-  }
+  const T *begin() const { return data_; }
 
-  const T *end() const {
-    return data_ + size_;
-  }
+  const T *end() const { return data_ + size_; }
 
   void fill(const T &value) {
     for (size_t i = 0; i < size_; i++)
@@ -320,8 +285,7 @@ public:
     return m;
   }
 
-  template <typename Ty>
-  void resize(size_t new_size, Ty value = Ty{}) {
+  void resize(size_t new_size, T value = T{}) {
     if (new_size > capacity_) {
       reserve(new_size);
 
@@ -334,5 +298,277 @@ public:
 
     while (size_ > new_size)
       pop_back();
+  }
+
+  bool contains(const T &val) {
+    for (size_t i = 0; i < size_; i++)
+      if (data_[i] == val)
+        return true;
+    return false;
+  }
+
+  int find(const T &val) {
+    for (size_t i = 0; i < size_; i++) {
+      if (val == data_[i])
+        return i;
+    }
+    return -1;
+  }
+
+  size_t remove(const T &val) {
+    int index = find(val);
+    size_t removal_count = 0;
+    while (index != -1) {
+      erase(index);
+      index = find(val);
+      removal_count++;
+    }
+    return removal_count;
+  }
+
+  size_t count(const T &val) {
+    size_t count = 0;
+    for (int i = 0; i < size_; i++) {
+      if (data_[i] == val)
+        count++;
+    }
+    return count;
+  }
+
+  template <typename Predicate> size_t remove_if(Predicate pred) {
+    if (!data_ || size_ <= 0)
+      return 0;
+    size_t count = 0;
+    for (size_t i = 0; i < size_; i++) {
+      if (!pred(data_[i])) {
+        data_[count++] = data_[i];
+      }
+    }
+
+    for (size_t i = count; i < size_; i++) {
+      data_[i].~T();
+    }
+
+    int rmcount = size_ - count;
+    size_ = count;
+    return rmcount;
+  }
+  template <typename Predicate> size_t find_if(Predicate pred) {
+    for (size_t i = 0; i < size_; i++) {
+      if (pred(data_[i]))
+        return (int)i;
+    }
+    return -1;
+  }
+
+  template <typename Function> void for_each(Function f) {
+    if (size_ <= 0 || !data_)
+      return;
+
+    for (size_t i = 0; i < size_; i++) {
+      f(data_[i]);
+    }
+  }
+
+  template <typename Function> void reverse_each(Function f) {
+    if (size_ <= 0 || !data_)
+      return;
+    for (int i = (int)size_ - 1; i >= 0; i--) {
+      f(data_[i]);
+    }
+  }
+
+  template <typename U, typename Function> Vector<U> map(Function f) const {
+    Vector<U> res;
+    res.resize(size_, U{});
+    for (size_t i = 0; i < size_; i++) {
+      res[i] = f(data_[i]);
+    }
+    return res;
+  }
+
+  void reverse() {
+    for (size_t i = 0; i < size_ / 2; i++) {
+      T temp = data_[i];
+      data_[i] = data_[size_ - 1 - i];
+      data_[size_ - 1 - i] = temp;
+    }
+  }
+
+  void rotate(int n) {}
+
+  bool is_sorted() const {
+    for (int i = 0; i < size_ - 1; i++) {
+      if (data_[i] > data_[i + 1])
+        return false;
+    }
+    return true;
+  }
+
+  void fast_clear() { size_ = 0; }
+
+  int rfind(const T &val) const {
+    if (size_ <= 0 || !data_)
+      return -1;
+    for (int i = (int)size_ - 1; i >= 0; i--) {
+      if (data_[i] == val)
+        return i;
+    }
+    return -1;
+  }
+
+  void append(const T *arr, size_t count) {
+    if (!arr || count == 0)
+      return;
+
+    if (size_ + count > capacity_) {
+      reserve(size_ + count);
+      if (size_ + count > capacity_)
+        return; // Allocation failed check
+    }
+
+    for (size_t i = 0; i < count; i++) {
+      new (&data_[size_++]) T(arr[i]);
+    }
+  }
+
+  template <typename Predicate> size_t dedup(Predicate pred) {
+    if (!data_ || size_ <= 0)
+      return 0;
+    size_t count = 0;
+    for (size_t i = 0; i < size_; i++) {
+      if (!pred(data_[i])) {
+        data_[count++] = data_[i];
+      }
+    }
+
+    for (size_t i = count; i < size_; i++) {
+      data_[i].~T();
+    }
+
+    int rmcount = size_ - count;
+    size_ = count;
+    return rmcount;
+  }
+
+  void shuffle() {
+    for (size_t i = 0; i < size_; i++) {
+      int r = RandomUtils::random_from_range(0, size_);
+      T temp = data_[i];
+      data_[i] = data_[r];
+      data_[r] = temp;
+    }
+  }
+
+  template <typename Action> void for_each_indexed(Action a) {
+    for (size_t i = 0; i < size_; i++) {
+      a(i, data_[i]);
+    }
+  }
+
+  bool starts_with(const Vector<T> &other) {
+    size_t s = other.size();
+    for (size_t i = 0; i < s; i++) {
+      if (data_[i] != other[i])
+        return false;
+    }
+    return true;
+  }
+
+  bool ends_with(const Vector<T> &other) {
+    if (size_ <= 0 || !data_ || !other.data_)
+      return false;
+    size_t s = other.size();
+    if (size_ < s)
+      return false;
+    for (size_t i = size_ - s - 1; i < size_; i++) {
+      if (data_[i] != other[i])
+        return false;
+    }
+    return true;
+  }
+
+  void sort() {
+    bool e;
+    do {
+      e = false;
+      for (size_t i = 0; i < size_ - 1; i++) {
+
+        if (data_[i] > data_[i + 1]) {
+          e = true;
+          auto temp = data_[i];
+          data_[i] = data_[i + 1];
+          data_[i + 1] = temp;
+        }
+      }
+    } while (e);
+  }
+
+  void sort_asc() { sort(); }
+
+  void sort_desc() {
+    bool e = false;
+    while (!e) {
+      for (size_t i = 0; i < size_ - 1; i++) {
+        if (data_[i] < data_[i + 1]) {
+          e = true;
+          auto temp = data_[i];
+          data_[i] = data_[i + 1];
+          data_[i + 1] = temp;
+        }
+      }
+    }
+  }
+
+  template <typename Predicate> void sort_pred(Predicate p) {
+    bool e = false;
+    while (!e) {
+      for (size_t i = 0; i < size_ - 1; i++) {
+        if (pred(data_[i]) > pred(data_[i + 1])) {
+          e = true;
+          auto temp = data_[i];
+          data_[i] = data_[i + 1];
+          data_[i + 1] = temp;
+        }
+      }
+    }
+  }
+
+  bool operator==(const Vector<T> &other) const {
+    if (size_ != other.size())
+      return false;
+    if (size_ == 0)
+      return true;
+
+    for (size_t i = 0; i < size_; i++) {
+      if (data_[i] != other[i])
+        return false;
+    }
+    return true;
+  }
+
+  void swap(Vector<T> &other) {
+    T *data = data_;
+    size_t size = size_;
+    size_t cap = capacity_;
+
+    capacity_ = other.capacity_;
+    size_ = other.size_;
+    data_ = other.data_;
+
+    other.capacity_ = cap;
+    other.size_ = size;
+    other.data_ = data;
+  }
+
+  T *data() { return data_; }
+  const T *data() const { return data_; }
+
+  // This is equivalent of std::move
+  Vector(Vector &&other) noexcept
+      : data_(other.data_), size_(other.size_), capacity_(other.capacity_) {
+    other.data_ = nullptr;
+    other.size_ = 0;
+    other.capacity_ = 0;
   }
 };
