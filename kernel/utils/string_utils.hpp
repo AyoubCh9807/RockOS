@@ -483,9 +483,6 @@ inline int snprintf(char *buf, size_t max_len, const char *fmt, ...) {
   return ret;
 }
 
-// Declared here but defined in string.hpp after String class is complete
-String format(const char *fmt, ...);
-
 static int to_int(const char *str) {
   if (!str)
     return 0;
@@ -515,7 +512,6 @@ static void reverse(const char *str, char *buf) {
   buf[length] = '\0';
 }
 
-
 static void uppercase(char *str) {
   int l = strlen(str);
   if (l <= 0)
@@ -543,6 +539,13 @@ static void lowercase(char *str) {
 static char to_lower(char c) {
   if ('A' <= c && c <= 'Z')
     c += 32;
+
+  return c;
+}
+
+static char to_upper(char c) {
+  if ('a' <= c && c <= 'z')
+    c -= 32;
 
   return c;
 }
@@ -678,28 +681,49 @@ inline bool equals_ignore_case(const char *str1, const char *str2) {
   return true;
 }
 
-inline bool starts_with(const char* str, const char* prefix) {
-  if(!str || !prefix) return false;
+inline bool starts_with(const char *str, const char *prefix) {
+  if (!str || !prefix)
+    return false;
   int i = 0;
-  while(prefix[i] != '\0') {
-    if(str[i] != prefix[i]) return false;
+  while (prefix[i] != '\0') {
+    if (str[i] != prefix[i])
+      return false;
     i++;
   }
   return true;
 }
 
-inline bool ends_with(const char* str, int str_len, const char* prefix, int prefix_len) {
-  if(!str || !prefix) return false;
+inline bool ends_with(const char *str, int str_len, const char *prefix,
+                      int prefix_len) {
+  if (!str || !prefix)
+    return false;
   int i = 0;
-  while(prefix[i] != '\0') {
-    if(str[str_len - prefix_len + i] != prefix[i]) return false;
+  while (prefix[i] != '\0') {
+    if (str[str_len - prefix_len + i] != prefix[i])
+      return false;
     i++;
   }
   return true;
 }
 
-inline void clear(char* str) {
-  if(str) str[0] = '\0';
+inline void clear(char *str) {
+  if (str)
+    str[0] = '\0';
+}
+
+inline int strncmp(const char *s1, const char *s2, size_t count) {
+  if (!s1 || !s2)
+    return 0;
+
+  for (size_t i = 0; i < count; i++) {
+    if (s1[i] != s2[i])
+      return (unsigned char)s1[i] - (unsigned char)s2[i];
+
+    if (s1[i] == '\0')
+      return 0;
+  }
+
+  return 0;
 }
 
 } // namespace StringUtils

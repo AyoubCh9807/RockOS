@@ -114,7 +114,8 @@ public:
 
     char count_text[16];
 
-    StringUtils::format(count_text, "%d results", filtered_count);
+    StringUtils::snprintf(count_text, sizeof(count_text), "%d results",
+                          filtered_count);
 
     Graphics::draw_string(count_text, right - 90, Y + 15, Colors::GRAY);
 

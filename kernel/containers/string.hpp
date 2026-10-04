@@ -1,14 +1,11 @@
 #pragma once
 
 #include "../memory/heap.hpp"
-#include "../shared/types.hpp"
 #include "../utils/string_utils.hpp"
 
 constexpr int DEFAULT_STRING_INCREMENT = 16;
 
 class String {
-  // Allow StringUtils::format to use private members for efficiency
-  friend String StringUtils::format(const char *fmt, ...);
 
 private:
   size_t size_;
@@ -367,60 +364,285 @@ public:
     return result;
   }
 
-  bool is_alpha() {
-    return StringUtils::is_alpha(data_);
-  }
+  bool is_alpha() { return StringUtils::is_alpha(data_); }
 
-  bool is_numeric() {
-    return StringUtils::is_numeric(data_);
-  }
+  bool is_numeric() { return StringUtils::is_numeric(data_); }
 
-  bool is_alpha_numeric() {
-    return StringUtils::is_alphanumeric(data_);
-  }
+  bool is_alpha_numeric() { return StringUtils::is_alphanumeric(data_); }
 
   bool starts_with(const char *prefix) {
     return StringUtils::starts_with(data_, prefix);
   }
 
-  bool ends_with(const char* suffix) {
-    return StringUtils::ends_with(data_, size_, suffix, StringUtils::strlen(suffix));
+  bool ends_with(const char *suffix) {
+    return StringUtils::ends_with(data_, size_, suffix,
+                                  StringUtils::strlen(suffix));
   }
 
-  int index_of(char c) {
-    return StringUtils::index_of(data_, c);
+  int index_of(char c) { return StringUtils::index_of(data_, c); }
+
+  int last_index_of(char c) { return StringUtils::last_index_of(data_, c); }
+
+  int index_of(const char *substr, size_t from_index = 0) const {
+    if (!substr || from_index > size_)
+      return -1;
+
+    size_t length = StringUtils::strlen(substr);
+
+    if (length == 0)
+      return (int)from_index;
+
+    if (length > size_ - from_index)
+      return -1;
+    for (int i = from_index; i < size_ - length + 1; i++) {
+      if (StringUtils::strncmp(data_ + i, substr, length) == 0) {
+        return (int)i;
+      }
+    }
+    return -1;
   }
 
-  int last_index_of(char c) {
-    return StringUtils::last_index_of(data_, c);
+  int last_index_of(const char *substr, size_t from_index) const {
+    if (!substr || from_index >= size_)
+      return -1;
+
+    size_t length = StringUtils::strlen(substr);
+
+    if (length == 0)
+      return static_cast<int>(from_index);
+
+    if (length > size_)
+      return -1;
+
+    if (from_index > size_ - length)
+      from_index = size_ - length;
+
+    int result = -1;
+
+    for (size_t i = from_index; i <= size_ - length; i++) {
+      if (StringUtils::strncmp(data_ + i, substr, length) == 0) {
+        result = static_cast<int>(i);
+      }
+    }
+
+    return result;
   }
 
+  bool contains(char c) const {
+    if (!data_ || size_ == 0)
+      return false;
+    for (int i = 0; i < size_; i++) {
+      if (data_[i] == c)
+        return true;
+    }
+    return false;
+  }
+
+  bool contains(const char *substr) const {
+    if (!data_ || size_ == 0)
+      return false;
+    size_t len = StringUtils::strlen(substr);
+    for (int i = 0; i < size_ - len + 1; i++) {
+      if (StringUtils::strncmp(data_ + i, substr, len) == 0)
+        return true;
+    }
+    return false;
+  }
+
+  size_t count(char c) const {
+    size_t s = 0;
+    if (!data_ || size_ == 0)
+      return 0;
+
+    for (int i = 0; i < size_; i++) {
+      if (data_[i] == c)
+        s++;
+    }
+    return s;
+  }
+
+  String &lower() {
+    for (size_t i = 0; i < size_; i++) {
+      if (!data_)
+        continue;
+      data_[i] = StringUtils::to_lower(data_[i]);
+    }
+    return *this;
+  }
+
+  String &upper() {
+    for (size_t i = 0; i < size_; i++) {
+      if (!data_)
+        continue;
+      data_[i] = StringUtils::to_upper(data_[i]);
+    }
+    return *this;
+  }
+
+  explicit operator bool() const { return size_ > 0 && data_ != nullptr; }
+
+  String &replace(char oldc, char newc) {
+    for (size_t i = 0; i < size_; i++) {
+      if (data_[i] == oldc)
+        data_[i] = newc;
+    }
+    return *this;
+  }
+
+  void shift(size_t index, int offset) {
+    if (offset > 0) {
+      ensure_capacity(size_ + offset);
+
+      for (size_t i = size_ + 1; i-- > index;)
+        data_[i + offset] = data_[i];
+
+      size_ += offset;
+    } else if (offset < 0) {
+      size_t amount = static_cast<size_t>(-offset);
+
+      for (size_t i = index; i <= size_; i++)
+        data_[i - amount] = data_[i];
+
+      size_ -= amount;
+    }
+  }
+
+  String &replace(const char *target, const char *replacement) {
+    if (!target || !replacement)
+      return *this;
+
+    size_t idx = index_of(target);
+
+    size_t target_len = StringUtils::strlen(target);
+    size_t replacement_len = StringUtils::strlen(replacement);
+
+    if (target_len == 0)
+      return *this;
+
+    while (idx != -1) {
+      int diff =
+          static_cast<int>(replacement_len) - static_cast<int>(target_len);
+
+      shift(idx + target_len, diff);
+
+      for (size_t i = 0; i < replacement_len; i++)
+        data_[idx + i] = replacement[i];
+
+      idx = index_of(target, idx + replacement_len);
+    }
+
+    return *this;
+  }
+
+  String &collapse_spaces() {
+    while (index_of("  ") != -1)
+      replace("  ", " ");
+
+    return *this;
+  }
+
+  String &trim_left() {
+    size_t idx = 0;
+
+    while (idx < size_ && data_[idx] == ' ')
+      idx++;
+
+    if (idx > 0)
+      shift(idx, -static_cast<int>(idx));
+
+    return *this;
+  }
+
+  String &trim_right() {
+    while (size_ > 0 && data_[size_ - 1] == ' ')
+      size_--;
+
+    data_[size_] = '\0';
+
+    return *this;
+  }
+
+  String &trim() {
+    collapse_spaces();
+    trim_left();
+    trim_right();
+    return *this;
+  }
+
+  void shrink_to_fit() {
+    if (!data_ || capacity_ == size_ + 1)
+      return;
+
+    size_t new_cap = size_ + 1;
+    char *new_data = (char *)kmalloc(new_cap);
+    if (!new_data)
+      return;
+
+    for (size_t i = 0; i <= size_; i++)
+      new_data[i] = data_[i];
+
+    kfree(data_);
+    data_ = new_data;
+    capacity_ = new_cap;
+  }
+
+  size_t split(char *str, const char separator, char **args, int max_args) {
+    return StringUtils::split_by(data_, separator, args, max_args);
+  }
+
+  bool equals_ignore_case(const char *other) {
+    return StringUtils::equals_ignore_case(data_, other);
+  }
+  bool equals_ignore_case(const String &other) {
+    return StringUtils::equals_ignore_case(data_, other.c_str());
+  }
+
+  bool equals(const char *other) { return StringUtils::equals(data_, other); }
+  bool equals(const String &other) {
+    return StringUtils::equals(data_, other.c_str());
+  }
+
+  int to_int() { return StringUtils::to_int(data_); }
+
+  bool operator<(const String &other) const {
+    return StringUtils::strcmp(c_str(), other.c_str()) < 0;
+  }
+  bool operator<=(const String &other) const {
+    return StringUtils::strcmp(c_str(), other.c_str()) <= 0;
+  }
+  bool operator>(const String &other) const {
+    return StringUtils::strcmp(c_str(), other.c_str()) > 0;
+  }
+  bool operator>=(const String &other) const {
+    return StringUtils::strcmp(c_str(), other.c_str()) >= 0;
+  }
+
+  char *release() {
+    char *temp = data_;
+    data_ = nullptr;
+    size_ = 0;
+    capacity_ = 0;
+    return temp; // Caller now owns this memory and HAS TO kfree() it eventually
+  }
+
+  void reserve(size_t new_capacity) {
+    if (new_capacity <= capacity_)
+      return;
+
+    ensure_capacity(new_capacity);
+  }
+
+  void swap(String &other) {
+    char *temp_data = data_;
+    size_t temp_size = size_;
+    size_t temp_cap = capacity_;
+
+    data_ = other.data_;
+    size_ = other.size_;
+    capacity_ = other.capacity_;
+
+    other.data_ = temp_data;
+    other.size_ = temp_size;
+    other.capacity_ = temp_cap;
+  }
 };
-
-namespace StringUtils {
-inline String format(const char *fmt, ...) {
-  if (!fmt)
-    return String("");
-
-  char stack_buf[256];
-  va_list args;
-  va_start(args, fmt);
-  int len = vsnprintf(stack_buf, sizeof(stack_buf), fmt, args);
-  va_end(args);
-
-  if (len > 0 && (size_t)len < sizeof(stack_buf))
-    return String(stack_buf);
-
-  String result;
-  result.ensure_capacity(len + 1);
-  if (!result.data_)
-    return String("");
-
-  va_start(args, fmt);
-  vsnprintf(result.data_, len + 1, fmt, args);
-  va_end(args);
-
-  result.size_ = len;
-  return result;
-}
-} // namespace StringUtils

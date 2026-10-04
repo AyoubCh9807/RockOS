@@ -3,6 +3,7 @@
 #include "../memory/heap.hpp"
 #include "../shared/types.hpp"
 #include "../utils/random_utils.hpp"
+#include <new>
 
 constexpr int DEFAULT_VECTOR_REALLOCATION_INCREMENT = 24;
 
