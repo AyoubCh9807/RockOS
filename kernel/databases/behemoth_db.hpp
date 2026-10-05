@@ -27,7 +27,7 @@ public:
   };
 
   // Cleans up resources allocated by the log buffer.
-  ~BehemothDB();
+  ~BehemothDB() = default;
 
   // Appends a new timestamped log entry, overwriting the oldest if full.
   void push(u64 timestamp, const String &message) {

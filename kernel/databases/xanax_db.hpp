@@ -18,7 +18,7 @@ public:
   XanaxDB() {};
 
   // Cleans up database resources and internal vectors.
-  ~XanaxDB() {};
+  ~XanaxDB() = default; 
 
   // Inserts or updates a key value pair.
   void set(const K &key, const V &val) {
