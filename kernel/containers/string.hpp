@@ -285,6 +285,7 @@ public:
 
   void append(const String &str) { *this += str; }
   void append(const char *cstr) { *this += cstr; }
+  void append(char c) { *this += c; }
 
   char *begin() { return data_; }
   char *end() { return data_ + size_; }
