@@ -38,11 +38,16 @@ static void int_to_hex(u32 value, char *buf) {
   buf[10] = '\0';
 }
 
-template <typename Tx, typename Ty> auto max(Tx a, Ty b) { return a > b ? a : b; }
+template <typename Tx, typename Ty> auto max(Tx a, Ty b) {
+  return a > b ? a : b;
+}
 
-template <typename Tx, typename Ty> auto min(Tx a, Ty b) { return a < b ? a : b; }
+template <typename Tx, typename Ty> auto min(Tx a, Ty b) {
+  return a < b ? a : b;
+}
 
-template <typename Tx, typename Ty, typename Tz> auto clamp(Tx min, Ty mid, Tz max) {
+template <typename Tx, typename Ty, typename Tz>
+auto clamp(Tx min, Ty mid, Tz max) {
   auto res = (min > mid ? min : mid);
   res = (res > max ? max : res);
   return res;
@@ -165,8 +170,69 @@ template <typename T> constexpr bool is_finite(T x) {
   return __builtin_isfinite(x);
 }
 
-template <typename T> constexpr T abs(T x) {
-  return x > 0 ? x : -x;
+template <typename T> constexpr T abs(T x) { return x > 0 ? x : -x; }
+
+static bool resolve_expr(int argc, char **argv, int &result) {
+  constexpr int MAX_NUMS = 32;
+
+  if (argc < 4 || argc % 2 != 0)
+    return false;
+
+  int n = (argc - 1) / 2;
+
+  if (n > MAX_NUMS)
+    return false;
+
+  int nums[MAX_NUMS];
+  char ops[MAX_NUMS];
+
+  for (int i = 0; i < n; i++) {
+    nums[i] = StringUtils::to_int(argv[1 + 2 * i]);
+
+    if (i >= n - 1)
+      continue;
+
+    const char *op = argv[2 + 2 * i];
+
+    if (!op || op[1] != '\0' ||
+        (op[0] != '+' && op[0] != '-' && op[0] != '*' && op[0] != '/'))
+      return false;
+
+    ops[i] = op[0];
+  }
+
+  int vals[MAX_NUMS];
+  char vops[MAX_NUMS];
+
+  int m = 1;
+  vals[0] = nums[0];
+
+  for (int i = 0; i < n - 1; i++) {
+    char op = ops[i];
+    int b = nums[i + 1];
+
+    if (op == '*' || op == '/') {
+      if (op == '/') {
+        if (b == 0)
+          return false;
+
+        if (vals[m - 1] == (-2147483647 - 1) && b == -1)
+          return false;
+      }
+
+      vals[m - 1] = expr_result(vals[m - 1], b, op);
+    } else {
+      vops[m - 1] = op;
+      vals[m++] = b;
+    }
+  }
+
+  result = vals[0];
+
+  for (int i = 0; i < m - 1; i++)
+    result = expr_result(result, vals[i + 1], vops[i]);
+
+  return true;
 }
 
 } // namespace MathUtils

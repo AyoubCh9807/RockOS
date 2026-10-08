@@ -104,7 +104,7 @@ extern "C" void kernel_main(u64 mb_addr) {
       "Rock AI",  "Files",     "Terminal", "Amp",   "Tuner",   "Metronome",
       "Playlist", "Radio",     "Lyrics",   "Mixer", "Browser", "Rock Store",
       "Vinyl",    "Recorder",  "Drums",    "REC",   "Lock",    "Trash",
-      "Updater",  "Equalizer", "Pick",     "Help",  "Stage"};
+      "Updater",  "Equalizer", "Pick",     "Help",  "Stage", "Calculator"};
 
   const u32 screen_width = Multiboot2::framebuffer.width;
 

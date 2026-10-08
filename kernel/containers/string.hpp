@@ -3,7 +3,7 @@
 #include "../memory/heap.hpp"
 #include "../utils/string_utils.hpp"
 
-constexpr int DEFAULT_STRING_INCREMENT = 16;
+constexpr size_t DEFAULT_STRING_INCREMENT = 16;
 
 class String {
 
@@ -36,6 +36,26 @@ private:
       kfree(data_);
     data_ = new_data;
     capacity_ = new_cap;
+  }
+
+  // TO not include string everytime math utils is included
+  template <typename T> static inline T result(T x, T y, char op) {
+    switch (op) {
+    case '+':
+      return x + y;
+
+    case '-':
+      return x - y;
+
+    case '*':
+      return x * y;
+
+    case '/':
+      return x / y;
+
+    default:
+      return 0;
+    }
   }
 
 public:
@@ -645,5 +665,94 @@ public:
     other.data_ = temp_data;
     other.size_ = temp_size;
     other.capacity_ = temp_cap;
+  }
+
+  template <typename T> static inline T apply_op(T x, T y, char op) {
+    switch (op) {
+    case '+':
+      return x + y;
+    case '-':
+      return x - y;
+    case '*':
+      return x * y;
+    case '/':
+      return x / y;
+    default:
+      return 0;
+    }
+  }
+
+  bool resolve_int(int &result) {
+    constexpr int MAX_NUMS = 32;
+
+    int nums[MAX_NUMS];
+    char ops[MAX_NUMS];
+
+    int num_count = 0;
+    int op_count = 0;
+    int start = 0;
+
+    for (int i = 0; i <= length(); i++) {
+      bool end = i == length();
+
+      if (!end && (*this)[i] != '+' && (*this)[i] != '-' && (*this)[i] != '*' &&
+          (*this)[i] != '/')
+        continue;
+
+      if (i == start)
+        return false;
+
+      if (num_count >= MAX_NUMS)
+        return false;
+
+      String num = substr(start, i - start);
+
+      if (!num.is_numeric())
+        return false;
+
+      nums[num_count++] = num.to_int();
+
+      if (end)
+        break;
+
+      ops[op_count++] = (*this)[i];
+      start = i + 1;
+    }
+
+    if (num_count == 0 || op_count != num_count - 1)
+      return false;
+
+    int vals[MAX_NUMS];
+    char vops[MAX_NUMS];
+
+    int m = 1;
+    vals[0] = nums[0];
+
+    for (int i = 0; i < num_count - 1; i++) {
+      char op = ops[i];
+      int b = nums[i + 1];
+
+      if (op == '*' || op == '/') {
+        if (op == '/') {
+          if (b == 0)
+            return false;
+
+          if (vals[m - 1] == (-2147483647 - 1) && b == -1)
+            return false;
+        }
+
+        vals[m - 1] = apply_op(vals[m - 1], b, op);
+      } else {
+        vops[m - 1] = op;
+        vals[m++] = b;
+      }
+    }
+
+    result = vals[0];
+
+    for (int i = 0; i < m - 1; i++)
+      result = apply_op(result, vals[i + 1], vops[i]);
+
+    return true;
   }
 };
