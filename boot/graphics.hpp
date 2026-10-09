@@ -6,7 +6,6 @@
 #include "../kernel/desktop/cursor.hpp"
 #include "../kernel/shared/types.hpp"
 #include "../kernel/utils/math_utils.hpp"
-#include "graphic_colors.hpp"
 
 namespace Graphics {
 
@@ -57,7 +56,7 @@ inline void clear(u32 color) {
   }
 }
 
-void draw_rect(int x, int y, int width, int height, u32 color) {
+inline void draw_rect(int x, int y, int width, int height, u32 color) {
   if (width <= 0 || height <= 0)
     return;
 
@@ -221,7 +220,7 @@ inline void draw_vertical_line(u32 x, u32 y, u32 h, u32 color) {
   }
 }
 
-void draw_circle(int cx, int cy, int radius, u32 color) {
+inline void draw_circle(int cx, int cy, int radius, u32 color) {
   int x = radius;
   int y = 0;
   int decision = 1 - radius;
@@ -247,7 +246,7 @@ void draw_circle(int cx, int cy, int radius, u32 color) {
   }
 }
 
-void draw_angled_line(int cx, int cy, int length, float angle, u32 color) {
+inline void draw_angled_line(int cx, int cy, int length, float angle, u32 color) {
   const int end_x = cx + static_cast<int>(MathUtils::cos(angle) * length);
 
   const int end_y = cy + static_cast<int>(MathUtils::sin(angle) * length);

@@ -14,6 +14,10 @@ public:
   CommandResult execute(int argc, char **argv) {
     int expr_res;
 
+    if (argc < 2 || !argv[1])
+      return CommandResult(Generator::random_phrase(foolish_phrases),
+                           Colors::RED);
+
     if (!MathUtils::resolve_expr(argc, argv, expr_res))
       return CommandResult(Generator::random_phrase(foolish_phrases),
                            Colors::RED);
