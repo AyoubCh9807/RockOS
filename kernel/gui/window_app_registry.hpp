@@ -3,6 +3,7 @@
 #include "../utils/string_utils.hpp"
 
 #include "apps/about_app.hpp"
+#include "apps/browser_app.hpp"
 #include "apps/calculator_app.hpp"
 #include "apps/clock_app.hpp"
 #include "apps/counter_app.hpp"
@@ -34,13 +35,14 @@ private:
   RockAIApp rock_ai;
   TerminalApp terminal;
   CalculatorApp calculator;
+  BrowserApp browser;
 
   int count = 0;
 
 public:
   WindowAppRegistry(Terminal &term, Shell &shell)
       : counter(), tyrant(), clock(), dice(), matrix(), dvd(), about(),
-        settings(), rock_ai(), terminal(term, shell), calculator() {}
+        settings(), rock_ai(), terminal(term, shell), calculator(), browser() {}
 
   void register_app(IWindowApp *app) {
     if (count >= MAX_WINDOW_APPS)
@@ -65,6 +67,7 @@ public:
     register_app(&rock_ai);
     register_app(&terminal);
     register_app(&calculator);
+    register_app(&browser);
   }
 
   IWindowApp *find(const char *name) {
