@@ -98,13 +98,14 @@ extern "C" void kernel_main(u64 mb_addr) {
   widget_registry.register_widgets();
 
   const char *app_names[] = {
-      "Counter",  "Dice",      "DVD",      "Clock", "Tyrant",  "Matrix",
-      "About",    "Settings",
+      "Counter",   "Dice",       "DVD",      "Clock",      "Tyrant",
+      "Matrix",    "About",      "Settings",
 
-      "Rock AI",  "Files",     "Terminal", "Amp",   "Tuner",   "Metronome",
-      "Playlist", "Radio",     "Lyrics",   "Mixer", "Browser", "Rock Store",
-      "Vinyl",    "Recorder",  "Drums",    "REC",   "Lock",    "Trash",
-      "Updater",  "Equalizer", "Pick",     "Help",  "Stage", "Calculator"};
+      "Rock AI",   "Files",      "Terminal", "Amp",        "Tuner",
+      "Metronome", "Playlist",   "Radio",    "Lyrics",     "Mixer",
+      "Browser",   "Rock Store", "Vinyl",    "Recorder",   "Drums",
+      "REC",       "Lock",       "Trash",    "Updater",    "Equalizer",
+      "Pick",      "Help",       "Stage",    "Calculator", "Music Player"};
 
   const u32 screen_width = Multiboot2::framebuffer.width;
 
@@ -190,11 +191,11 @@ extern "C" void kernel_main(u64 mb_addr) {
     column_y[c] = widget_start_y;
   }
 
-  //NOTE: Ai is used for UI UX design
-  // Standard "shortest column" masonry: each widget goes into
-  // whichever column currently has the least height used so far.
-  // This stays balanced and correct no matter how many widgets are
-  // registered or how tall each one turns out to be.
+  // NOTE: Ai is used for UI UX design
+  //  Standard "shortest column" masonry: each widget goes into
+  //  whichever column currently has the least height used so far.
+  //  This stays balanced and correct no matter how many widgets are
+  //  registered or how tall each one turns out to be.
   for (int i = 0; i < widget_count; i++) {
     IWidget *widget = widget_registry.get(i);
 
@@ -208,8 +209,7 @@ extern "C" void kernel_main(u64 mb_addr) {
         shortest_column = c;
     }
 
-    widget->set_position(column_x[shortest_column],
-                         column_y[shortest_column]);
+    widget->set_position(column_x[shortest_column], column_y[shortest_column]);
 
     column_y[shortest_column] += widget->get_height() + WIDGET_GAP;
   }
