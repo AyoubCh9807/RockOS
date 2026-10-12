@@ -98,14 +98,14 @@ extern "C" void kernel_main(u64 mb_addr) {
   widget_registry.register_widgets();
 
   const char *app_names[] = {
-      "Counter",   "Dice",       "DVD",      "Clock",      "Tyrant",
-      "Matrix",    "About",      "Settings",
+      "Counter",   "Dice",          "DVD",      "Clock",      "Tyrant",
+      "Matrix",    "About",         "Settings",
 
-      "Rock AI",   "Files",      "Terminal", "Amp",        "Tuner",
-      "Metronome", "Playlist",   "Radio",    "Lyrics",     "Mixer",
-      "Browser",   "Rock Store", "Vinyl",    "Recorder",   "Drums",
-      "REC",       "Lock",       "Trash",    "Updater",    "Equalizer",
-      "Pick",      "Help",       "Stage",    "Calculator", "Music Player"};
+      "Rock AI",   "File Explorer", "Terminal", "Amp",        "Tuner",
+      "Metronome", "Playlist",      "Radio",    "Lyrics",     "Mixer",
+      "Browser",   "Rock Store",    "Vinyl",    "Recorder",   "Drums",
+      "REC",       "Lock",          "Trash",    "Updater",    "Equalizer",
+      "Pick",      "Help",          "Stage",    "Calculator", "Music Player"};
 
   const u32 screen_width = Multiboot2::framebuffer.width;
 
