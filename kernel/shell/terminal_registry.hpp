@@ -4,7 +4,6 @@
 #include "../data/shell_commands.hpp"
 #include "../utils/string_utils.hpp"
 
-
 #include "commands/append.hpp"
 #include "commands/calc.hpp"
 #include "commands/cat.hpp"
@@ -35,13 +34,14 @@
 #include "commands/rmdir.hpp"
 #include "commands/rtop.hpp"
 #include "commands/seq.hpp"
+#include "commands/tac.hpp"
+#include "commands/tail.hpp"
 #include "commands/touch.hpp"
 #include "commands/tyrant.hpp"
 #include "commands/upper.hpp"
 #include "commands/uptime.hpp"
 #include "commands/wc.hpp"
 #include "commands/write.hpp"
-#include "commands/tail.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -49,19 +49,19 @@
 #include "commands/lore.hpp"
 #include "commands/mood.hpp"
 #include "commands/motd.hpp"
+#include "commands/rockai.hpp"
 #include "commands/rockfetch.hpp"
 #include "commands/stats.hpp"
 #include "commands/void.hpp"
-#include "commands/whoami.hpp"
-#include "commands/rockai.hpp"
 #include "commands/wallpaper.hpp"
+#include "commands/whoami.hpp"
 
 constexpr int MAX_TERMINAL_COMMANDS = 256;
 
 class TerminalRegistry {
 private:
   ICommand *commands[MAX_TERMINAL_COMMANDS]{};
-  RockAI& ai;
+  RockAI &ai;
 
   RebootCommand reboot;
   ClearCommand clear;
@@ -79,6 +79,7 @@ private:
   RmCommand rm;
   RmdirCommand rmdir;
   CatCommand cat;
+  TacCommand tac;
   WriteCommand write;
   EnvCommand env;
   DateCommand date;
@@ -119,20 +120,22 @@ public:
   u32 &current_dir;
 
   TerminalRegistry(TerminalUtils &terminal_utils, FileSystem &fs,
-                   u32 &current_dir, Environment &environment, RockAI& ai)
+                   u32 &current_dir, Environment &environment, RockAI &ai)
       : current_dir(current_dir), ai(ai), reboot(), clear(terminal_utils),
         echo(environment, terminal_utils), uptime(), help(),
         ls(fs, current_dir), mkdir(fs, current_dir), pwd(fs, current_dir),
         tyrant(), damian(), garrick(), random(), cd(fs, current_dir),
         touch(fs, current_dir), rm(fs, current_dir), rmdir(fs, current_dir),
         cat(fs, current_dir), write(fs, current_dir), wc(fs, current_dir),
-        grep(fs, current_dir), append(fs, current_dir), head(fs, current_dir), tail(fs, current_dir),
-        env(environment), date(terminal_utils), heaptest(), seq(), dirname(),
-        rev(), crystal(terminal_utils), rtop(terminal_utils), fortune(),
-        whoami(terminal_utils), repeat(terminal_utils), upper(terminal_utils),
-        lower(terminal_utils), length(terminal_utils), calc(), motd(),
-        rockfetch(terminal_utils), ascii(terminal_utils), stats(terminal_utils),
-        mood(), void_cmd(terminal_utils), lore(), diagnose(terminal_utils), rockai(ai), wallpaper() {}
+        grep(fs, current_dir), append(fs, current_dir), head(fs, current_dir),
+        tail(fs, current_dir), env(environment), date(terminal_utils),
+        heaptest(), seq(), dirname(), rev(), crystal(terminal_utils),
+        rtop(terminal_utils), fortune(), whoami(terminal_utils),
+        repeat(terminal_utils), upper(terminal_utils), lower(terminal_utils),
+        length(terminal_utils), calc(), motd(), rockfetch(terminal_utils),
+        ascii(terminal_utils), stats(terminal_utils), mood(),
+        void_cmd(terminal_utils), lore(), diagnose(terminal_utils), rockai(ai),
+        wallpaper(), tac(fs, current_dir) {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 
@@ -170,6 +173,7 @@ public:
     register_command(&length);
     register_command(&calc);
     register_command(&random);
+    register_command(&tac);
 
     register_command(&rtop);
     register_command(&crystal);
