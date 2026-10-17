@@ -35,7 +35,7 @@ public:
     utils.print("  ");
 
     for (size_t i = 0; i < bytes_read; i++) {
-      utils.print_formatted(Colors::WHITE, "%d", buffer[i]);
+      utils.putchar(buffer[i], Colors::WHITE);
 
       if (buffer[i] == '\n' && i + 1 < bytes_read) {
         line++;
