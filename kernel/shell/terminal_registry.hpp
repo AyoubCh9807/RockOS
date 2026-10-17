@@ -5,11 +5,13 @@
 #include "../utils/string_utils.hpp"
 
 #include "commands/append.hpp"
+#include "commands/blank.hpp"
 #include "commands/calc.hpp"
 #include "commands/cat.hpp"
 #include "commands/cd.hpp"
 #include "commands/clear.hpp"
 #include "commands/crystal.hpp"
+#include "commands/cut.hpp"
 #include "commands/damian.hpp"
 #include "commands/date.hpp"
 #include "commands/dirname.hpp"
@@ -25,6 +27,7 @@
 #include "commands/lower.hpp"
 #include "commands/ls.hpp"
 #include "commands/mkdir.hpp"
+#include "commands/nl.hpp"
 #include "commands/pwd.hpp"
 #include "commands/random.hpp"
 #include "commands/reboot.hpp"
@@ -98,6 +101,9 @@ private:
   LengthCommand length;
   CalcCommand calc;
   RandomCommand random;
+  CutCommand cut;
+  NlCommand nl;
+  BlankCommand blank;
 
   CrystalCommand crystal;
   TopCommand rtop;
@@ -135,7 +141,8 @@ public:
         length(terminal_utils), calc(), motd(), rockfetch(terminal_utils),
         ascii(terminal_utils), stats(terminal_utils), mood(),
         void_cmd(terminal_utils), lore(), diagnose(terminal_utils), rockai(ai),
-        wallpaper(), tac(fs, current_dir) {}
+        wallpaper(), tac(fs, current_dir), cut(fs, current_dir),
+        blank(fs, current_dir), nl(fs, current_dir, terminal_utils) {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 
@@ -174,6 +181,9 @@ public:
     register_command(&calc);
     register_command(&random);
     register_command(&tac);
+    register_command(&cut);
+    register_command(&nl);
+    register_command(&blank);
 
     register_command(&rtop);
     register_command(&crystal);
