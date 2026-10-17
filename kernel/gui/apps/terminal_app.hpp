@@ -5,6 +5,7 @@
 #include "../window.hpp"
 #include "../window_app.hpp"
 
+#include "../../drivers/keyboard.hpp"
 #include "../../shell/shell.hpp"
 
 class TerminalApp : public IWindowApp {
@@ -64,6 +65,8 @@ public:
 
     switch (ev.keytype) {
     case KeyType::Char:
+      if (ev.scancode == 'c' && Keyboard::is_ctrl_down()) {
+      }
       utils.insert_char(ev.scancode);
       break;
 

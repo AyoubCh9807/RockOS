@@ -18,6 +18,8 @@ private:
   int content_width = 0;
   int content_height = 0;
 
+  bool exit_requested = false;
+
   int calculate_columns(int width) const {
     return width / Graphics::CHARACTER_WIDTH;
   }
@@ -113,6 +115,10 @@ public:
     if (cursor_visible)
       draw_cursor(win);
   }
+
+  inline void exit() { exit_requested = true; }
+  inline bool requests_exit() const { return exit_requested; }
+  inline void reset_exit_state() { exit_requested = false; }
 
 private:
   void draw_cursor(Window &win) {
