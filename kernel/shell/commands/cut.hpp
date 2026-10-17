@@ -1,4 +1,3 @@
-```cpp
 #pragma once
 
 #include "../../data/system.hpp"
@@ -60,4 +59,3 @@ public:
     return CommandResult(output, 0xFFFFFF);
   }
 };
-```

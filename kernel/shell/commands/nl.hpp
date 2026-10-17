@@ -31,19 +31,19 @@ public:
     buffer[bytes_read] = '\0';
 
     int line = 1;
-    utils.print(line);
+    utils.print_formatted(Colors::WHITE, "%d", line);
     utils.print("  ");
 
     for (size_t i = 0; i < bytes_read; i++) {
-      utils.print((char)buffer[i]);
+      utils.print_formatted(Colors::WHITE, "%d", buffer[i]);
 
       if (buffer[i] == '\n' && i + 1 < bytes_read) {
         line++;
-        utils.print(line);
+        utils.print_formatted(Colors::WHITE, "%d", line);
         utils.print("  ");
       }
     }
 
-    return CommandResult();
+    return CommandResult("");
   }
 };
