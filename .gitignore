@@ -3,8 +3,8 @@
 *.bin
 
 # ISO images and build directories
-*.iso
-isodir/
+# .iso
+# isodir/
 
 # IDE or editor-specific files
 .vscode/
