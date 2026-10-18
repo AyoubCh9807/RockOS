@@ -584,6 +584,12 @@ public:
   }
 
   String &trim() {
+    trim_left();
+    trim_right();
+    return *this;
+  }
+
+  String &trim_and_collapse() {
     collapse_spaces();
     trim_left();
     trim_right();

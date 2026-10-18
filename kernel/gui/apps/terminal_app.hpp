@@ -66,6 +66,7 @@ public:
     switch (ev.keytype) {
     case KeyType::Char:
       if (ev.scancode == 'c' && Keyboard::is_ctrl_down()) {
+        // Interuption stuff
       }
       utils.insert_char(ev.scancode);
       break;

@@ -46,6 +46,7 @@
 #include "commands/wc.hpp"
 #include "commands/write.hpp"
 #include "commands/yes.hpp"
+#include "commands/trim.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -106,6 +107,7 @@ private:
   NlCommand nl;
   BlankCommand blank;
   YesCommand yes;
+  TrimCommand trim;
 
   CrystalCommand crystal;
   TopCommand rtop;
@@ -145,7 +147,7 @@ public:
         void_cmd(terminal_utils), lore(), diagnose(terminal_utils), rockai(ai),
         wallpaper(), tac(fs, current_dir), cut(fs, current_dir),
         yes(terminal_utils), blank(fs, current_dir),
-        nl(fs, current_dir, terminal_utils) {}
+        nl(fs, current_dir, terminal_utils), trim() {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 
@@ -188,6 +190,7 @@ public:
     register_command(&nl);
     register_command(&blank);
     register_command(&yes);
+    register_command(&trim);
 
     register_command(&rtop);
     register_command(&crystal);
