@@ -40,13 +40,14 @@
 #include "commands/tac.hpp"
 #include "commands/tail.hpp"
 #include "commands/touch.hpp"
+#include "commands/trim.hpp"
 #include "commands/tyrant.hpp"
 #include "commands/upper.hpp"
 #include "commands/uptime.hpp"
 #include "commands/wc.hpp"
+#include "commands/which.hpp"
 #include "commands/write.hpp"
 #include "commands/yes.hpp"
-#include "commands/trim.hpp"
 
 #include "commands/ascii.hpp"
 #include "commands/diagnose.hpp"
@@ -108,6 +109,7 @@ private:
   BlankCommand blank;
   YesCommand yes;
   TrimCommand trim;
+  WhichCommand which;
 
   CrystalCommand crystal;
   TopCommand rtop;
@@ -147,7 +149,8 @@ public:
         void_cmd(terminal_utils), lore(), diagnose(terminal_utils), rockai(ai),
         wallpaper(), tac(fs, current_dir), cut(fs, current_dir),
         yes(terminal_utils), blank(fs, current_dir),
-        nl(fs, current_dir, terminal_utils), trim() {}
+        nl(fs, current_dir, terminal_utils), trim(),
+        which(commands, MAX_TERMINAL_COMMANDS) {}
 
   void register_command(ICommand *cmd) { commands[count++] = cmd; }
 
@@ -191,6 +194,7 @@ public:
     register_command(&blank);
     register_command(&yes);
     register_command(&trim);
+    register_command(&which);
 
     register_command(&rtop);
     register_command(&crystal);
